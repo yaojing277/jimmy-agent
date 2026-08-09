@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jimmy 專案總覽</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3250;
+    --accent: #5b7fff;
+    --accent2: #a78bfa;
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    min-height: 100vh;
+    padding: 32px 16px 64px;
+  }
+
+  /* ── Header ── */
+  header {
+    max-width: 1000px;
+    margin: 0 auto 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-title h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-title p {
+    font-size: 0.85rem;
+    color: var(--text3);
+    margin-top: 4px;
+  }
+  .last-updated {
+    font-size: 0.8rem;
+    color: var(--text3);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+  }
+
+  /* ── Section ── */
+  .section {
+    max-width: 1000px;
+    margin: 0 auto 40px;
+  }
+  .section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text3);
+    margin-bottom: 14px;
+    padding-left: 4px;
+  }
+
+  /* ── Card grid ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 16px;
+  }
+  .card-grid.wide { grid-template-columns: 1fr; }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent)22;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .card-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .card-meta { flex: 1; min-width: 0; }
+  .card-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-sub {
+    font-size: 0.78rem;
+    color: var(--text3);
+    margin-top: 3px;
+  }
+
+  .card-desc {
+    font-size: 0.84rem;
+    color: var(--text2);
+    line-height: 1.65;
+  }
+
+  /* ── Badge strip ── */
+  .badge-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .badge {
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .badge-green  { background: #052e1a; color: var(--green);  border: 1px solid #065f3a; }
+  .badge-blue   { background: #0c1f3d; color: var(--blue);   border: 1px solid #1e3a6a; }
+  .badge-yellow { background: #2d1f04; color: var(--yellow); border: 1px solid #5c3d08; }
+  .badge-purple { background: #1e1040; color: var(--accent2); border: 1px solid #3b2580; }
+  .badge-gray   { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+
+  /* ── Links row ── */
+  .link-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 4px;
+    border-top: 1px solid var(--border);
+  }
+  .link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.78rem;
+    color: var(--accent);
+    text-decoration: none;
+    background: #0f1b3d;
+    border: 1px solid #1e3a6a;
+    border-radius: var(--radius-sm);
+    padding: 5px 11px;
+    transition: background 0.15s;
+  }
+  .link-btn:hover { background: #162b5c; }
+  .link-btn.secondary {
+    color: var(--accent2);
+    background: #1a1040;
+    border-color: #3b2580;
+  }
+  .link-btn.secondary:hover { background: #251854; }
+
+  /* ── Sub-table ── */
+  .sub-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  .sub-table th {
+    text-align: left;
+    color: var(--text3);
+    font-weight: 500;
+    padding: 4px 8px 6px 0;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .sub-table td {
+    padding: 7px 8px 7px 0;
+    color: var(--text2);
+    border-bottom: 1px solid var(--surface2);
+    vertical-align: middle;
+  }
+  .sub-table tr:last-child td { border-bottom: none; }
+  .sub-table td.mono {
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--accent2);
+  }
+
+  /* ── Todo list ── */
+  .todo-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .todo-list li {
+    font-size: 0.81rem;
+    color: var(--text2);
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+  }
+  .todo-list li::before {
+    content: '○';
+    font-size: 0.6rem;
+    color: var(--yellow);
+    flex-shrink: 0;
+    position: relative;
+    top: -1px;
+  }
+  .todo-list li.done { color: var(--text3); text-decoration: line-through; }
+  .todo-list li.done::before { content: '✓'; color: var(--green); }
+
+  /* ── Tools grid ── */
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .tool-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: border-color 0.2s;
+  }
+  .tool-item:hover { border-color: var(--border); }
+  .tool-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .tool-info {}
+  .tool-name { font-size: 0.82rem; font-weight: 500; color: var(--text); }
+  .tool-desc { font-size: 0.74rem; color: var(--text3); margin-top: 2px; }
+
+  /* ── Status dot ── */
+  .dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 2px #052e1a;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+  }
+  .dot.idle { background: var(--yellow); box-shadow: 0 0 0 2px #2d1f04; animation: none; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    header { flex-direction: column; align-items: flex-start; }
+    .card-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <h1>Jimmy 專案總覽</h1>
+    <p>個人開發專案、工具程式與自動化腳本</p>
+  </div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-07-19</div>
+</header>
+
+<!-- ═══════════════════════════════════════
+     主要專案
+════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-title">主要專案</div>
+  <div class="card-grid">
+
+    <!-- 象棋麻將 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">♟️</div>
+        <div class="card-meta">
+          <div class="card-name">象棋麻將遊戲</div>
+          <div class="card-sub">自創桌遊 · 三版並行</div>
+        </div>
+        <span class="dot"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">HTML / JS</span>
+        <span class="badge badge-blue">Firebase</span>
+        <span class="badge badge-purple">GitHub Pages</span>
+      </div>
+      <div class="card-desc">
+        結合象棋棋子與麻將玩法的自創桌遊。32 隻棋子、4 人輪流、胡牌判定、計分積分。
+        三版並行：熱座版、Firebase 多人版、AI 對戰版。
+      </div>
+      <table class="sub-table">
+        <thead>
+          <tr>
+            <th>版本</th><th>狀態</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>單機熱座版</td>
+            <td><span class="badge badge-green">已部署</span></td>
+          </tr>
+          <tr>
+            <td>Firebase 多人版</td>
+            <td><span class="badge badge-green">已部署</span></td>
+          </tr>
+          <tr>
+            <td>AI 對戰版</td>
+            <td><span class="badge badge-yellow">開發中</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <ul class="todo-list">
+        <li>打牌時手牌持續脈衝提示</li>
+        <li>聽牌徽章（橘色閃爍）</li>
+        <li>勝利後牌型高亮</li>
+        <li>AI 回合操作區鎖定</li>
+        <li>牌堆剩餘低警示</li>
+        <li>Web Audio 音效</li>
+      </ul>
+      <div class="link-row">
+        <a class="link-btn" href="https://yaojing277.github.io/chess-mahjong/" target="_blank">🎮 熱座版</a>
+        <a class="link-btn" href="https://yaojing277.github.io/chess-mahjong/multi.html" target="_blank">🌐 多人版</a>
+        <a class="link-btn" href="https://yaojing277.github.io/chess-mahjong/ai.html" target="_blank">🤖 AI 版</a>
+        <a class="link-btn secondary" href="https://github.com/yaojing277/chess-mahjong" target="_blank">⑂ GitHub</a>
+      </div>
+    </div>
+
+    <!-- 族群漲跌幅圖表產生器 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📊</div>
+        <div class="card-meta">
+          <div class="card-name">族群漲跌幅圖表產生器</div>
+          <div class="card-sub">仿 Stockfeel 風格 · 自動截圖 PNG</div>
+        </div>
+        <span class="dot idle"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">HTML / JS</span>
+        <span class="badge badge-gray">Firecrawl</span>
+        <span class="badge badge-gray">Playwright</span>
+      </div>
+      <div class="card-desc">
+        輸入股號清單，自動從 Yahoo 股市抓取週漲跌幅，產出仿 Stockfeel 風格圖卡並截圖輸出 PNG。
+        支援自訂標題、說明文字與任意族群切換。
+      </div>
+      <ul class="todo-list">
+        <li class="done">HTML 圖表模板（薄荷綠底、粉紅徽章）</li>
+        <li class="done">Firecrawl 抓取 Yahoo 股市週漲跌幅</li>
+        <li class="done">Playwright 自動截圖輸出 PNG</li>
+        <li>整合成一鍵 Python script</li>
+        <li>支援多族群切換</li>
+      </ul>
+      <div class="link-row">
+        <a class="link-btn" href="stock_sector_chart.html" target="_blank">🖼️ 圖表預覽</a>
+      </div>
+    </div>
+
+    <!-- 股價通知 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📈</div>
+        <div class="card-meta">
+          <div class="card-name">股價通知系統</div>
+          <div class="card-sub">LINE + Gmail 雙軌 · TWSE 官方取價</div>
+        </div>
+        <span class="dot"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">Python</span>
+        <span class="badge badge-green">GitHub Actions</span>
+        <span class="badge badge-gray">cron-job.org</span>
+        <span class="badge badge-green">LINE Push</span>
+        <span class="badge badge-red" style="background:#2d0a0a;color:#f87171;border:1px solid #7f1d1d;">Gmail API</span>
+      </div>
+      <div class="card-desc">
+        監控台股並推播：LINE 版（現價通知 + 跌幅警示）與 Gmail 版並行。取價以
+        <b>TWSE 官方即時 API</b> 為主、Yahoo 備援；股票清單由 Google Sheet 管理，現價自動回寫試算表。
+      </div>
+      <table class="sub-table">
+        <thead>
+          <tr><th>程式</th><th>頻率</th><th>功能</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono">stock_notify.py</td>
+            <td>每 30 分</td>
+            <td>現價 + 漲跌幅</td>
+          </tr>
+          <tr>
+            <td class="mono">stock_alert.py</td>
+            <td>每 10 分</td>
+            <td>跌幅警示（≥2%）</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="card-desc" style="font-size:0.78rem; color: var(--text3);">
+        通知時間：09:00～14:00 週一至週五<br>
+        🔒 LINE 金鑰改存 GitHub Secrets（環境變數），程式碼已無明文 token
+      </div>
+      <div class="link-row">
+        <a class="link-btn secondary" href="https://github.com/yaojing277/stock-notify" target="_blank">⑂ GitHub</a>
+        <a class="link-btn secondary" href="https://github.com/yaojing277/stock-notify/actions" target="_blank">▶ Actions</a>
+        <a class="link-btn secondary" href="https://docs.google.com/spreadsheets/d/1iZ1cVWpY5HXWUNh8smwirFQQHWUAOO16Wh13hP0F5ME" target="_blank">📊 股票清單</a>
+      </div>
+    </div>
+
+    <!-- 今彩539開獎分析 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🎱</div>
+        <div class="card-meta">
+          <div class="card-name">今彩539 開獎分析</div>
+          <div class="card-sub">歷史開獎 · 熱度分析 · GitHub Pages · v1.0</div>
+        </div>
+        <span class="dot"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">Python</span>
+        <span class="badge badge-blue">HTML / JS</span>
+        <span class="badge badge-purple">GitHub Pages</span>
+      </div>
+      <div class="card-desc">
+        爬取 pilio.idv.tw 共 5,875 期今彩539歷史開獎資料，提供雙 Tab 網頁：
+        最近10期開獎號碼（彩球視覺化）+ 下期熱度分析（近50期熱號、遺漏值冷號、加權綜合分 TOP 10）。
+        RWD 支援 iPhone SE3，一鍵腳本自動爬取並部署。
+      </div>
+      <table class="sub-table">
+        <thead>
+          <tr><th>功能</th><th>說明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>歷史資料</td><td>5,875 筆每日明細 + 1,013 週彙整 CSV</td></tr>
+          <tr><td>熱號分析</td><td>近50期出現頻率 vs 統計期望值</td></tr>
+          <tr><td>冷號分析</td><td>遺漏期數（距上次開出）</td></tr>
+          <tr><td>綜合分析</td><td>50%×近50期 + 30%×近200期 + 20%×全史</td></tr>
+        </tbody>
+      </table>
+      <ul class="todo-list">
+        <li>GitHub Actions 自動排程每日爬取更新</li>
+        <li>號碼出現走勢折線圖</li>
+        <li>自選號碼對獎功能</li>
+      </ul>
+      <div class="link-row">
+        <a class="link-btn" href="https://yaojing277.github.io/lotto539/" target="_blank">🌐 開啟網頁</a>
+        <a class="link-btn secondary" href="https://github.com/yaojing277/lotto539" target="_blank">⑂ GitHub</a>
+      </div>
+    </div>
+
+    <!-- 中越翻譯 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🌏</div>
+        <div class="card-meta">
+          <div class="card-name">中越翻譯</div>
+          <div class="card-sub">中文⇄越南文互譯 · 手機優先 · v1.0</div>
+        </div>
+        <span class="dot"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">HTML / JS</span>
+        <span class="badge badge-purple">GitHub Pages</span>
+        <span class="badge badge-gray">Web Speech API</span>
+      </div>
+      <div class="card-desc">
+        單一 HTML 的中文⇄越南文翻譯網頁，打字即翻（自動偵測語言方向），
+        支援譯文朗讀（越南語/中文語音）、一鍵複製、對調反翻、最近 20 筆歷史。
+        手機加入主畫面即可像 App 使用。
+      </div>
+      <table class="sub-table">
+        <thead>
+          <tr><th>功能</th><th>說明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>翻譯引擎</td><td>Google gtx 免費端點，失效自動備援 MyMemory</td></tr>
+          <tr><td>方向偵測</td><td>含中文字→譯越文；越南文→譯繁中</td></tr>
+          <tr><td>朗讀</td><td>瀏覽器內建 TTS（vi-VN / zh-TW）</td></tr>
+          <tr><td>部署</td><td><code>deploy_translate.sh</code> 一鍵推 GitHub Pages</td></tr>
+        </tbody>
+      </table>
+      <div class="link-row">
+        <a class="link-btn" href="https://yaojing277.github.io/zh-vi-translate/" target="_blank">🌐 開啟網頁</a>
+        <a class="link-btn secondary" href="https://github.com/yaojing277/zh-vi-translate" target="_blank">⑂ GitHub</a>
+      </div>
+    </div>
+
+    <!-- 股價試算 Dashboard -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">💹</div>
+        <div class="card-meta">
+          <div class="card-name">股價試算 Dashboard</div>
+          <div class="card-sub">攤平均價試算 · v1.1</div>
+        </div>
+        <span class="dot idle"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">HTML / JS</span>
+        <span class="badge badge-green">Google Drive API</span>
+        <span class="badge badge-purple">GitHub Pages</span>
+      </div>
+      <div class="card-desc">
+        從 Google Drive「股價試算」試算表讀取持股資料，計算攤平均價與損益。
+        即時股價三層 fallback：TWSE → TPEx → Yahoo Finance。
+      </div>
+      <table class="sub-table">
+        <thead>
+          <tr><th>功能</th><th>說明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>選股</td><td>自動讀取最新 Jimmy_YYMMDD 工作表</td></tr>
+          <tr><td>試算</td><td>輸入買進股數 → 攤平均價 + 損益</td></tr>
+          <tr><td>即時價</td><td>TWSE / TPEx / Yahoo 三層備援</td></tr>
+        </tbody>
+      </table>
+      <div class="link-row">
+        <a class="link-btn" href="https://yaojing277.github.io/Stock878/avg_price_calc.html" target="_blank">🌐 開啟網頁</a>
+        <a class="link-btn secondary" href="https://github.com/yaojing277/Stock878" target="_blank">⑂ GitHub</a>
+      </div>
+    </div>
+
+    <!-- ETF 報酬比較圖卡 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📈</div>
+        <div class="card-meta">
+          <div class="card-name">ETF 報酬比較圖卡</div>
+          <div class="card-sub">五大ETF vs 大盤報酬指數 · 深淺雙色</div>
+        </div>
+        <span class="dot idle"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">HTML / Chart.js</span>
+        <span class="badge badge-gray">Python</span>
+        <span class="badge badge-gray">Playwright</span>
+        <span class="badge badge-green">TWSE 官方</span>
+      </div>
+      <div class="card-desc">
+        台股 5 檔 ETF 歷年「年度報酬率（曆年、含息）」比較，疊加大盤
+        <b>發行量加權股價報酬指數</b>虛線基準。資料用 Yahoo 還原股價＋TWSE 官方校正
+        （00631L 2015 跨年斷點修正），統計值由 JS 即時計算。
+      </div>
+      <table class="sub-table">
+        <thead>
+          <tr><th>標的</th><th>2016–25 年化</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>00631L 槓桿2倍</td><td>≈ +35.1%</td></tr>
+          <tr><td>0050 市值型</td><td>≈ +19.3%</td></tr>
+          <tr><td>大盤報酬指數</td><td>≈ +17.4%</td></tr>
+          <tr><td>0056 / 00878 高股息</td><td>≈ +13~14%</td></tr>
+          <tr><td>00662 NASDAQ</td><td>≈ +18.8%（17起）</td></tr>
+        </tbody>
+      </table>
+      <ul class="todo-list">
+        <li class="done">五檔 ETF + 大盤基準長條/折線圖</li>
+        <li class="done">深色 / 淺色雙版本 HTML + PNG</li>
+        <li class="done">逐年明細 + 綜合績效 CSV 匯出</li>
+        <li>包成一鍵 Python script（抓資料＋更新＋截圖）</li>
+        <li>可自訂任意 ETF 清單與年度區間</li>
+      </ul>
+      <div class="link-row">
+        <a class="link-btn" href="00631L_vs_0050_returns.html" target="_blank">🌙 深色版</a>
+        <a class="link-btn" href="00631L_vs_0050_returns_light.html" target="_blank">☀️ 淺色版</a>
+      </div>
+    </div>
+
+    <!-- MouseSideKey 滑鼠側鍵工具 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🖱️</div>
+        <div class="card-meta">
+          <div class="card-name">MouseSideKey 滑鼠側鍵工具</div>
+          <div class="card-sub">Hammerspoon 視窗管理 · 多滑鼠學習模式 · v2</div>
+        </div>
+        <span class="dot idle"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">Lua / Hammerspoon</span>
+        <span class="badge badge-gray">macOS</span>
+        <span class="badge badge-purple">GitHub（私人）</span>
+      </div>
+      <div class="card-desc">
+        滑鼠側鍵變視窗管理鍵：<b>上側鍵＝最大化/復原切換、下側鍵＝移到另一個螢幕</b>。
+        <span class="mono">⌘⇧⌥L</span> 學習模式免改程式即可新增任何滑鼠（USB / 2.4G / 藍牙），
+        以 keyCode → keyboardType → CGEvent flags 三層識別精確區分裝置，
+        解決藍牙滑鼠側鍵偽裝鍵盤事件的誤觸問題。
+      </div>
+      <table class="sub-table">
+        <thead>
+          <tr><th>檔案</th><th>用途</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">install.command</td><td>一鍵安裝（Homebrew + Hammerspoon + 開機自啟）</td></tr>
+          <tr><td class="mono">init.lua</td><td>主程式（v2 三層裝置識別）</td></tr>
+          <tr><td class="mono">diagnose_key_source.lua</td><td>裝置來源診斷工具</td></tr>
+        </tbody>
+      </table>
+      <ul class="todo-list">
+        <li class="done">一鍵安裝程式與開機自動啟動</li>
+        <li class="done">學習模式（設定存 mouse_side_keys.json）</li>
+        <li class="done">實測 Razer Viper Mini（USB）、DFM80 BT（藍牙）</li>
+        <li class="done">GitHub 私人 repo + Google Drive zip 雙備份</li>
+      </ul>
+      <div class="link-row">
+        <a class="link-btn secondary" href="https://github.com/yaojing277/mouse-side-key" target="_blank">⑂ GitHub</a>
+        <a class="link-btn secondary" href="https://drive.google.com/file/d/1JzvvI0zAf9wrtotzDGmY1UjEch_MVw2m/view" target="_blank">☁️ Drive 備份</a>
+      </div>
+    </div>
+
+    <!-- YouTube 影片 AI 摘要 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🎬</div>
+        <div class="card-meta">
+          <div class="card-name">YouTube 影片 AI 摘要</div>
+          <div class="card-sub">貼網址 / 頻道自動監控 → AI 重點摘要 · v2.0</div>
+        </div>
+        <span class="dot"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">Python</span>
+        <span class="badge badge-purple">Claude CLI</span>
+        <span class="badge badge-gray">youtube-transcript-api</span>
+        <span class="badge badge-purple">GitHub Pages</span>
+      </div>
+      <div class="card-desc">
+        貼上 YouTube 網址，自動抓字幕（zh-TW 人工字幕優先、退到自動字幕，
+        <b>無字幕自動 Whisper 語音轉錄</b>）→ <b>claude CLI</b> 產生結構化摘要 →
+        深色 HTML 摘要頁：一句話總結、重點清單、<b>可點跳轉的時間戳章節</b>、金句與適合誰看。
+        另可 <b>yt_auto_summary.py</b> 一鍵檢查三個頻道新片、自動摘要＋部署＋LINE 推播。
+      </div>
+      <table class="sub-table">
+        <thead>
+          <tr><th>項目</th><th>說明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>單片摘要</td><td class="mono">python3 yt_summary.py &lt;網址&gt;</td></tr>
+          <tr><td>新片自動摘要</td><td class="mono">python3 yt_auto_summary.py</td></tr>
+          <tr><td>監控頻道</td><td>阿良的正二人生 / 槓桿人生 / 卡哇KAWA</td></tr>
+          <tr><td>AI 引擎</td><td>claude CLI（訂閱制，免 API key）＋ faster-whisper 轉錄</td></tr>
+          <tr><td>摘要庫</td><td class="mono">yt_summaries/index.html</td></tr>
+        </tbody>
+      </table>
+      <ul class="todo-list">
+        <li class="done">網址解析、字幕語言優先序、無字幕 Whisper 轉錄 fallback</li>
+        <li class="done">時間戳章節跳轉連結、同片重跑覆蓋防呆</li>
+        <li class="done">claude CLI 登入並實測成功（TED、阿格力 EP134）</li>
+        <li class="done">摘要庫部署 GitHub Pages（deploy_yt_summaries.sh 一鍵）</li>
+        <li class="done">頻道新片自動摘要（yt_auto_summary.py：RSS 比對已見清單 → 摘要 → 部署 → LINE）</li>
+        <li>本機設定 LINE 金鑰（line_secrets.json）啟用摘要推播</li>
+      </ul>
+      <div class="link-row">
+        <a class="link-btn" href="https://yaojing277.github.io/yt-summaries/" target="_blank">🌐 摘要庫（線上）</a>
+        <a class="link-btn secondary" href="yt_summaries/index.html" target="_blank">📚 本機摘要庫</a>
+        <a class="link-btn secondary" href="https://github.com/yaojing277/yt-summaries" target="_blank">⑂ GitHub</a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     工具程式
+════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-title">工具程式與腳本</div>
+  <div class="tool-grid">
+
+    <div class="tool-item">
+      <div class="tool-icon">🔔</div>
+      <div class="tool-info">
+        <div class="tool-name">日期提醒通知</div>
+        <div class="tool-desc">date_reminder.html</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
+      <div class="tool-icon">💹</div>
+      <div class="tool-info">
+        <div class="tool-name">持股月結 K 欄更新</div>
+        <div class="tool-desc">update_close_price.py ·「更新K欄」自動挑最新分頁抓 TWSE 收盤</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
+      <div class="tool-icon">🗓️</div>
+      <div class="tool-info">
+        <div class="tool-name">股價快照滾動</div>
+        <div class="tool-desc">update_stock_price.py ·「更新股價」複製當日快照分頁再滾動 H~K</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
+      <div class="tool-icon">💰</div>
+      <div class="tool-info">
+        <div class="tool-name">現金股利發放日</div>
+        <div class="tool-desc">「更新股利」Playwright 抓 wantgoo + 除息日/配息交叉驗證</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
+      <div class="tool-icon">📺</div>
+      <div class="tool-info">
+        <div class="tool-name">YouTube 頻道通知</div>
+        <div class="tool-desc">youtube_notify.py</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
+      <div class="tool-icon">📊</div>
+      <div class="tool-info">
+        <div class="tool-name">Excel 檢視器</div>
+        <div class="tool-desc">excel_viewer_local.html</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
+      <div class="tool-icon">☁️</div>
+      <div class="tool-info">
+        <div class="tool-name">Google Drive Excel 檢視器</div>
+        <div class="tool-desc">google_drive_excel_viewer.html</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
+      <div class="tool-icon">🔊</div>
+      <div class="tool-info">
+        <div class="tool-name">音訊分頁高亮</div>
+        <div class="tool-desc">AudioTabHighlighter</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
+      <div class="tool-icon">🔵</div>
+      <div class="tool-info">
+        <div class="tool-name">藍牙重啟</div>
+        <div class="tool-desc">restart-bluetooth.sh</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
+      <div class="tool-icon">🔊</div>
+      <div class="tool-info">
+        <div class="tool-name">朗讀剪貼簿</div>
+        <div class="tool-desc">speak.sh / 朗讀剪貼簿.shortcut</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
+      <div class="tool-icon">🔄</div>
+      <div class="tool-info">
+        <div class="tool-name">Mac 重啟</div>
+        <div class="tool-desc">restart_mac.command</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
+      <div class="tool-icon">🔌</div>
+      <div class="tool-info">
+        <div class="tool-name">Mac 關機</div>
+        <div class="tool-desc">shutdown_now.command</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     版本紀錄
+════════════════════════════════════════ -->
+<section class="section">
+  <div class="section-title">版本紀錄</div>
+  <div class="card" style="max-width:600px;">
+    <table class="sub-table">
+      <thead>
+        <tr><th>日期</th><th>異動說明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-07-19</td>
+          <td>🤖 頻道新片自動摘要 v2.0：新增 yt_auto_summary.py 監控三頻道（阿良的正二人生／槓桿人生／卡哇KAWA）RSS，新片自動摘要（無字幕走 Whisper 轉錄）→ 部署 Pages → LINE 推短版；首輪實測 3 部全數成功</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-07-19</td>
+          <td>🌐 影片摘要庫上線 GitHub Pages：新增 deploy_yt_summaries.sh 一鍵部署（repo 不存在自動建立、rsync 同步、自動啟用 Pages），網址 yaojing277.github.io/yt-summaries</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-07-12</td>
+          <td>🎬 新增 YouTube 影片 AI 摘要工具：yt_summary.py 貼網址 → 抓字幕（zh-TW 優先）→ claude CLI 產生摘要 → 深色 HTML 摘要頁＋摘要庫 index；無字幕影片優雅跳過，已實測 TED 與阿格力 EP134</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-07-08</td>
+          <td>🖱️ MouseSideKey 升格為主要專案：建立 GitHub 私人 repo（yaojing277/mouse-side-key）＋ Google Drive zip 雙備份，本機完成安裝（Hammerspoon 1.1.1）；工具區舊條目（hammerspoon_side_button.lua 單檔版）併入專案卡片</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-07-04</td>
+          <td>🗓️ 更新股價「快照滾動」：update_stock_price.py 改為先複製最新分頁成當天日期新分頁（插於舊分頁左側）再滾動 H~K，舊分頁保留為凍結月度快照；同天重跑防呆中止，新增 --in-place 保留就地滾動舊行為，補 ALIAS 聯電→2303</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-07-04</td>
+          <td>💰 現金股利發放日自動補抓：「更新股利」以 Playwright 讀 wantgoo 真實 DOM、除息日＋配息交叉驗證後補「現金股利_公式版」C 欄（緯創 7/31、聯電 7/30；未公告者留空不硬填）</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-06-29</td>
+          <td>💹 持股月結 K 欄一鍵更新：update_close_price.py 預設自動挑最新 Jimmy_YYMMDD 分頁（--sheet latest）；twse_hist.py 修正 TWSE /rwd/ 假錯誤自動 fallback /exchangeReport/；新增 reauth_sheets.py 重新授權工具</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-06-28</td>
+          <td>📈 新增 ETF 報酬比較圖卡：5 檔 ETF（00631L/0050/0056/00878/00662）vs 大盤報酬指數歷年年度報酬率，深淺雙色 HTML + PNG + CSV（資料源 Yahoo 還原股價＋TWSE 官方校正）</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-06-26</td>
+          <td>🔒 安全強化：股價通知 / 跌幅警示 / 日期提醒的 LINE 金鑰改讀環境變數（GitHub Secrets），移除程式碼明文 token；已線上實測推播成功</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-06-26</td>
+          <td>持股試算工具（update_close_price / trade_entry / fetch_612）與新模組 twse_hist.py：歷史收盤價與配息改用 TWSE / TPEx 官方資料，移除 Yahoo（美股不再支援）</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-06-18</td>
+          <td>股價通知取價改為 TWSE 官方即時 API 為主、Yahoo 備援（共用模組 price_source.py），解決 Yahoo 限速問題</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-05-30</td>
+          <td>新增今彩539開獎分析（5875期歷史資料爬蟲、熱度分析、RWD 網頁部署至 GitHub Pages）</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-05-30</td>
+          <td>新增族群漲跌幅圖表產生器（仿 Stockfeel 風格、Firecrawl 抓資料、Playwright 截圖）</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-05-27</td>
+          <td>股價通知系統：推播方式由 LINE API 改為 Gmail 通知</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-05-24</td>
+          <td>建立專案總覽頁面；收錄象棋麻將、股價通知、股價試算 Dashboard 及工具程式</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  // 更新最後更新日期（每次由 Claude 修改時同步更新 lastUpdated 內容即可）
+  // 若需自動顯示今日，取消下方 auto 區塊的註解
+  /*
+  const d = new Date();
+  document.getElementById('lastUpdated').textContent =
+    '最後更新：' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  */
+</script>
+</body>
+</html>

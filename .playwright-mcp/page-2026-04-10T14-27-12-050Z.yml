@@ -1,0 +1,848 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - link "Skip to content" [ref=e4] [cursor=pointer]:
+        - /url: "#content"
+      - banner [ref=e5]:
+        - generic [ref=e6]:
+          - link [ref=e10] [cursor=pointer]:
+            - /url: https://raymondhouch.com/
+          - generic [ref=e11]:
+            - generic [ref=e13]:
+              - navigation "選單" [ref=e14]:
+                - list [ref=e15]:
+                  - listitem [ref=e16]:
+                    - link "關於我們" [ref=e17] [cursor=pointer]:
+                      - /url: https://raymondhouch.com/about/
+                  - listitem [ref=e18]:
+                    - link "文章分類" [ref=e19] [cursor=pointer]:
+                      - /url: https://raymondhouch.com/articles/
+                      - text: 文章分類
+                      - generic [ref=e20]:
+                        - generic: 
+                  - listitem [ref=e21]:
+                    - link "免費資源" [ref=e22] [cursor=pointer]:
+                      - /url: https://raymondhouch.com/free-kits/
+                  - listitem [ref=e23]:
+                    - link "🔥 線上課程" [ref=e24] [cursor=pointer]:
+                      - /url: https://academy.lifehacker.tw/
+                      - text: 🔥 線上課程
+                      - generic [ref=e25]:
+                        - generic: 
+                  - listitem [ref=e26]:
+                    - link "專屬優惠" [ref=e27] [cursor=pointer]:
+                      - /url: https://raymondhouch.com/coupon/
+                  - listitem [ref=e28]:
+                    - link "訓練營" [ref=e29] [cursor=pointer]:
+                      - /url: https://raymondhouch.com/learn/
+                  - listitem [ref=e30]:
+                    - link "訂閱會員社群" [ref=e31] [cursor=pointer]:
+                      - /url: https://raymondhouch.com/go-subscribe/
+              - text:    
+            - link "Notion 學習" [ref=e35] [cursor=pointer]:
+              - /url: https://raymondhouch.com/notionhacker/
+              - generic [ref=e37]: Notion 學習
+            - link "訂閱電子報" [ref=e41] [cursor=pointer]:
+              - /url: "#cta"
+              - generic [ref=e43]: 訂閱電子報
+    - main [ref=e44]:
+      - generic [ref=e45]:
+        - generic [ref=e53]:
+          - list [ref=e56]:
+            - listitem [ref=e57]:
+              - link "數字工作與生活" [ref=e60] [cursor=pointer]:
+                - /url: https://raymondhouch.com/lifehacker/digital-workflow/
+          - heading "白話文教學：AI 怎麼幫你動手做事？API、CLI、MCP、瀏覽器控制的選擇邏輯" [level=1] [ref=e63]
+          - list [ref=e66]:
+            - listitem [ref=e67]:
+              - link "Picture of 侯智薰 （雷蒙） 侯智薰 （雷蒙）" [ref=e68] [cursor=pointer]:
+                - /url: https://raymondhouch.com/author/admin/
+                - img "Picture of 侯智薰 （雷蒙）" [ref=e70]
+                - generic [ref=e71]: 侯智薰 （雷蒙）
+            - listitem [ref=e72]:
+              - generic [ref=e73]:
+                - text: 發佈：
+                - time [ref=e74]: 2026-03-18
+            - listitem [ref=e75]:
+              - generic [ref=e76]:
+                - text: 更新：
+                - time [ref=e77]: 2026-04-09
+        - generic [ref=e90]: 一篇搞懂 AI 操控軟體的五種方式：API（應用程式介面）、CLI（命令列介面）、MCP（模型上下文協議）、GUI（圖形介面）和 Browser Use（瀏覽器自動化）。選對路線，速度差上百度，而且更穩定、更容易設計自動化。用這一篇，快速讓你知道如何判斷什麼時候該用哪一種，AI Agent 入門必讀的基礎知識。
+        - generic [ref=e92]:
+          - generic [ref=e95]:
+            - generic [ref=e97]:
+              - paragraph [ref=e99]:
+                - text: 此系列文為：
+                - link "AI Agent 教學" [ref=e100] [cursor=pointer]:
+                  - /url: https://raymondhouch.com/tag/ai-agent/
+                  - strong [ref=e101]: AI Agent 教學
+                - text: ；一次看完整的教學系列文，歡迎加入
+                - link "AI 共學島訂閱服務" [ref=e102] [cursor=pointer]:
+                  - /url: https://community.lifehacker.tw
+                  - strong [ref=e103]: AI 共學島訂閱服務
+                - text: 。
+              - heading "怎麼讓 AI 更有效幫你控制、代操工具？" [level=2] [ref=e104]
+              - paragraph [ref=e105]: 到底該怎麼讓 AI 能直接在 WordPress / Ghost 上發文、編輯標籤、優化 SEO，或者直接幫你爬 Notion Database 的資料？API 跟 MCP 差在哪裡？哪個好用？
+              - paragraph [ref=e106]: 你可能有遇過：「AI 不是很厲害嗎？怎麼連發一篇文章都搞不定？」
+              - paragraph [ref=e107]:
+                - text: 問題出在：
+                - strong [ref=e108]: 你沒給它正確的工具權限
+                - text: ，
+                - strong [ref=e109]: 讓它走了一條最笨的路
+                - text: 。
+              - paragraph [ref=e110]: 很多人（包括 AI 本身）在選擇「怎麼操控軟體」這事上，常常會選錯路線。
+              - paragraph [ref=e111]:
+                - text: 這一篇，
+                - strong [ref=e112]: 快速讓你補齊 AI Agent 的基本知識，讓你知道如何讓 AI 擁有正確的工具能力
+                - text: 。
+              - separator [ref=e113]: ...
+              - heading "五種操控軟體的方式，一張圖看懂" [level=2] [ref=e114]
+              - figure [ref=e115]:
+                - link "AI 操控軟體的五種方式排行" [ref=e116] [cursor=pointer]:
+                  - /url: https://raymondhouch.com/wp-content/uploads/2026/03/ai-software-control-ranking-scaled.jpg
+                  - img "AI 操控軟體的五種方式排行" [ref=e117]
+              - paragraph [ref=e118]:
+                - text: 前陣子好友 Yuanlin Lin（
+                - link "Zeabur" [ref=e119] [cursor=pointer]:
+                  - /url: https://raymondhouch.com/lifehacker/digital-workflow/zeabur-guide/
+                - text: 創辦人）在 Threads 上寫了一則很棒的科普文
+                - superscript [ref=e120]:
+                  - link "1" [ref=e121] [cursor=pointer]:
+                    - /url: "#057f0005-8405-4d4b-86a0-a02d9791deb5"
+                - text: ，把 API、GUI、CLI、MCP、Browser Use 這些技術名詞解釋得很清楚。
+              - paragraph [ref=e122]: 我打算用我的理解方式重新整理，再加上我自己玩了三年 AI、幾個月的 AI Agent 的經驗，希望給小白、非工程師的一個快速整理。
+              - paragraph [ref=e123]: 先給你一張對照表：
+              - figure [ref=e124]:
+                - table [ref=e125]:
+                  - rowgroup [ref=e126]:
+                    - row "方法 白話說明 速度 穩定度 誰在用" [ref=e127]:
+                      - cell "方法" [ref=e128]:
+                        - strong [ref=e129]: 方法
+                      - cell "白話說明" [ref=e130]:
+                        - strong [ref=e131]: 白話說明
+                      - cell "速度" [ref=e132]:
+                        - strong [ref=e133]: 速度
+                      - cell "穩定度" [ref=e134]:
+                        - strong [ref=e135]: 穩定度
+                      - cell "誰在用" [ref=e136]:
+                        - strong [ref=e137]: 誰在用
+                    - row "API 程式直接呼叫程式 極快 極高 工程師、AI Agent" [ref=e138]:
+                      - cell "API" [ref=e139]:
+                        - strong [ref=e140]: API
+                      - cell "程式直接呼叫程式" [ref=e141]
+                      - cell "極快" [ref=e142]
+                      - cell "極高" [ref=e143]
+                      - cell "工程師、AI Agent" [ref=e144]
+                    - row "CLI 在終端機打指令 快 高 工程師、進階用戶、AI Agent" [ref=e145]:
+                      - cell "CLI" [ref=e146]:
+                        - strong [ref=e147]: CLI
+                      - cell "在終端機打指令" [ref=e148]
+                      - cell "快" [ref=e149]
+                      - cell "高" [ref=e150]
+                      - cell "工程師、進階用戶、AI Agent" [ref=e151]
+                    - row "MCP 幫 AI 包好的「工具包」 快 高 AI 工具（Claude Code 等）" [ref=e152]:
+                      - cell "MCP" [ref=e153]:
+                        - strong [ref=e154]: MCP
+                      - cell "幫 AI 包好的「工具包」" [ref=e155]
+                      - cell "快" [ref=e156]
+                      - cell "高" [ref=e157]
+                      - cell "AI 工具（Claude Code 等）" [ref=e158]
+                    - row "GUI 你平常用的 App 畫面 慢 高 普通人類" [ref=e159]:
+                      - cell "GUI" [ref=e160]:
+                        - strong [ref=e161]: GUI
+                      - cell "你平常用的 App 畫面" [ref=e162]
+                      - cell "慢" [ref=e163]
+                      - cell "高" [ref=e164]
+                      - cell "普通人類" [ref=e165]
+                    - row "Browser Use AI 模擬人類點按鈕 最慢 最低 AI Agent（最後手段）" [ref=e166]:
+                      - cell "Browser Use" [ref=e167]:
+                        - strong [ref=e168]: Browser Use
+                      - cell "AI 模擬人類點按鈕" [ref=e169]
+                      - cell "最慢" [ref=e170]
+                      - cell "最低" [ref=e171]
+                      - cell "AI Agent（最後手段）" [ref=e172]
+              - heading "API：程式和程式之間的暗號" [level=3] [ref=e173]
+              - paragraph [ref=e174]:
+                - text: API（Application Programming Interface，
+                - strong [ref=e175]: 應用程式介面
+                - text: ）就是「
+                - strong [ref=e176]: 讓程式可以呼叫另一個程式的接口
+                - text: 」。
+              - paragraph [ref=e177]:
+                - text: 想像你要寄一封 email：打開 Gmail、點「撰寫」、填收件人、打內容、按傳送。這是人類的方式，也就是
+                - strong [ref=e178]: GUI
+                - text: （Graphical User Interface，
+                - strong [ref=e179]: 圖形使用者介面
+                - text: ），我們看著畫面點來點去，是最直覺的操作。
+              - paragraph [ref=e180]: 但你每按一個按鈕，Gmail 背後其實都在呼叫 Google 的 API。那個漂亮的介面，只是把「呼叫 API」這件事包裝成你看得懂的按鈕。
+              - paragraph [ref=e181]:
+                - strong [ref=e182]: 如果你能讓 AI Agent 直接透過 API 控制，你其實就不用自己繞一圈去按按鈕？
+              - paragraph [ref=e183]: 這就是 AI 時代最核心的觀念轉換，讓軟體的操作回到本質、最簡單直接的作法。
+              - heading "CLI：API 的人性化版本" [level=3] [ref=e184]
+              - paragraph [ref=e185]:
+                - text: CLI（Command Line Interface，
+                - strong [ref=e186]: 命令列介面
+                - text: ）就是在終端機裡打指令。
+              - paragraph [ref=e187]: 它介於 API 和 GUI 之間 — 沒有漂亮畫面，但用人類看得懂的語言文字，例如：
+              - code [ref=e189]: gmail send --to boss@company.com --subject "月報" --body "附件如附"
+              - paragraph [ref=e190]: 一行指令搞定。不用打開 Gmail、不用等畫面載入、不用點撰寫再填四個欄位。
+              - paragraph [ref=e191]: CLI 在 AI 時代特別重要的三個理由：
+              - list [ref=e192]:
+                - listitem [ref=e193]:
+                  - strong [ref=e194]: 比 GUI 穩定
+                  - text: ：App 會改版、按鈕會搬家，但指令格式幾乎不會變
+                - listitem [ref=e195]:
+                  - strong [ref=e196]: 比 Browser Use 快
+                  - text: ：不用打開瀏覽器、等頁面載入
+                - listitem [ref=e197]:
+                  - strong [ref=e198]: 比 API 更適合 AI 使用
+                  - text: ：指令是簡單英文單字，AI 不容易寫錯
+              - heading "MCP：幫 AI 預先包好的工具包" [level=3] [ref=e199]
+              - paragraph [ref=e200]:
+                - text: MCP（Model Context Protocol，
+                - strong [ref=e201]: 模型上下文協議
+                - text: ）是 2024 年底 Anthropic 提出的開放標準。
+              - paragraph [ref=e202]:
+                - emphasis [ref=e203]: ※ 未來我也會寫一篇《MCP 入門與推薦》文章，推薦一些我有安裝的 MCP。
+              - paragraph [ref=e204]:
+                - text: 讓我先簡單說：
+                - strong [ref=e205]: MCP 就是有人幫你把 API 和 CLI 包裝成 AI 可以直接拿來用的工具。
+              - paragraph [ref=e206]: 沒有 MCP 的時候，AI 要先去查文件、搞懂 API 格式、寫程式呼叫；有了 MCP，AI 直接從工具清單裡挑一個來用，幾秒搞定。
+              - paragraph [ref=e207]:
+                - strong [ref=e208]:
+                  - mark [ref=e209]: 但 MCP 也有它的限制，不是什麼都用 MCP
+                - text: ：
+              - list [ref=e210]:
+                - listitem [ref=e211]: 要等別人開發 MCP Server 你才能用
+                - listitem [ref=e212]: 不是所有 AI 工具都完整支援
+                - listitem [ref=e213]: 裝太多 MCP 會佔用 AI 的記憶空間（Context Window，上下文窗口）
+              - generic [ref=e214]:
+                - paragraph [ref=e215]:
+                  - text: 舉個實際案例來說：
+                  - strong [ref=e216]: Notion 官方推出的 MCP
+                  - superscript [ref=e217]:
+                    - link "2" [ref=e218] [cursor=pointer]:
+                      - /url: "#634bcb87-fd89-48ae-a4be-eb5089921c9d"
+                  - strong [ref=e219]: 就比 Notion API（Application Programming Interface）功能少蠻多的；WordPress 也是
+                  - text: 。
+                - paragraph [ref=e220]: 所以這兩個工具，我都還是用 API，功能全面，反正你也是叫 AI Agent 幫你讀官方的 API 文檔，也不是你自己讀，重點是功能權限能不能全開。
+                - paragraph [ref=e221]: 所以我一律都建議，直接讓 AI 幫你查：「你要的工具，在 MCP 跟 API 上，功能跟使用上的差異？」
+                - paragraph [ref=e222]: 它會直接評估後告訴你，哪個是更好的選擇，該怎麼做。
+              - figure "當你要安裝 MCP 前，可以直接問 AI，讓它給你比較表格最準" [ref=e224]:
+                - link "wordpress mcp vs api differences 2026 03 18 1" [ref=e225] [cursor=pointer]:
+                  - /url: https://raymondhouch.com/wp-content/uploads/2026/03/wordpress-mcp-vs-api-differences-2026-03-18-1.jpg
+                  - img "wordpress mcp vs api differences 2026 03 18 1" [ref=e226]
+                - generic [ref=e227]: 當你要安裝 MCP 前，可以直接問 AI，讓它給你比較表格最準
+              - heading "Browser Use：最後才用的大絕招" [level=3] [ref=e228]
+              - paragraph [ref=e229]:
+                - text: Browser Use（
+                - strong [ref=e230]: 瀏覽器自動化操控
+                - text: ）就是讓 AI 打開瀏覽器，像真人一樣操作網頁，點按鈕、填表單、截圖。
+              - paragraph [ref=e231]:
+                - text: 技術上常用的工具包括
+                - code [ref=e232]: Playwright
+                - text: 和
+                - code [ref=e233]: Puppeteer
+                - text: 這類瀏覽器自動化框架。
+              - paragraph [ref=e234]:
+                - text: 聽起來很厲害對吧？但老實說，這是
+                - strong [ref=e235]: 所有方式裡面最慢、最不穩定的
+                - text: 。
+              - paragraph [ref=e236]: 為什麼？因為網頁會改版。今天那個按鈕在左邊，明天改版可能搬到右邊，AI 就找不到了。
+              - paragraph [ref=e237]: 打個比方來說，你讓 AI 控制瀏覽器來發一篇電子報、填寫表單，大概要花上 5~10 分鐘，但透過 API 可能是幾秒鐘的任務。
+              - figure [ref=e238]:
+                - link "讓 AI 模仿人類操作 vs 讓 AI 直接跟系統對話" [ref=e239] [cursor=pointer]:
+                  - /url: https://raymondhouch.com/wp-content/uploads/2026/03/ai-software-control-metaphor-scaled.jpg
+                  - img "讓 AI 模仿人類操作 vs 讓 AI 直接跟系統對話" [ref=e240]
+              - separator [ref=e241]: ...
+              - generic [ref=e242]:
+                - paragraph [ref=e243]:
+                  - strong [ref=e244]: 🔥 早鳥預購中｜
+                  - link "24 小時開始活用 Claude Code" [ref=e245] [cursor=pointer]:
+                    - /url: https://lifehacker.tw/courses/24hr-claude-code-tutorial?affcode=blog
+                    - strong [ref=e246]: 24 小時開始活用 Claude Code
+                - paragraph [ref=e247]:
+                  - strong [ref=e248]: 為什麼大多數人裝完之後就放著沒用？因為你的 AI Agent 一開始太空白、你也不知道從何訓練。
+                - paragraph [ref=e249]:
+                  - text: 以我們 8 年的教學，超過 10,000 名學員在
+                  - link "數位工作術" [ref=e250] [cursor=pointer]:
+                    - /url: http://lifehacker.tw
+                  - text: 的經驗，這次特別設計課程機制：
+                - paragraph [ref=e251]:
+                  - text: 這堂迷你課，設計為
+                  - strong [ref=e252]: 可以直接餵給 Claude Code，它會快速學會這些「武功秘笈」
+                  - text: ！
+                - paragraph [ref=e253]: 幫助、引導你做好前期配置，打造出「好用的 AI 分身助理」。
+                - paragraph [ref=e254]: 讓你不用自己讀每篇文章，當然你也可以讀，跟你的 AI 一起進化。
+                - paragraph [ref=e255]:
+                  - text: 內容皆為我們真實場景的完整教學，
+                  - strong [ref=e256]: 不只告訴你「怎麼做」，更告訴你我們踩過什麼坑、怎麼解決的？
+                - figure [ref=e257]:
+                  - link "claude code package 0409" [ref=e258] [cursor=pointer]:
+                    - /url: https://lifehacker.tw/courses/24hr-claude-code-tutorial?affcode=blog
+                    - img "claude code package 0409" [ref=e259]
+              - separator [ref=e260]: ...
+              - heading "我的實戰經驗：選錯路線的代價" [level=2] [ref=e261]
+              - paragraph [ref=e262]: 跑了半年 AI 助理之後，我踩過的坑可以整理成一條很清楚的優先順序：
+              - blockquote [ref=e263]:
+                - paragraph [ref=e264]:
+                  - text: 能用 API / CLI → 就不要用 MCP
+                  - text: 能用 MCP → 就不要用 Browser Use
+                  - text: Browser Use → 是真的沒有其他路的最後手段
+              - heading "案例一：爬文 or 抓個人 Notion 內容" [level=3] [ref=e265]
+              - list [ref=e266]:
+                - listitem [ref=e267]:
+                  - strong [ref=e268]: 錯誤路線
+                  - text: ：用 Playwright（瀏覽器自動化工具）打開 Notion 網頁 → 載入慢、格式亂、常常失敗
+                - listitem [ref=e269]:
+                  - strong [ref=e270]: 正確路線
+                  - text: ：用 Notion API→ 3 秒拿到完美結構化資料；別人的網頁用 Firecrawl
+                  - superscript [ref=e271]:
+                    - link "3" [ref=e272] [cursor=pointer]:
+                      - /url: "#34c4ef09-3bcc-4335-aa0d-b9922fba85c6"
+              - heading "案例二：抓別人的 Facebook 貼文" [level=3] [ref=e273]
+              - list [ref=e274]:
+                - listitem [ref=e275]:
+                  - strong [ref=e276]: 沒有 API 可用
+                  - text: （Facebook 不開放抓別人的貼文）
+                - listitem [ref=e277]:
+                  - strong [ref=e278]: 正確路線
+                  - text: ：這時候才用 Playwright（瀏覽器自動化）打開頁面去抓
+              - paragraph [ref=e279]: 看到了嗎？Browser Use（瀏覽器自動化）不是不好，而是它應該是你「沒有其他路」的時候才走的路。
+              - separator [ref=e280]: ...
+              - heading "那 Agent-Browser 呢？用 AI 操控桌面 App" [level=2] [ref=e281]
+              - paragraph [ref=e282]:
+                - text: 最近還有一個新工具叫
+                - link "agent-browser" [ref=e283] [cursor=pointer]:
+                  - /url: https://github.com/vercel-labs/agent-browser
+                - text: ，它可以讓 AI 直接操控 Electron 架構的桌面 App：Slack、Discord、VS Code、甚至 Obsidian
+                - superscript [ref=e284]:
+                  - link "4" [ref=e285] [cursor=pointer]:
+                    - /url: "#5b72d93c-0510-40db-bdab-b1ae944291bd"
+                - text: 。
+              - paragraph [ref=e286]:
+                - text: ※ 背後原理是： 幾乎所有 Electron 架構的應用程式都會暴露 Chrome DevTools Protocol（CDP，Chrome 開發者工具協議）埠口（常見如
+                - code [ref=e287]: "--remote-debugging-port=9222"
+                - text: ）。 只要開啟這個偵錯埠口，我們熟悉的瀏覽器自動化工具（例如 Playwright）就能像控制 Headless Chrome 一樣去操控桌面軟體了。
+              - figure "agent-browser 操控 Slack 桌面版的示範" [ref=e288]:
+                - generic [ref=e290]: agent-browser 操控 Slack 桌面版的示範
+              - paragraph [ref=e291]:
+                - text: 聽起來很酷，但我的判斷是：
+                - strong [ref=e292]: 對大部分人來說，目前不需要。
+              - paragraph [ref=e293]: 原因和 Browser Use 一樣 — 如果這些軟體已經有 API 或 CLI，直接用就好了。我用 Discord Bot API 發訊息，比讓 AI 打開 Discord App 去點按鈕快一百倍。
+              - paragraph [ref=e294]:
+                - strong [ref=e295]: agent-browser 真正有價值的場景
+                - text: ：某個軟體完全沒有 API，也沒有 CLI，你又非得自動化不可。這種情況在企業內部的老系統比較常見，一般人很少遇到。
+              - separator [ref=e296]: ...
+              - blockquote [ref=e297]:
+                - paragraph [ref=e298]:
+                  - text: 延伸閱讀：想知道讓 AI 看懂網頁的具體工具比較，可以看這篇
+                  - link "讓 AI 助理看懂網頁：三大抓取工具完整比較" [ref=e299] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/ai-agent-web-scraping-tools-comparison/
+                  - text: 。
+              - separator [ref=e300]: ...
+              - heading "一個簡單的決策流程" [level=2] [ref=e301]
+              - paragraph [ref=e302]: 下次你想讓 AI 幫你自動化某件事，可以照這個順序想：
+              - code [ref=e304]: 1. 這個服務有 API（應用程式介面）嗎？ → 有：直接用 API（最快最穩） 2. 有人做好 MCP（模型上下文協議）了嗎？ → 有：裝 MCP，讓 AI 直接用（方便） 3. 有 CLI（命令列工具）嗎？ → 有：讓 AI 下指令（快又穩） 4. 以上都沒有？ → Browser Use / agent-browser（最後手段）
+              - paragraph [ref=e305]: 大部分主流服務（Notion、Google、WordPress、GitHub、Slack）都有 API，所以你幾乎不需要走到第 4 步。
+              - separator [ref=e306]: ...
+              - heading "學會之後，你能組合出什麼？看看我的 19 個工具生態系" [level=2] [ref=e307]
+              - paragraph [ref=e308]:
+                - text: 講了這麼多原理，你可能會想：「那
+                - strong [ref=e309]: 實際上
+                - text: 能組合出什麼？」
+              - paragraph [ref=e310]:
+                - text: 以下是我自己的 AI 分身助理「雷小蒙」目前實際串接的
+                - strong [ref=e311]: 19 個工具生態系
+                - text: 。背後全部靠這篇講的
+                - strong [ref=e312]: API / CLI / MCP
+                - text: 三條主力路線組合完成，只有少數沒有 API 的地方才會走 Browser Use。
+              - figure [ref=e313]:
+                - link "雷蒙三十的 AI Agent「雷小蒙」串接的 19 個工具生態系，包含內容管理、社群、通訊、創作、部署、其他整合六大類" [ref=e314] [cursor=pointer]:
+                  - /url: https://raymondhouch.com/wp-content/uploads/2026/04/claude-agent-tool-ecosystem-scaled.jpg
+                  - img "雷蒙三十的 AI Agent「雷小蒙」串接的 19 個工具生態系，包含內容管理、社群、通訊、創作、部署、其他整合六大類" [ref=e315]
+              - paragraph [ref=e316]: 雷小蒙目前實際串接的 19 個工具：內容管理（WordPress / Ghost / Kit）、社群（Facebook 廣告 / Threads）、通訊（Discord / Gmail / Google Calendar / iMessage）、創作（Obsidian / Eagle）、部署與自動化（Zeabur / n8n / Cloudflare），加上 Testimonial、Figma、Home Assistant、NAS 等其他整合。
+              - paragraph [ref=e317]: 所以現在我的 Claude Code 能夠直接對上面列出來的這些應用，直接幫我代理執行操作；不管是拿資料、輸入資料、編輯還是發布等等。
+              - separator [ref=e318]: ...
+              - blockquote [ref=e319]:
+                - paragraph [ref=e320]:
+                  - text: 想從零開始學 AI Agent，預計四月中上線迷你課，可以先點此
+                  - link "訂閱免費電子報" [ref=e321] [cursor=pointer]:
+                    - /url: https://lifehacker.kit.com/ai-agent
+                  - text: ，獲得最新優惠消息。
+              - separator [ref=e322]: ...
+              - heading "給非工程師的重點整理" [level=2] [ref=e323]
+              - paragraph [ref=e324]: 如果你不是工程師，記住這幾件事就夠了：
+              - list [ref=e325]:
+                - listitem [ref=e326]:
+                  - strong [ref=e327]: AI 操控軟體的最佳方式是 API（應用程式介面）和 CLI（命令列介面）
+                  - text: ，不用模擬人類去點按鈕
+                - listitem [ref=e328]:
+                  - strong [ref=e329]: MCP（Model Context Protocol，模型上下文協議）是幫你把 API 包裝好的工具包
+                  - text: ，讓 AI 可以直接用，不用自己寫程式
+                - listitem [ref=e330]:
+                  - strong [ref=e331]: Browser Use（瀏覽器自動化）是最後手段
+                  - text: ，不是預設方案，速度慢、容易壞、而且貴（消耗大量 token）
+                - listitem [ref=e332]:
+                  - strong [ref=e333]: 選對路線的差距是秒和分鐘的差距
+                  - text: ，長期累積下來影響巨大
+              - paragraph [ref=e334]: 讓 AI 用它擅長的方式工作（API、CLI），而不是逼它模仿人類的方式工作（點按鈕）。這是 AI 時代最重要的自動化觀念。
+              - paragraph [ref=e335]:
+                - text: 還有一點，現在我選擇工具時，
+                - strong [ref=e336]:
+                  - mark [ref=e337]: 如果沒有開放 API 的工具，基本都是不考慮的
+                - text: 。
+              - separator [ref=e338]: ...
+              - heading "延伸閱讀" [level=2] [ref=e339]
+              - list [ref=e340]:
+                - listitem [ref=e341]: MCP 設定入門（系列文章，敬請期待）：前篇，教你實際設定 MCP 工具
+              - heading "📍 AI Agent（Claude Code、Codex）系列教學文章" [level=2] [ref=e342]
+              - list [ref=e343]:
+                - listitem [ref=e344]:
+                  - link "讓 AI 助理看懂網頁：Firecrawl、Playwright、WebFetch 三大抓取工具完整比較" [ref=e345] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/ai-agent-web-scraping-tools-comparison/
+                - listitem [ref=e346]:
+                  - link "白話文教學：AI 怎麼幫你動手做事？API、CLI、MCP、瀏覽器控制的選擇邏輯" [ref=e347] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/how-ai-controls-software-api-cli-mcp-browser-use/
+                - listitem [ref=e348]:
+                  - link "Vibe Coding 學習筆記：為什麼要重複造輪子？" [ref=e349] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/tool-box-vibe-coding/
+                - listitem [ref=e350]:
+                  - link "Claude Code 是什麼？從 Claude Cowork 到 Code，非工程師也能上手的完整入門教學" [ref=e351] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/claude-code-tutorial/
+                - listitem [ref=e352]:
+                  - link "21 天，我用 Claude Code 打造了一整套 AI 分身助理記錄" [ref=e353] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/21-days-claude-code-ai-agent/
+                - listitem [ref=e354]:
+                  - link "Zeabur 專用伺服器怎麼選？白話文選購指南，讓 AI 幫你搬家！" [ref=e355] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/zeabur-dedicated-server-guide/
+                - listitem [ref=e356]:
+                  - link "Zeabur 應用案例：網站部署、AI Hub、龍蝦 OpenClaw、VPS（50% 折扣）" [ref=e357] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/zeabur-guide/
+                - listitem [ref=e358]:
+                  - link "Claude Code 做好了網頁，怎麼讓別人也能看到？Zeabur 與 Cloudflare 部署完整指南" [ref=e359] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/zeabur-cloudflare-deploy-guide/
+                - listitem [ref=e360]:
+                  - link "Claude Cowork 更好用了？它跟 NotebookLM 差在哪？什麼時候才需要升級到 Code？" [ref=e361] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/claude-cowork-vs-notebooklm-vs-code/
+                - listitem [ref=e362]:
+                  - link "Claude Code 的 CLAUDE.md 和 SKILL 教學，打造可重複使用的 AI 自動化工作流" [ref=e363] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/claude-code-skill/
+                - listitem [ref=e364]:
+                  - link "用 iMessage 串接 Claude Code — 讓家人也能用 AI 助理" [ref=e365] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/imessage-claude-code-ai-assistant/
+              - separator [ref=e366]: ...
+              - paragraph [ref=e367]:
+                - strong [ref=e368]: 文章註腳
+              - list [ref=e369]:
+                - listitem [ref=e370]:
+                  - link "Yuanlin Lin — 一篇文章看懂 API、GUI、Browser Use、CLI、MCP、Skills" [ref=e371] [cursor=pointer]:
+                    - /url: https://www.threads.com/@yuaanlin/post/DVnQMeGAfsj
+                  - text: ：本文的靈感來源，從工程師角度的完整科普
+                  - link "返回註腳參照 1" [ref=e372] [cursor=pointer]:
+                    - /url: "#057f0005-8405-4d4b-86a0-a02d9791deb5-link"
+                    - text: ↩︎
+                - listitem [ref=e373]:
+                  - link "Notion MCP 官方文檔" [ref=e374] [cursor=pointer]:
+                    - /url: https://developers.notion.com/guides/mcp/mcp
+                  - link "返回註腳參照 2" [ref=e375] [cursor=pointer]:
+                    - /url: "#634bcb87-fd89-48ae-a4be-eb5089921c9d-link"
+                    - text: ↩︎
+                - listitem [ref=e376]:
+                  - text: 關於怎麼讓 AI 助理快速看懂網頁、爬內容抓下來？請看「
+                  - link "Firecrawl, Playwright, WebFetch 比較教學文" [ref=e377] [cursor=pointer]:
+                    - /url: https://raymondhouch.com/lifehacker/digital-workflow/ai-agent-web-scraping-tools-comparison/
+                  - text: 」
+                  - link "返回註腳參照 3" [ref=e378] [cursor=pointer]:
+                    - /url: "#34c4ef09-3bcc-4335-aa0d-b9922fba85c6-link"
+                    - text: ↩︎
+                - listitem [ref=e379]:
+                  - text: Obsidian 2026 年推出 CLI，一律推薦讓 AI Agent
+                  - link "讀這個官方文檔" [ref=e380] [cursor=pointer]:
+                    - /url: https://help.obsidian.md/cli
+                  - text: 使用。
+                  - link "返回註腳參照 4" [ref=e381] [cursor=pointer]:
+                    - /url: "#5b72d93c-0510-40db-bdab-b1ae944291bd-link"
+                    - text: ↩︎
+              - paragraph
+              - paragraph
+            - generic [ref=e384]:
+              - link "AI-Agent" [ref=e385] [cursor=pointer]:
+                - /url: https://raymondhouch.com/tag/ai-agent/
+              - link "AI工具應用" [ref=e386] [cursor=pointer]:
+                - /url: https://raymondhouch.com/tag/ai%e5%b7%a5%e5%85%b7%e6%87%89%e7%94%a8/
+              - link "數位工具應用" [ref=e387] [cursor=pointer]:
+                - /url: https://raymondhouch.com/tag/%e6%95%b8%e4%bd%8d%e5%b7%a5%e5%85%b7%e6%87%89%e7%94%a8/
+              - link "自動化" [ref=e388] [cursor=pointer]:
+                - /url: https://raymondhouch.com/tag/%e8%87%aa%e5%8b%95%e5%8c%96/
+            - generic [ref=e390]:
+              - generic [ref=e392]: 分享按鈕
+              - list [ref=e395]:
+                - listitem [ref=e396]:
+                  - button "分享在 facebook" [ref=e397] [cursor=pointer]:
+                    - generic [ref=e399]: 
+                - listitem [ref=e400]:
+                  - button "分享在 twitter" [ref=e401] [cursor=pointer]:
+                    - generic [ref=e403]: 
+                - listitem [ref=e404]:
+                  - button "分享在 linkedin" [ref=e405] [cursor=pointer]:
+                    - generic [ref=e407]: 
+                - listitem [ref=e408]:
+                  - button "分享在 email" [ref=e409] [cursor=pointer]:
+                    - generic [ref=e411]: 
+              - link [ref=e414] [cursor=pointer]:
+                - /url: https://lifehacker.tw/
+              - link [ref=e417] [cursor=pointer]:
+                - /url: https://notbyai.fyi/
+            - heading "關於作者" [level=4] [ref=e424]
+            - generic [ref=e427]:
+              - img "Picture of 侯智薰 （雷蒙）" [ref=e429]
+              - generic [ref=e430]:
+                - generic [ref=e431]: 侯智薰 （雷蒙）
+                - generic [ref=e432]: 個人事業・一人公司（solopreneur）・遠距工作者；探索現代人的數位工作方法，讓每個人從工具中獲得力量、享受科技樂趣，找到生活的掌握感；實踐 Lifehacker 和 Stoics 的工作生活哲學。雷蒙三十／柚智夫妻／Notion 線上訓練營創辦人
+          - generic [ref=e433]:
+            - generic [ref=e435]:
+              - generic [ref=e436]:
+                - heading "📌 目錄" [level=4] [ref=e437]
+                - text: 
+                - button "Close table of contents" [expanded] [ref=e438] [cursor=pointer]:
+                  - generic [ref=e439]: 
+              - list [ref=e441]:
+                - listitem [ref=e442]:
+                  - generic [ref=e443]:
+                    - generic [ref=e444]: 
+                    - link "怎麼讓 AI 更有效幫你控制、代操工具？" [ref=e445] [cursor=pointer]:
+                      - /url: "#elementor-toc__heading-anchor-0"
+                - listitem [ref=e446]:
+                  - generic [ref=e447]:
+                    - generic [ref=e448]: 
+                    - link "五種操控軟體的方式，一張圖看懂" [ref=e449] [cursor=pointer]:
+                      - /url: "#elementor-toc__heading-anchor-1"
+                  - list [ref=e450]:
+                    - listitem [ref=e451]:
+                      - generic [ref=e452]:
+                        - generic [ref=e453]: 
+                        - link "API：程式和程式之間的暗號" [ref=e454] [cursor=pointer]:
+                          - /url: "#elementor-toc__heading-anchor-2"
+                    - listitem [ref=e455]:
+                      - generic [ref=e456]:
+                        - generic [ref=e457]: 
+                        - link "CLI：API 的人性化版本" [ref=e458] [cursor=pointer]:
+                          - /url: "#elementor-toc__heading-anchor-3"
+                    - listitem [ref=e459]:
+                      - generic [ref=e460]:
+                        - generic [ref=e461]: 
+                        - link "MCP：幫 AI 預先包好的工具包" [ref=e462] [cursor=pointer]:
+                          - /url: "#elementor-toc__heading-anchor-4"
+                    - listitem [ref=e463]:
+                      - generic [ref=e464]:
+                        - generic [ref=e465]: 
+                        - link "Browser Use：最後才用的大絕招" [ref=e466] [cursor=pointer]:
+                          - /url: "#elementor-toc__heading-anchor-5"
+                - listitem [ref=e467]:
+                  - generic [ref=e468]:
+                    - generic [ref=e469]: 
+                    - link "我的實戰經驗：選錯路線的代價" [ref=e470] [cursor=pointer]:
+                      - /url: "#elementor-toc__heading-anchor-6"
+                  - list [ref=e471]:
+                    - listitem [ref=e472]:
+                      - generic [ref=e473]:
+                        - generic [ref=e474]: 
+                        - link "案例一：爬文 or 抓個人 Notion 內容" [ref=e475] [cursor=pointer]:
+                          - /url: "#elementor-toc__heading-anchor-7"
+                    - listitem [ref=e476]:
+                      - generic [ref=e477]:
+                        - generic [ref=e478]: 
+                        - link "案例二：抓別人的 Facebook 貼文" [ref=e479] [cursor=pointer]:
+                          - /url: "#elementor-toc__heading-anchor-8"
+                - listitem [ref=e480]:
+                  - generic [ref=e481]:
+                    - generic [ref=e482]: 
+                    - link "那 Agent-Browser 呢？用 AI 操控桌面 App" [ref=e483] [cursor=pointer]:
+                      - /url: "#elementor-toc__heading-anchor-9"
+                - listitem [ref=e484]:
+                  - generic [ref=e485]:
+                    - generic [ref=e486]: 
+                    - link "一個簡單的決策流程" [ref=e487] [cursor=pointer]:
+                      - /url: "#elementor-toc__heading-anchor-10"
+                - listitem [ref=e488]:
+                  - generic [ref=e489]:
+                    - generic [ref=e490]: 
+                    - link "學會之後，你能組合出什麼？看看我的 19 個工具生態系" [ref=e491] [cursor=pointer]:
+                      - /url: "#elementor-toc__heading-anchor-11"
+                - listitem [ref=e492]:
+                  - generic [ref=e493]:
+                    - generic [ref=e494]: 
+                    - link "給非工程師的重點整理" [ref=e495] [cursor=pointer]:
+                      - /url: "#elementor-toc__heading-anchor-12"
+                - listitem [ref=e496]:
+                  - generic [ref=e497]:
+                    - generic [ref=e498]: 
+                    - link "延伸閱讀" [ref=e499] [cursor=pointer]:
+                      - /url: "#elementor-toc__heading-anchor-13"
+                - listitem [ref=e500]:
+                  - generic [ref=e501]:
+                    - generic [ref=e502]: 
+                    - link "📍 AI Agent（Claude Code、Codex）系列教學文章" [ref=e503] [cursor=pointer]:
+                      - /url: "#elementor-toc__heading-anchor-14"
+            - generic [ref=e509]:
+              - heading "🆕 最新文章" [level=4] [ref=e512]
+              - list [ref=e515]:
+                - listitem [ref=e516]:
+                  - heading "Claude Code 桌面版 vs 終端機：你該用哪一個？" [level=4] [ref=e518]:
+                    - link "Claude Code 桌面版 vs 終端機：你該用哪一個？" [ref=e519] [cursor=pointer]:
+                      - /url: https://raymondhouch.com/lifehacker/digital-workflow/claude-code-desktop-vs-terminal/
+                - listitem [ref=e520]:
+                  - heading "有了 AI Agent 之後，Notion 跟 n8n 就可以丟了嗎？三者關係與我的實戰用法" [level=4] [ref=e522]:
+                    - link "有了 AI Agent 之後，Notion 跟 n8n 就可以丟了嗎？三者關係與我的實戰用法" [ref=e523] [cursor=pointer]:
+                      - /url: https://raymondhouch.com/lifehacker/digital-workflow/notion-n8n-ai-agent-comparison/
+                - listitem [ref=e524]:
+                  - heading "Claude Cowork 更好用了？它跟 NotebookLM 差在哪？什麼時候才需要升級到 Code？" [level=4] [ref=e526]:
+                    - link "Claude Cowork 更好用了？它跟 NotebookLM 差在哪？什麼時候才需要升級到 Code？" [ref=e527] [cursor=pointer]:
+                      - /url: https://raymondhouch.com/lifehacker/digital-workflow/claude-cowork-vs-notebooklm-vs-code/
+                - listitem [ref=e528]:
+                  - heading "#177 – 砍掉重來的教學影片 / AI 分身上班記錄 / Vibe Coding 設計銷售網頁 ®️雷蒙週報" [level=4] [ref=e530]:
+                    - link "#177 – 砍掉重來的教學影片 / AI 分身上班記錄 / Vibe Coding 設計銷售網頁 ®️雷蒙週報" [ref=e531] [cursor=pointer]:
+                      - /url: https://raymondhouch.com/newsletter/177/
+        - generic [ref=e536]:
+          - heading "留言回應" [level=4] [ref=e539]
+          - generic [ref=e543]:
+            - generic [ref=e544]:
+              - generic [ref=e545]:
+                - generic [ref=e546] [cursor=pointer]:
+                  - generic [ref=e547]: 
+                  - text: 訂閱
+                  - generic [ref=e548]: 
+                - link " Login" [ref=e551] [cursor=pointer]:
+                  - /url: https://raymondhouch.com/wp-login.php?redirect_to=https%3A%2F%2Fraymondhouch.com%2Flifehacker%2Fdigital-workflow%2Fhow-ai-controls-software-api-cli-mcp-browser-use%2F
+                  - generic [ref=e552]: 
+                  - text: Login
+              - generic [ref=e554]:
+                - generic [ref=e557]:
+                  - img "guest" [ref=e559]
+                  - textbox "成為第一個留言！" [ref=e562]
+                - text:      Notify of new replies to this comment
+              - text:      Notify of new replies to this comment
+            - generic [ref=e563]:
+              - generic [ref=e564]:
+                - generic [ref=e565]: 0 留言
+                - generic:  Most reacted comment  Hottest comment thread 
+              - text: 
+        - generic [ref=e569]:
+          - generic [ref=e571]:
+            - heading "你可能也喜歡" [level=3] [ref=e574]
+            - link "更多文章" [ref=e578] [cursor=pointer]:
+              - /url: https://raymondhouch.com/lifehacker/digital-workflow/
+              - generic [ref=e579]:
+                - generic [ref=e581]: 
+                - generic [ref=e582]: 更多文章
+          - generic [ref=e587]:
+            - link "Claude Code Desktop vs Terminal CLI vs Antigravity - interface comparison cover image 數字工作與生活 Claude Code 桌面版 vs 終端機：你該用哪一個？ 2026 年 4 月 09 日 繼續閱讀 +" [ref=e590] [cursor=pointer]:
+              - /url: https://raymondhouch.com/lifehacker/digital-workflow/claude-code-desktop-vs-terminal/
+              - img "Claude Code Desktop vs Terminal CLI vs Antigravity - interface comparison cover image" [ref=e594]
+              - generic [ref=e595]:
+                - generic [ref=e596]:
+                  - generic [ref=e600]: 數字工作與生活
+                  - heading "Claude Code 桌面版 vs 終端機：你該用哪一個？" [level=4] [ref=e603]
+                - generic [ref=e604]:
+                  - generic [ref=e608]: 2026 年 4 月 09 日
+                  - generic [ref=e611]: 繼續閱讀 +
+            - link "Notion n8n AI Agent 三者關係圖 數字工作與生活 有了 AI Agent 之後，Notion 跟 n8n 就可以丟了嗎？三者關係與我的實戰用法 2026 年 4 月 08 日 繼續閱讀 +" [ref=e614] [cursor=pointer]:
+              - /url: https://raymondhouch.com/lifehacker/digital-workflow/notion-n8n-ai-agent-comparison/
+              - img "Notion n8n AI Agent 三者關係圖" [ref=e618]
+              - generic [ref=e619]:
+                - generic [ref=e620]:
+                  - generic [ref=e624]: 數字工作與生活
+                  - heading "有了 AI Agent 之後，Notion 跟 n8n 就可以丟了嗎？三者關係與我的實戰用法" [level=4] [ref=e627]
+                - generic [ref=e628]:
+                  - generic [ref=e632]: 2026 年 4 月 08 日
+                  - generic [ref=e635]: 繼續閱讀 +
+            - link "Claude Cowork vs Claude Code 決策指南封面 數字工作與生活 Claude Cowork 更好用了？它跟 NotebookLM 差在哪？什麼時候才需要升級到 Code？ 2026 年 4 月 08 日 繼續閱讀 +" [ref=e638] [cursor=pointer]:
+              - /url: https://raymondhouch.com/lifehacker/digital-workflow/claude-cowork-vs-notebooklm-vs-code/
+              - img "Claude Cowork vs Claude Code 決策指南封面" [ref=e642]
+              - generic [ref=e643]:
+                - generic [ref=e644]:
+                  - generic [ref=e648]: 數字工作與生活
+                  - heading "Claude Cowork 更好用了？它跟 NotebookLM 差在哪？什麼時候才需要升級到 Code？" [level=4] [ref=e651]
+                - generic [ref=e652]:
+                  - generic [ref=e656]: 2026 年 4 月 08 日
+                  - generic [ref=e659]: 繼續閱讀 +
+    - contentinfo [ref=e660]:
+      - generic [ref=e662]:
+        - generic [ref=e663]:
+          - heading "AI 自動化應用課程" [level=4] [ref=e670]
+          - paragraph [ref=e673]:
+            - strong [ref=e674]: 市面上最好上手、含金量最高的 ChatGPT、自動化課程
+            - text: 。解放重複性工作，開始活用 AI。從日常應用到職場案例，把時間留給重要的事！
+          - link "n8n、Zapier 自動化入門課" [ref=e678] [cursor=pointer]:
+            - /url: https://lifehacker.tw/courses/automation-tools-tutorial?affcode=blog-footer
+            - generic [ref=e680]: n8n、Zapier 自動化入門課
+          - paragraph [ref=e683]:
+            - strong [ref=e684]:
+              - text: 👉 每年持續更新，
+              - link "一次性學好 ChatGPT" [ref=e685] [cursor=pointer]:
+                - /url: https://lifehacker.tw/courses/chatgpt?affcode=blog-footer
+        - generic [ref=e686]:
+          - link [ref=e689] [cursor=pointer]:
+            - /url: https://lifehacker.tw/categories/notion-template?affcode=blog-footer
+          - heading "Notion 從入門到進階" [level=4] [ref=e692]
+          - paragraph [ref=e695]:
+            - text: 想聰明工作、打造第二大腦、管理人生？我結合 13,000+ 位學員的教學經驗，設計了
+            - strong [ref=e696]: 最實用的學習路徑，從基礎操作到進階應用
+            - text: ，還有
+            - strong [ref=e697]: Notion 模版。
+          - link "觀看 Notion 系列課程" [ref=e701] [cursor=pointer]:
+            - /url: https://lifehacker.tw/categories/notion-template?affcode=blog-footer
+            - generic [ref=e703]: 觀看 Notion 系列課程
+          - paragraph [ref=e706]:
+            - strong [ref=e707]:
+              - link "👉 如何選擇適合你的 Notion 教學課程？" [ref=e708] [cursor=pointer]:
+                - /url: https://lifehacker.tw/posts/best-notion-course-for-you
+        - generic [ref=e709]:
+          - link [ref=e712] [cursor=pointer]:
+            - /url: https://shifu.tw/courses/solopreneur
+          - heading "超級個體工作術" [level=4] [ref=e715]
+          - paragraph [ref=e718]:
+            - text: 總結我 7 年的創業、一人公司的真實挑戰，帶你打破舊思維，建立新的工作模式，帶你一次性擁有「
+            - strong [ref=e719]: 新時代工作和生存策略
+            - text: 」。
+          - link "課程試看片" [ref=e723] [cursor=pointer]:
+            - /url: https://shifu.tw/courses/solopreneur
+            - generic [ref=e725]: 課程試看片
+          - paragraph [ref=e728]:
+            - strong [ref=e729]:
+              - text: 👉 這堂課
+              - link "對我、對學員的意義？" [ref=e730] [cursor=pointer]:
+                - /url: https://www.facebook.com/raymondhou0917/posts/pfbid02tnZaSpGnjxBJyLYeELCNYrdrvVQjzBC1GEQ7aSaTHnMHPtxx5kFAUh2BUnMLjSNrl?rdid=3C1jUMpURJRLZTU5
+      - generic [ref=e733]:
+        - heading "免費加入 20,000+ 人訂閱的「雷蒙週報」" [level=3] [ref=e736]
+        - generic [ref=e738]: 每個週末，寄送一則簡單有料的週報給你，讓你聰明工作，升級你的生活掌控感。
+        - form "網站 footer" [ref=e741]:
+          - generic [ref=e742]:
+            - textbox "名稱" [ref=e744]
+            - textbox "電子郵件" [ref=e746]
+            - button "加入訂閱" [ref=e748] [cursor=pointer]:
+              - generic [ref=e750]: 加入訂閱
+        - link "隨時可以取消，我們將不會再發信給你！如果無法順利訂閱，請點這。" [ref=e754] [cursor=pointer]:
+          - /url: https://raymondhouch.com/subscribe-newsletter-website
+      - generic [ref=e757]:
+        - generic [ref=e758]:
+          - paragraph [ref=e763]: 分享 AI 應用、數位工具和生產力升級的實踐經驗，發現優質的科技產品，一起聰明工作＆好好生活，找回快樂專注的時間、破解默認的職業道路。
+          - list [ref=e766]:
+            - listitem [ref=e767]:
+              - link "Facebook" [ref=e768] [cursor=pointer]:
+                - /url: https://www.facebook.com/yuiraymondfb
+                - generic [ref=e769]: Facebook
+                - generic [ref=e770]: 
+            - listitem [ref=e771]:
+              - link "Discord" [ref=e772] [cursor=pointer]:
+                - /url: https://raymondhouch.com/go-subscribe/
+                - generic [ref=e773]: Discord
+                - generic [ref=e774]: 
+            - listitem [ref=e775]:
+              - link "Youtube" [ref=e776] [cursor=pointer]:
+                - /url: https://youtube.com/@yuiraymond
+                - generic [ref=e777]: Youtube
+                - generic [ref=e778]: 
+            - listitem [ref=e779]:
+              - link "Instagram" [ref=e780] [cursor=pointer]:
+                - /url: https://www.instagram.com/yuiraymond/
+                - generic [ref=e781]: Instagram
+                - generic [ref=e782]: 
+            - listitem [ref=e783]:
+              - link "Envelope" [ref=e784] [cursor=pointer]:
+                - /url: /coupon/#cooperate
+                - generic [ref=e785]: Envelope
+                - generic [ref=e786]: 
+            - listitem [ref=e787]:
+              - link "Telegram" [ref=e788] [cursor=pointer]:
+                - /url: https://t.me/lifehackertw
+                - generic [ref=e789]: Telegram
+                - generic [ref=e790]: 
+            - listitem [ref=e791]:
+              - link "Rss" [ref=e792] [cursor=pointer]:
+                - /url: https://raymondhouch.com/feed/
+                - generic [ref=e793]: Rss
+                - generic [ref=e794]: 
+        - generic [ref=e795]:
+          - generic [ref=e797]: 更多雷蒙三十
+          - list [ref=e800]:
+            - listitem [ref=e801]:
+              - link "過往採訪" [ref=e802] [cursor=pointer]:
+                - /url: https://raymondhouch.com/about/
+                - generic [ref=e804]: 
+                - generic [ref=e805]: 過往採訪
+            - listitem [ref=e806]:
+              - link "侯智薰的使用說明書" [ref=e807] [cursor=pointer]:
+                - /url: https://raymondhouch.com/lifehacker/raymond-manual/
+                - generic [ref=e809]: 
+                - generic [ref=e810]: 侯智薰的使用說明書
+            - listitem [ref=e811]:
+              - link "社群媒體傳送門" [ref=e812] [cursor=pointer]:
+                - /url: https://raymondhouch.com/bio
+                - generic [ref=e814]: 
+                - generic [ref=e815]: 社群媒體傳送門
+            - listitem [ref=e816]:
+              - link "什麼是生活黑客 Lifehacking？" [ref=e817] [cursor=pointer]:
+                - /url: https://raymondhouch.com/lifehackerqa/
+                - generic [ref=e818]: 什麼是生活黑客 Lifehacking？
+        - generic [ref=e819]:
+          - generic [ref=e821]: 免費精選內容
+          - list [ref=e824]:
+            - listitem [ref=e825]:
+              - link "數位工具地圖｜免費領取" [ref=e826] [cursor=pointer]:
+                - /url: https://raymondhouch.com/digital-tools-guide/
+                - generic [ref=e828]: 
+                - generic [ref=e829]: 數位工具地圖｜免費領取
+            - listitem [ref=e830]:
+              - link "Notion 應用電子報｜免費訂閱" [ref=e831] [cursor=pointer]:
+                - /url: https://blog.lifehacker.tw/#/portal
+                - generic [ref=e833]: 
+                - generic [ref=e834]: Notion 應用電子報｜免費訂閱
+            - listitem [ref=e835]:
+              - link "雷蒙的資源懶人包" [ref=e836] [cursor=pointer]:
+                - /url: https://raymondhouch.com/digital-tools-guide/
+                - generic [ref=e838]: 
+                - generic [ref=e839]: 雷蒙的資源懶人包
+            - listitem [ref=e840]:
+              - link "2023 年終總結文" [ref=e841] [cursor=pointer]:
+                - /url: https://raymondhouch.com/life/2023-year-in-review/
+                - generic [ref=e843]: 
+                - generic [ref=e844]: 2023 年終總結文
+            - listitem [ref=e845]:
+              - link "隱私權政策與使用條款" [ref=e846] [cursor=pointer]:
+                - /url: https://raymondhouch.com/privacy-policy/
+                - generic [ref=e847]: 隱私權政策與使用條款
+        - generic [ref=e848]:
+          - generic [ref=e850]: 課程產品＆付費服務
+          - list [ref=e853]:
+            - listitem [ref=e854]:
+              - link "數位生產力 課程產品" [ref=e855] [cursor=pointer]:
+                - /url: https://academy.lifehacker.tw/
+                - generic [ref=e857]: 
+                - generic [ref=e858]: 數位生產力 課程產品
+            - listitem [ref=e859]:
+              - link "AI 自動化工作術" [ref=e860] [cursor=pointer]:
+                - /url: https://lifehacker.tw/courses/automation-tools-tutorial
+                - generic [ref=e862]: 
+                - generic [ref=e863]: AI 自動化工作術
+            - listitem [ref=e864]:
+              - link "最完整中文 Notion 教學" [ref=e865] [cursor=pointer]:
+                - /url: https://lifehacker.tw/courses/automation-tools-tutorial
+                - generic [ref=e867]: 
+                - generic [ref=e868]: 最完整中文 Notion 教學
+            - listitem [ref=e869]:
+              - link "會員訂閱服務" [ref=e870] [cursor=pointer]:
+                - /url: https://raymondhouch.com/go-subscribe/
+                - generic [ref=e872]: 
+                - generic [ref=e873]: 會員訂閱服務
+      - generic [ref=e874]:
+        - generic [ref=e877]:
+          - text: © 2026 ALL RIGHTS RESERVED. 遊牧青年數位內容有限公司（LifeNomad Co. ,Ltd.）｜本網站由
+          - link "wecan" [ref=e878] [cursor=pointer]:
+            - /url: https://www.wecan.com.tw/
+          - text: 建置
+        - link [ref=e882] [cursor=pointer]:
+          - /url: https://raymondhouch.com/articles/
+          - generic [ref=e883]: 
+  - generic [ref=e884]: desktop

@@ -1,0 +1,10 @@
+[    4681ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    4726ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    4818ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://sync.search.spotxchange.com/partner?adv_id=7025&gdpr=0&uid=CAESEMuoQPeqj5Yqjy4lCwP-UWo&google_cver=1:0
+[    4819ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://sync.search.spotxchange.com/partner?adv_id=7025&gdpr=0&redir=https%3A%2F%2Fcm.g.doubleclick.net%2Fpixel%3Fgoogle_nid%3Dspotxchange_dbm%26google_hm%3D%24SPOTX_BASE64_USER_ID:0
+[    4681ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    4726ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    5002ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    5026ms] [ERROR] Attestation check for Attribution Reporting on https://ad.doubleclick.net failed. @ https://www.wantgoo.com/stock/2317/dividend-policy/ex-dividend:0
+[    5047ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    5517ms] [ERROR] Attestation check for Attribution Reporting on https://ad.doubleclick.net failed. @ https://www.wantgoo.com/stock/2317/dividend-policy/ex-dividend:0

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>買進紀錄輸入（純前端版）</title>
+<style>
+ body{font-family:-apple-system,"PingFang TC",sans-serif;background:#f4f6f8;margin:0;padding:24px;color:#222}
+ .card{max-width:520px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 2px 14px rgba(0,0,0,.08);padding:24px}
+ h1{font-size:20px;margin:0 0 4px} .sub{color:#888;font-size:13px;margin-bottom:18px}
+ label{display:block;font-size:13px;color:#555;margin:12px 0 4px}
+ input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d0d5dd;border-radius:8px;font-size:16px}
+ .row{display:flex;gap:12px} .row>div{flex:1}
+ .btns{display:flex;gap:12px;margin-top:18px}
+ button{flex:1;padding:12px;border:0;border-radius:8px;font-size:15px;cursor:pointer}
+ #calc{background:#eef2f7;color:#333} #submit{background:#2563eb;color:#fff}
+ button:disabled{opacity:.5;cursor:not-allowed}
+ #out{margin-top:18px;font-size:14px;line-height:1.7;display:none;background:#f8fafc;border:1px solid #e5e9ef;border-radius:10px;padding:14px}
+ #out table{width:100%;border-collapse:collapse} #out td{padding:3px 0} #out td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+ .warn{color:#b45309} .ok{color:#15803d} .err{color:#dc2626}
+ .hint{font-size:12px;color:#999;margin-top:4px}
+ #cfg{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:12px;font-size:13px;margin-bottom:16px;display:none}
+ code{background:#eef2f7;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="card">
+ <h1>買進紀錄輸入</h1>
+ <div class="sub">純前端網頁 → 寫入「股價試算 → 股票買賣紀錄」最前一筆資料列</div>
+
+ <div id="cfg">
+  尚未設定後端網址。請開啟本檔，把最上方 <code>WEB_APP_URL</code> 改成你部署的
+  Apps Script 網頁應用程式 URL（見 <code>trade_entry_appscript.gs</code> 內的步驟）。
+ </div>
+
+ <label>股票代號 / 名稱</label>
+ <input id="code" placeholder="如 0050、2330、鴻海" autocomplete="off">
+ <div class="row">
+  <div><label>買進價格</label><input id="price" type="number" step="0.01" placeholder="成交均價"></div>
+  <div><label>買進股數</label><input id="shares" type="number" step="1" placeholder="股"></div>
+ </div>
+ <label>買進日期</label>
+ <input id="date" type="date">
+ <div class="row">
+  <div><label>手續費率 %</label><input id="fee" type="number" step="0.0001" value="0.1425">
+       <div class="hint">元大標準 0.1425%</div></div>
+  <div><label>手續費折數</label><input id="disc" type="number" step="0.01" value="0.6">
+       <div class="hint">無折讓填 1；6 折填 0.6（無最低手續費）</div></div>
+ </div>
+ <div class="btns">
+  <button id="calc" onclick="run('preview')">試算</button>
+  <button id="submit" onclick="run('add')" disabled>確認新增</button>
+ </div>
+ <div id="out"></div>
+</div>
+
+<script>
+// ============ 設定區 ============
+// 部署 trade_entry_appscript.gs 後，把產生的「網頁應用程式 URL」貼到這裡：
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz6mfLkY0cBVRKosZSHBn3GIPz5FpY_HePD1RWHBvWbmCCd3vbBE30e-IcJk97_QqVwYw/exec";            // 例:https://script.google.com/macros/s/AKfy.../exec
+const SECRET      = "pE26Cw3td4dfESIkKk9o5ptbngxv8WjK";       // 須與 .gs 內的 SECRET 一致
+// ================================
+
+const $ = id => document.getElementById(id);
+$("date").value = new Date().toISOString().slice(0, 10);
+if (!WEB_APP_URL) $("cfg").style.display = "block";
+
+function payload(action) {
+  return {
+    action, secret: SECRET,
+    code: $("code").value.trim(),
+    price: $("price").value,
+    shares: $("shares").value,
+    date: $("date").value,
+    fee_rate: $("fee").value,
+    disc: $("disc").value
+  };
+}
+
+// 前端即算金額/手續費/成本(與後端公式一致),收盤對照向後端要
+function calcLocal(price, shares, feeRatePct, disc) {
+  const amount = price * shares;
+  // 券商手續費無條件捨去到整數,無最低手續費限制
+  const fee    = Math.floor(amount * feeRatePct / 100 * disc);
+  const cost   = Math.round(amount + fee);
+  return { amount, fee, cost };
+}
+
+// 用「簡單請求」(預設 text/plain、不加自訂 header)避免 CORS 預檢
+async function callApi(p) {
+  const res = await fetch(WEB_APP_URL, { method: "POST", body: JSON.stringify(p), redirect: "follow" });
+  return res.json();
+}
+
+async function run(act) {
+  if (!WEB_APP_URL) { alert("尚未設定 WEB_APP_URL，請先部署 Apps Script 並填入網址。"); return; }
+  const p = payload(act);
+  if (!p.code || !p.price || !p.shares || !p.date) { alert("請完整填寫代號/價格/股數/日期"); return; }
+  const out = $("out"); out.style.display = "block"; out.innerHTML = "處理中…";
+
+  try {
+    if (act === "preview") {
+      const c = calcLocal(parseFloat(p.price), parseInt(p.shares, 10), parseFloat(p.fee_rate), parseFloat(p.disc));
+      let devRow = `<tr><td>當日收盤(參考)</td><td>查詢中…</td></tr>`;
+      out.innerHTML = renderPreview(c, devRow);
+      // 非同步補上收盤對照
+      const d = await callApi({ action: "close", secret: SECRET, code: p.code, date: p.date });
+      if (d && d.close != null) {
+        const dev = +( (parseFloat(p.price) / d.close - 1) * 100 ).toFixed(2);
+        const cls = Math.abs(dev) > 6 ? "warn" : "ok";
+        devRow = `<tr><td>當日收盤(參考)</td><td>${d.close}　<span class="${cls}">買價${dev >= 0 ? '+' : ''}${dev}%</span></td></tr>`;
+      } else {
+        devRow = `<tr><td>當日收盤</td><td>查無</td></tr>`;
+      }
+      out.innerHTML = renderPreview(c, devRow);
+      $("submit").disabled = false;
+    } else {
+      const d = await callApi(p);
+      if (d.error) { out.innerHTML = '<span class="err">錯誤：' + d.error + '</span>'; return; }
+      out.innerHTML = `<span class="ok">✅ 已新增到第 ${d.row} 列</span>
+        <table style="margin-top:8px">
+        <tr><td>買進成本</td><td>${d.cost.toLocaleString()}（含手續費 ${d.fee}）</td></tr></table>`;
+      $("submit").disabled = true;
+      ["code", "price", "shares"].forEach(i => $(i).value = "");
+      $("code").focus();
+    }
+  } catch (e) {
+    out.innerHTML = '<span class="err">連線失敗：' + e + '</span>';
+  }
+}
+
+function renderPreview(c, devRow) {
+  return `<table>
+    <tr><td>成交金額 (價×股)</td><td>${c.amount.toLocaleString()}</td></tr>
+    <tr><td>手續費 (寫入I欄)</td><td>${c.fee.toLocaleString()}</td></tr>
+    <tr><td><b>買進成本 (寫入J欄)</b></td><td><b>${c.cost.toLocaleString()}</b></td></tr>
+    ${devRow}</table>
+    <div class="hint" style="margin-top:8px">確認無誤後按「確認新增」寫入分頁。</div>`;
+}
+
+["code", "price", "shares", "date", "fee", "disc"].forEach(i => $(i).addEventListener("input", () => $("submit").disabled = true));
+</script>
+</body>
+</html>

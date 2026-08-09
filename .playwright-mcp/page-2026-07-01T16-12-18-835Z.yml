@@ -1,0 +1,272 @@
+- generic [ref=f203e2]:
+  - generic [ref=f203e3]:
+    - generic [ref=f203e5]:
+      - generic [ref=f203e6]: 玩股網全新登入機制上線，未來將更全面保護你的帳號安全
+      - link "搶先了解" [ref=f203e7] [cursor=pointer]:
+        - /url: https://www.wantgoo.com/edm/link/417
+    - button [ref=f203e8] [cursor=pointer]
+  - banner [ref=f203e9]:
+    - generic [ref=f203e11]:
+      - link "玩股網" [ref=f203e13] [cursor=pointer]:
+        - /url: /
+        - img "玩股網" [ref=f203e14]
+      - navigation [ref=f203e15]:
+        - list [ref=f203e16]:
+          - listitem [ref=f203e17]:
+            - link "首頁" [ref=f203e18] [cursor=pointer]:
+              - /url: /
+              - generic [ref=f203e19]: 首頁
+          - listitem [ref=f203e20]:
+            - link "社團" [ref=f203e21] [cursor=pointer]:
+              - /url: /club/promotion
+              - generic [ref=f203e22]: 社團
+          - listitem [ref=f203e23]:
+            - link "老鳥說" [ref=f203e24] [cursor=pointer]:
+              - /url: /laojiao
+              - generic [ref=f203e25]: 老鳥說
+          - listitem [ref=f203e26]:
+            - link "台股" [ref=f203e27] [cursor=pointer]:
+              - /url: /stock
+              - generic [ref=f203e28]: 台股
+          - listitem [ref=f203e29]:
+            - link "國際" [ref=f203e30] [cursor=pointer]:
+              - /url: /global
+              - generic [ref=f203e31]: 國際
+          - listitem [ref=f203e32]:
+            - link "選股" [ref=f203e33] [cursor=pointer]:
+              - /url: /screener
+              - generic [ref=f203e34]: 選股
+          - listitem [ref=f203e35]:
+            - link "網誌" [ref=f203e36] [cursor=pointer]:
+              - /url: /blog
+              - generic [ref=f203e37]: 網誌
+          - listitem [ref=f203e38]:
+            - link "動態牆" [ref=f203e39] [cursor=pointer]:
+              - /url: /social-wall
+              - generic [ref=f203e40]: 動態牆
+          - listitem [ref=f203e41]:
+            - link "新聞" [ref=f203e42] [cursor=pointer]:
+              - /url: /news
+              - generic [ref=f203e43]: 新聞
+          - listitem [ref=f203e44]:
+            - link "商城" [ref=f203e45] [cursor=pointer]:
+              - /url: /mall
+              - generic [ref=f203e46]: 商城
+          - listitem [ref=f203e47]:
+            - link "APP N" [ref=f203e48] [cursor=pointer]:
+              - /url: /app
+              - generic [ref=f203e49]: APP
+              - generic [ref=f203e51]: "N"
+      - generic [ref=f203e52]:
+        - textbox "輸入搜尋字串.." [ref=f203e56]
+        - link [ref=f203e58] [cursor=pointer]:
+          - /url: /member/login?returnUrl=%2Fstock%2F2454%2Fdividend-policy%2Fex-dividend
+  - list [ref=f203e61]:
+    - listitem [ref=f203e62]:
+      - link "玩股網" [ref=f203e63] [cursor=pointer]:
+        - /url: /
+    - listitem [ref=f203e64]:
+      - text: /
+      - link "台股" [ref=f203e65] [cursor=pointer]:
+        - /url: /stock
+    - listitem [ref=f203e66]:
+      - text: /
+      - link "聯發科 (2454)" [ref=f203e67] [cursor=pointer]:
+        - /url: /stock/2454
+    - listitem [ref=f203e68]: / 歷年股利
+  - main [ref=f203e70]:
+    - generic [ref=f203e71]:
+      - generic [ref=f203e72]:
+        - generic [ref=f203e73]:
+          - heading [level=3]
+          - time
+          - generic [ref=f203e74]: 成交量僅含一般交易、盤後定價交易
+          - list [ref=f203e75]:
+            - listitem [ref=f203e76]
+            - listitem [ref=f203e78]
+          - button " 自選股 登入免費用" [ref=f203e80] [cursor=pointer]:
+            - generic [ref=f203e81]: 
+            - text: 自選股
+            - generic [ref=f203e82]: 登入免費用
+        - list [ref=f203e86]:
+          - listitem [ref=f203e87]:
+            - generic [ref=f203e88]: 開盤
+          - listitem [ref=f203e89]:
+            - generic [ref=f203e90]: 昨收
+          - listitem [ref=f203e91]:
+            - generic [ref=f203e92]: 最高
+          - listitem [ref=f203e93]:
+            - generic [ref=f203e94]: 最低
+          - listitem [ref=f203e95]:
+            - generic [ref=f203e96]: 成交量(張)
+          - listitem [ref=f203e97]:
+            - generic [ref=f203e98]: 預估量(張)
+          - listitem [ref=f203e99]:
+            - generic [ref=f203e100]: 市值(億)
+          - listitem [ref=f203e101]:
+            - generic [ref=f203e102]: 股淨比
+          - listitem [ref=f203e103]:
+            - generic [ref=f203e104]: 均價
+          - listitem [ref=f203e105]:
+            - generic [ref=f203e106]: 本益比
+          - listitem [ref=f203e107]:
+            - generic [ref=f203e108]: 振幅
+          - listitem [ref=f203e109]:
+            - generic [ref=f203e110]: 市營比
+          - listitem [ref=f203e111]:
+            - generic [ref=f203e112]: 離季線
+          - listitem [ref=f203e113]:
+            - generic [ref=f203e114]: 發行權證(檔)
+          - listitem [ref=f203e115]:
+            - generic [ref=f203e116]: Beta值(近半年)
+      - generic [ref=f203e117]:
+        - generic [ref=f203e118]:
+          - generic [ref=f203e119]:
+            - list [ref=f203e120]:
+              - listitem [ref=f203e121]:
+                - link "群組1" [ref=f203e122] [cursor=pointer]:
+                  - /url: "javascript:"
+            - button "" [ref=f203e123] [cursor=pointer]:
+              - generic [ref=f203e124]: 
+          - list [ref=f203e126]:
+            - listitem [ref=f203e127]:
+              - button "聯發科 4335.00 2.12%" [ref=f203e128] [cursor=pointer]:
+                - generic [ref=f203e129]: 聯發科
+                - generic [ref=f203e130]: 4335.00 2.12%
+            - listitem [ref=f203e131]:
+              - button "歐特克公司 203.30 ∞%" [ref=f203e132] [cursor=pointer]:
+                - generic [ref=f203e133]: 歐特克公司
+                - generic [ref=f203e134]: 203.30 ∞%
+          - generic [ref=f203e135]:
+            - generic [ref=f203e136]:
+              - text: 立即
+              - link "登入" [ref=f203e137] [cursor=pointer]:
+                - /url: /member/login?returnUrl=%2Fstock%2F2454%2Fdividend-policy%2Fex-dividend
+              - text: 免費設定，快速切換你關注的股票
+            - link "前往我的庫存股" [ref=f203e138] [cursor=pointer]:
+              - /url: /treasury
+              - text: 前往我的庫存股
+              - generic [ref=f203e139]: 
+        - generic [ref=f203e141] [cursor=pointer]: 
+      - navigation [ref=f203e142]:
+        - list [ref=f203e143]:
+          - listitem [ref=f203e144]:
+            - generic [ref=f203e145]: 個股概況
+          - listitem [ref=f203e146]:
+            - generic [ref=f203e147]: 技術分析
+          - listitem [ref=f203e148]:
+            - generic [ref=f203e149]: 法人動態
+          - listitem [ref=f203e150]:
+            - generic [ref=f203e151]: 資券變化
+          - listitem [ref=f203e152]:
+            - generic [ref=f203e153]: 大戶籌碼
+          - listitem [ref=f203e154]:
+            - link "主力進出 " [ref=f203e155] [cursor=pointer]:
+              - /url: "javascript:"
+          - listitem [ref=f203e156]:
+            - generic [ref=f203e157]: 股權分散
+          - listitem [ref=f203e158]:
+            - link "財報股利 " [ref=f203e159] [cursor=pointer]:
+              - /url: "javascript:"
+            - text:       
+          - listitem [ref=f203e160]:
+            - generic [ref=f203e161]: 相關新聞
+      - generic [ref=f203e163]:
+        - generic [ref=f203e164]:
+          - heading [level=1]
+        - table [ref=f203e169]:
+          - rowgroup [ref=f203e170]:
+            - row "除權息 年度 現金股利 (元) 股票股利 (股)" [ref=f203e171]:
+              - columnheader "除權息 年度" [ref=f203e172]:
+                - text: 除權息
+                - text: 年度
+              - columnheader "現金股利 (元)" [ref=f203e173]
+              - columnheader "股票股利 (股)" [ref=f203e174]
+            - row "股利 除息日 發放日 除息前股價 填息天數 年股利 年殖利率(%) 股利 除權日 除權前股價 填權天數" [ref=f203e175]:
+              - columnheader "股利" [ref=f203e176]
+              - columnheader "除息日" [ref=f203e177]
+              - columnheader "發放日" [ref=f203e178]
+              - columnheader "除息前股價" [ref=f203e179]
+              - columnheader "填息天數" [ref=f203e180]
+              - columnheader "年股利" [ref=f203e181]
+              - columnheader "年殖利率(%)" [ref=f203e182]
+              - columnheader "股利" [ref=f203e183]
+              - columnheader "除權日" [ref=f203e184]
+              - columnheader "除權前股價" [ref=f203e185]
+              - columnheader "填權天數" [ref=f203e186]
+        - list [ref=f203e187]:
+          - listitem [ref=f203e188]:
+            - heading "現金股利" [level=5] [ref=f203e189]
+            - paragraph [ref=f203e190]: 定義：公司將部分盈餘以現金方式發放給股東的收益。
+            - paragraph [ref=f203e191]: 現金股利可視為利息般的實質現金收益， 當公司的盈餘因應自身投資需求還有剩餘， 通常會以現金股利的方式回饋股東。 因此當企業處於成長需要大量再投資，現金股息發配就會較少； 當企業處於成熟期沒有太多成長機會，現金股息發配就會較多，所以不能單純用殖利率來判斷公司好壞。
+          - listitem [ref=f203e192]:
+            - heading "股票股利" [level=5] [ref=f203e193]
+            - paragraph [ref=f203e194]: 定義：公司將盈餘轉成增資，以股票形式分配給股東。
+            - paragraph [ref=f203e195]: 盈餘是屬於股東的投資成果， 如果企業因應成長所需，希望將盈餘留在公司內做廠房、設備等再投資， 可透過發配股票股利的方式，以股票換取原本應該分配股東的盈餘。 因此股票股利是將股東盈餘留在企業的手段，會讓股本和淨值膨脹。 當企業處於成長需要大量再投資，股票股利發配就會較多； 當企業處於成熟期沒有成長機會，股票股利發配就會較少。
+      - generic [ref=f203e196]:
+        - generic [ref=f203e197]:
+          - generic [ref=f203e198]:
+            - tab "財經編輯" [selected] [ref=f203e199] [cursor=pointer]
+            - tab "達人點評" [ref=f203e200] [cursor=pointer]
+          - link "更多" [ref=f203e201] [cursor=pointer]:
+            - /url: /blog
+        - tabpanel [ref=f203e203]:
+          - list [ref=f203e204]:
+            - listitem [ref=f203e205]:
+              - generic [ref=f203e208]:
+                - text: 玩股華安
+                - heading "華通、昇達科重挫，金寶今日大怒神！太空AI題材全面降溫，太空種電接棒成新戰場！" [level=4] [ref=f203e209]:
+                  - link "華通、昇達科重挫，金寶今日大怒神！太空AI題材全面降溫，太空種電接棒成新戰場！" [ref=f203e210] [cursor=pointer]:
+                    - /url: /blog/407988/post/680
+            - listitem [ref=f203e211]:
+              - generic [ref=f203e214]:
+                - text: 玩股摸金
+                - heading "月線又是假跌破！台股7/1漲893點價過所有均，6/29外資空單沒加碼早就洩底了" [level=4] [ref=f203e215]:
+                  - link "月線又是假跌破！台股7/1漲893點價過所有均，6/29外資空單沒加碼早就洩底了" [ref=f203e216] [cursor=pointer]:
+                    - /url: /blog/203663/post/1368
+            - listitem [ref=f203e217]:
+              - generic [ref=f203e220]:
+                - text: 玩股特派員
+                - heading "長線抱不住，短線抓不到？保證金逼退散戶的歷史大行情，小資如何複製贏家混搭戰略" [level=4] [ref=f203e221]:
+                  - link "長線抱不住，短線抓不到？保證金逼退散戶的歷史大行情，小資如何複製贏家混搭戰略" [ref=f203e222] [cursor=pointer]:
+                    - /url: /blog/144623/post/3017
+            - listitem [ref=f203e223]:
+              - generic [ref=f203e226]:
+                - text: 楚狂人
+                - heading "大盤天天上沖下洗一兩千點，這種盤到底要怎麼賺錢？" [level=4] [ref=f203e227]:
+                  - link "大盤天天上沖下洗一兩千點，這種盤到底要怎麼賺錢？" [ref=f203e228] [cursor=pointer]:
+                    - /url: /blog/119/post/3775
+            - listitem [ref=f203e229]:
+              - generic [ref=f203e232]:
+                - text: 玩股講客人
+                - heading "南電（8046）資本支出創史上最大規模：從消費電子到AI伺服器的結構性轉骨" [level=4] [ref=f203e233]:
+                  - link "南電（8046）資本支出創史上最大規模：從消費電子到AI伺服器的結構性轉骨" [ref=f203e234] [cursor=pointer]:
+                    - /url: /blog/343059/post/306
+  - generic [ref=f203e237]: 資訊來源：臺灣證券交易所 TWSE、財團法人中華民國證券櫃檯買賣中心 GTSM、台灣期貨交易所及本資訊內容係經玩股網有限公司處理提供。使用者須遵守台灣證券交易所「交易資訊使用管理辦法」等交易資訊管理相關規定，所有資訊以台灣證券交易所公告資料為主。本網站提供之資料僅供參考，對資訊正確、延遲或傳輸中斷不負任何責任，如使用者依本資料交易發生損失需自行負責。
+  - contentinfo [ref=f203e238]:
+    - generic [ref=f203e239]:
+      - generic [ref=f203e240]:
+        - generic [ref=f203e241]:
+          - link "關於玩股網" [ref=f203e242] [cursor=pointer]:
+            - /url: /about
+          - link "服務條款" [ref=f203e243] [cursor=pointer]:
+            - /url: /terms-and-policies
+          - link "隱私政策" [ref=f203e244] [cursor=pointer]:
+            - /url: /privacy-policy
+          - link "常見問題" [ref=f203e245] [cursor=pointer]:
+            - /url: https://wantgoo.tawk.help/
+        - generic [ref=f203e246]:
+          - generic [ref=f203e247]: 玩股網有限公司統編：24211075
+          - generic [ref=f203e248]:
+            - text: © 2010-2026
+            - link "WantGoo" [ref=f203e249] [cursor=pointer]:
+              - /url: /
+      - generic [ref=f203e251]:
+        - link [ref=f203e252] [cursor=pointer]:
+          - /url: https://www.facebook.com/wantgoo.fans/
+        - link [ref=f203e254] [cursor=pointer]:
+          - /url: https://t.me/wantgoo
+        - link [ref=f203e256] [cursor=pointer]:
+          - /url: https://www.youtube.com/c/WantGooYT
+        - link [ref=f203e258] [cursor=pointer]:
+          - /url: https://podcasts.apple.com/podcast/id1540541794

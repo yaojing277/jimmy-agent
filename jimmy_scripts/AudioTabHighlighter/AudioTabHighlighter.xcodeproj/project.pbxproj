@@ -1,0 +1,989 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		BF66F6172F937F770086B9C1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF66F6162F937F770086B9C1 /* AppDelegate.swift */; };
+		BF66F6192F937F770086B9C1 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF66F6182F937F770086B9C1 /* SceneDelegate.swift */; };
+		BF66F61C2F937F770086B9C1 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BF66F61A2F937F770086B9C1 /* LaunchScreen.storyboard */; };
+		BF66F61F2F937F770086B9C1 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BF66F61D2F937F770086B9C1 /* Main.storyboard */; };
+		BF66F6282F937F770086B9C1 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF66F6272F937F770086B9C1 /* AppDelegate.swift */; };
+		BF66F62B2F937F770086B9C1 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6292F937F770086B9C1 /* Main.storyboard */; };
+		BF66F6322F937F770086B9C1 /* AudioTabHighlighter Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BF66F6312F937F770086B9C1 /* AudioTabHighlighter Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BF66F63C2F937F770086B9C1 /* AudioTabHighlighter Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BF66F63B2F937F770086B9C1 /* AudioTabHighlighter Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BF66F6412F937F770086B9C1 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6062F937F750086B9C1 /* Main.html */; };
+		BF66F6422F937F770086B9C1 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6062F937F750086B9C1 /* Main.html */; };
+		BF66F6432F937F770086B9C1 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6082F937F750086B9C1 /* Icon.png */; };
+		BF66F6442F937F770086B9C1 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6082F937F750086B9C1 /* Icon.png */; };
+		BF66F6452F937F770086B9C1 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6092F937F750086B9C1 /* Style.css */; };
+		BF66F6462F937F770086B9C1 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6092F937F750086B9C1 /* Style.css */; };
+		BF66F6472F937F770086B9C1 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = BF66F60A2F937F750086B9C1 /* Script.js */; };
+		BF66F6482F937F770086B9C1 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = BF66F60A2F937F750086B9C1 /* Script.js */; };
+		BF66F6492F937F770086B9C1 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF66F60B2F937F750086B9C1 /* ViewController.swift */; };
+		BF66F64A2F937F770086B9C1 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF66F60B2F937F750086B9C1 /* ViewController.swift */; };
+		BF66F64B2F937F770086B9C1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF66F60C2F937F770086B9C1 /* Assets.xcassets */; };
+		BF66F64C2F937F770086B9C1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BF66F60C2F937F770086B9C1 /* Assets.xcassets */; };
+		BF66F64D2F937F770086B9C1 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF66F60E2F937F770086B9C1 /* SafariWebExtensionHandler.swift */; };
+		BF66F64E2F937F770086B9C1 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF66F60E2F937F770086B9C1 /* SafariWebExtensionHandler.swift */; };
+		BF66F6632F937F780086B9C1 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6602F937F780086B9C1 /* background.js */; };
+		BF66F6642F937F780086B9C1 /* images in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6612F937F780086B9C1 /* images */; };
+		BF66F6652F937F780086B9C1 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6622F937F780086B9C1 /* manifest.json */; };
+		BF66F6662F937F780086B9C1 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6602F937F780086B9C1 /* background.js */; };
+		BF66F6672F937F780086B9C1 /* images in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6612F937F780086B9C1 /* images */; };
+		BF66F6682F937F780086B9C1 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = BF66F6622F937F780086B9C1 /* manifest.json */; };
+		BF66F6692F937F780086B9C1 /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = BF66F66A2F937F780086B9C1 /* content.js */; };
+		BF66F66B2F937F780086B9C1 /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = BF66F66A2F937F780086B9C1 /* content.js */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BF66F6332F937F770086B9C1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BF66F6002F937F740086B9C1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BF66F6302F937F770086B9C1;
+			remoteInfo = "AudioTabHighlighter Extension (iOS)";
+		};
+		BF66F63D2F937F770086B9C1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BF66F6002F937F740086B9C1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BF66F63A2F937F770086B9C1;
+			remoteInfo = "AudioTabHighlighter Extension (macOS)";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BF66F6542F937F770086B9C1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BF66F6322F937F770086B9C1 /* AudioTabHighlighter Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF66F65B2F937F770086B9C1 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BF66F63C2F937F770086B9C1 /* AudioTabHighlighter Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		BF66F6072F937F750086B9C1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		BF66F6082F937F750086B9C1 /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		BF66F6092F937F750086B9C1 /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		BF66F60A2F937F750086B9C1 /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		BF66F60B2F937F750086B9C1 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		BF66F60C2F937F770086B9C1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BF66F60E2F937F770086B9C1 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		BF66F6132F937F770086B9C1 /* AudioTabHighlighter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AudioTabHighlighter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF66F6162F937F770086B9C1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		BF66F6182F937F770086B9C1 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		BF66F61B2F937F770086B9C1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		BF66F61E2F937F770086B9C1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		BF66F6202F937F770086B9C1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BF66F6252F937F770086B9C1 /* AudioTabHighlighter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AudioTabHighlighter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF66F6272F937F770086B9C1 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		BF66F62A2F937F770086B9C1 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		BF66F62C2F937F770086B9C1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BF66F6312F937F770086B9C1 /* AudioTabHighlighter Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "AudioTabHighlighter Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF66F6362F937F770086B9C1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BF66F63B2F937F770086B9C1 /* AudioTabHighlighter Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "AudioTabHighlighter Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF66F6402F937F770086B9C1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BF66F6602F937F780086B9C1 /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = "../../audio-tab-highlighter/background.js"; sourceTree = "<group>"; };
+		BF66F6612F937F780086B9C1 /* images */ = {isa = PBXFileReference; lastKnownFileType = folder; name = images; path = "../../audio-tab-highlighter/images"; sourceTree = "<group>"; };
+		BF66F6622F937F780086B9C1 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = "../../audio-tab-highlighter/manifest.json"; sourceTree = "<group>"; };
+		BF66F66A2F937F780086B9C1 /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = content.js; path = "../../audio-tab-highlighter/content.js"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BF66F6102F937F770086B9C1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF66F6222F937F770086B9C1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF66F62E2F937F770086B9C1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF66F6382F937F770086B9C1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		BF66F5FF2F937F740086B9C1 = {
+			isa = PBXGroup;
+			children = (
+				BF66F6042F937F750086B9C1 /* Shared (App) */,
+				BF66F60D2F937F770086B9C1 /* Shared (Extension) */,
+				BF66F6152F937F770086B9C1 /* iOS (App) */,
+				BF66F6262F937F770086B9C1 /* macOS (App) */,
+				BF66F6352F937F770086B9C1 /* iOS (Extension) */,
+				BF66F63F2F937F770086B9C1 /* macOS (Extension) */,
+				BF66F6142F937F770086B9C1 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BF66F6042F937F750086B9C1 /* Shared (App) */ = {
+			isa = PBXGroup;
+			children = (
+				BF66F60B2F937F750086B9C1 /* ViewController.swift */,
+				BF66F60C2F937F770086B9C1 /* Assets.xcassets */,
+				BF66F6052F937F750086B9C1 /* Resources */,
+			);
+			path = "Shared (App)";
+			sourceTree = "<group>";
+		};
+		BF66F6052F937F750086B9C1 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				BF66F6062F937F750086B9C1 /* Main.html */,
+				BF66F6082F937F750086B9C1 /* Icon.png */,
+				BF66F6092F937F750086B9C1 /* Style.css */,
+				BF66F60A2F937F750086B9C1 /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		BF66F60D2F937F770086B9C1 /* Shared (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				BF66F65F2F937F780086B9C1 /* Resources */,
+				BF66F60E2F937F770086B9C1 /* SafariWebExtensionHandler.swift */,
+			);
+			path = "Shared (Extension)";
+			sourceTree = "<group>";
+		};
+		BF66F6142F937F770086B9C1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BF66F6132F937F770086B9C1 /* AudioTabHighlighter.app */,
+				BF66F6252F937F770086B9C1 /* AudioTabHighlighter.app */,
+				BF66F6312F937F770086B9C1 /* AudioTabHighlighter Extension.appex */,
+				BF66F63B2F937F770086B9C1 /* AudioTabHighlighter Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BF66F6152F937F770086B9C1 /* iOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				BF66F6162F937F770086B9C1 /* AppDelegate.swift */,
+				BF66F6182F937F770086B9C1 /* SceneDelegate.swift */,
+				BF66F61A2F937F770086B9C1 /* LaunchScreen.storyboard */,
+				BF66F61D2F937F770086B9C1 /* Main.storyboard */,
+				BF66F6202F937F770086B9C1 /* Info.plist */,
+			);
+			path = "iOS (App)";
+			sourceTree = "<group>";
+		};
+		BF66F6262F937F770086B9C1 /* macOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				BF66F6272F937F770086B9C1 /* AppDelegate.swift */,
+				BF66F6292F937F770086B9C1 /* Main.storyboard */,
+				BF66F62C2F937F770086B9C1 /* Info.plist */,
+			);
+			path = "macOS (App)";
+			sourceTree = "<group>";
+		};
+		BF66F6352F937F770086B9C1 /* iOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				BF66F6362F937F770086B9C1 /* Info.plist */,
+			);
+			path = "iOS (Extension)";
+			sourceTree = "<group>";
+		};
+		BF66F63F2F937F770086B9C1 /* macOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				BF66F6402F937F770086B9C1 /* Info.plist */,
+			);
+			path = "macOS (Extension)";
+			sourceTree = "<group>";
+		};
+		BF66F65F2F937F780086B9C1 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				BF66F6602F937F780086B9C1 /* background.js */,
+				BF66F66A2F937F780086B9C1 /* content.js */,
+				BF66F6612F937F780086B9C1 /* images */,
+				BF66F6622F937F780086B9C1 /* manifest.json */,
+			);
+			name = Resources;
+			path = "Shared (Extension)";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BF66F6122F937F770086B9C1 /* AudioTabHighlighter (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF66F6552F937F770086B9C1 /* Build configuration list for PBXNativeTarget "AudioTabHighlighter (iOS)" */;
+			buildPhases = (
+				BF66F60F2F937F770086B9C1 /* Sources */,
+				BF66F6102F937F770086B9C1 /* Frameworks */,
+				BF66F6112F937F770086B9C1 /* Resources */,
+				BF66F6542F937F770086B9C1 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BF66F6342F937F770086B9C1 /* PBXTargetDependency */,
+			);
+			name = "AudioTabHighlighter (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "AudioTabHighlighter (iOS)";
+			productReference = BF66F6132F937F770086B9C1 /* AudioTabHighlighter.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BF66F6242F937F770086B9C1 /* AudioTabHighlighter (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF66F65C2F937F770086B9C1 /* Build configuration list for PBXNativeTarget "AudioTabHighlighter (macOS)" */;
+			buildPhases = (
+				BF66F6212F937F770086B9C1 /* Sources */,
+				BF66F6222F937F770086B9C1 /* Frameworks */,
+				BF66F6232F937F770086B9C1 /* Resources */,
+				BF66F65B2F937F770086B9C1 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BF66F63E2F937F770086B9C1 /* PBXTargetDependency */,
+			);
+			name = "AudioTabHighlighter (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "AudioTabHighlighter (macOS)";
+			productReference = BF66F6252F937F770086B9C1 /* AudioTabHighlighter.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BF66F6302F937F770086B9C1 /* AudioTabHighlighter Extension (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF66F6512F937F770086B9C1 /* Build configuration list for PBXNativeTarget "AudioTabHighlighter Extension (iOS)" */;
+			buildPhases = (
+				BF66F62D2F937F770086B9C1 /* Sources */,
+				BF66F62E2F937F770086B9C1 /* Frameworks */,
+				BF66F62F2F937F770086B9C1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "AudioTabHighlighter Extension (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "AudioTabHighlighter Extension (iOS)";
+			productReference = BF66F6312F937F770086B9C1 /* AudioTabHighlighter Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		BF66F63A2F937F770086B9C1 /* AudioTabHighlighter Extension (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BF66F6582F937F770086B9C1 /* Build configuration list for PBXNativeTarget "AudioTabHighlighter Extension (macOS)" */;
+			buildPhases = (
+				BF66F6372F937F770086B9C1 /* Sources */,
+				BF66F6382F937F770086B9C1 /* Frameworks */,
+				BF66F6392F937F770086B9C1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "AudioTabHighlighter Extension (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "AudioTabHighlighter Extension (macOS)";
+			productReference = BF66F63B2F937F770086B9C1 /* AudioTabHighlighter Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BF66F6002F937F740086B9C1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2630;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					BF66F6122F937F770086B9C1 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					BF66F6242F937F770086B9C1 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					BF66F6302F937F770086B9C1 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+					BF66F63A2F937F770086B9C1 = {
+						CreatedOnToolsVersion = 26.3;
+					};
+				};
+			};
+			buildConfigurationList = BF66F6032F937F740086B9C1 /* Build configuration list for PBXProject "AudioTabHighlighter" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = BF66F5FF2F937F740086B9C1;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = BF66F6142F937F770086B9C1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BF66F6122F937F770086B9C1 /* AudioTabHighlighter (iOS) */,
+				BF66F6242F937F770086B9C1 /* AudioTabHighlighter (macOS) */,
+				BF66F6302F937F770086B9C1 /* AudioTabHighlighter Extension (iOS) */,
+				BF66F63A2F937F770086B9C1 /* AudioTabHighlighter Extension (macOS) */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BF66F6112F937F770086B9C1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF66F6432F937F770086B9C1 /* Icon.png in Resources */,
+				BF66F61C2F937F770086B9C1 /* LaunchScreen.storyboard in Resources */,
+				BF66F6412F937F770086B9C1 /* Main.html in Resources */,
+				BF66F6472F937F770086B9C1 /* Script.js in Resources */,
+				BF66F64B2F937F770086B9C1 /* Assets.xcassets in Resources */,
+				BF66F61F2F937F770086B9C1 /* Main.storyboard in Resources */,
+				BF66F6452F937F770086B9C1 /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF66F6232F937F770086B9C1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF66F6442F937F770086B9C1 /* Icon.png in Resources */,
+				BF66F6462F937F770086B9C1 /* Style.css in Resources */,
+				BF66F62B2F937F770086B9C1 /* Main.storyboard in Resources */,
+				BF66F6482F937F770086B9C1 /* Script.js in Resources */,
+				BF66F64C2F937F770086B9C1 /* Assets.xcassets in Resources */,
+				BF66F6422F937F770086B9C1 /* Main.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF66F62F2F937F770086B9C1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF66F6672F937F780086B9C1 /* images in Resources */,
+				BF66F6682F937F780086B9C1 /* manifest.json in Resources */,
+				BF66F6662F937F780086B9C1 /* background.js in Resources */,
+				BF66F6692F937F780086B9C1 /* content.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF66F6392F937F770086B9C1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF66F6642F937F780086B9C1 /* images in Resources */,
+				BF66F6652F937F780086B9C1 /* manifest.json in Resources */,
+				BF66F6632F937F780086B9C1 /* background.js in Resources */,
+				BF66F66B2F937F780086B9C1 /* content.js in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BF66F60F2F937F770086B9C1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF66F6492F937F770086B9C1 /* ViewController.swift in Sources */,
+				BF66F6172F937F770086B9C1 /* AppDelegate.swift in Sources */,
+				BF66F6192F937F770086B9C1 /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF66F6212F937F770086B9C1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF66F64A2F937F770086B9C1 /* ViewController.swift in Sources */,
+				BF66F6282F937F770086B9C1 /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF66F62D2F937F770086B9C1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF66F64D2F937F770086B9C1 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF66F6372F937F770086B9C1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BF66F64E2F937F770086B9C1 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BF66F6342F937F770086B9C1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BF66F6302F937F770086B9C1 /* AudioTabHighlighter Extension (iOS) */;
+			targetProxy = BF66F6332F937F770086B9C1 /* PBXContainerItemProxy */;
+		};
+		BF66F63E2F937F770086B9C1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BF66F63A2F937F770086B9C1 /* AudioTabHighlighter Extension (macOS) */;
+			targetProxy = BF66F63D2F937F770086B9C1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		BF66F6062F937F750086B9C1 /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				BF66F6072F937F750086B9C1 /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		BF66F61A2F937F770086B9C1 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				BF66F61B2F937F770086B9C1 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		BF66F61D2F937F770086B9C1 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				BF66F61E2F937F770086B9C1 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		BF66F6292F937F770086B9C1 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				BF66F62A2F937F770086B9C1 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		BF66F64F2F937F770086B9C1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		BF66F6502F937F770086B9C1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		BF66F6522F937F770086B9C1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 62FCFLW9F8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "AudioTabHighlighter Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jimmy.audio-tab-highlighter.Extension";
+				PRODUCT_NAME = "AudioTabHighlighter Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BF66F6532F937F770086B9C1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 62FCFLW9F8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "AudioTabHighlighter Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jimmy.audio-tab-highlighter.Extension";
+				PRODUCT_NAME = "AudioTabHighlighter Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		BF66F6562F937F770086B9C1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 62FCFLW9F8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AudioTabHighlighter;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jimmy.audio-tab-highlighter";
+				PRODUCT_NAME = AudioTabHighlighter;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BF66F6572F937F770086B9C1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 62FCFLW9F8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AudioTabHighlighter;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jimmy.audio-tab-highlighter";
+				PRODUCT_NAME = AudioTabHighlighter;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		BF66F6592F937F770086B9C1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 62FCFLW9F8;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "AudioTabHighlighter Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jimmy.audio-tab-highlighter.Extension";
+				PRODUCT_NAME = "AudioTabHighlighter Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		BF66F65A2F937F770086B9C1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 62FCFLW9F8;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "AudioTabHighlighter Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jimmy.audio-tab-highlighter.Extension";
+				PRODUCT_NAME = "AudioTabHighlighter Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		BF66F65D2F937F770086B9C1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 62FCFLW9F8;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AudioTabHighlighter;
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jimmy.audio-tab-highlighter";
+				PRODUCT_NAME = AudioTabHighlighter;
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		BF66F65E2F937F770086B9C1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 62FCFLW9F8;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = AudioTabHighlighter;
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.jimmy.audio-tab-highlighter";
+				PRODUCT_NAME = AudioTabHighlighter;
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BF66F6032F937F740086B9C1 /* Build configuration list for PBXProject "AudioTabHighlighter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF66F64F2F937F770086B9C1 /* Debug */,
+				BF66F6502F937F770086B9C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF66F6512F937F770086B9C1 /* Build configuration list for PBXNativeTarget "AudioTabHighlighter Extension (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF66F6522F937F770086B9C1 /* Debug */,
+				BF66F6532F937F770086B9C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF66F6552F937F770086B9C1 /* Build configuration list for PBXNativeTarget "AudioTabHighlighter (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF66F6562F937F770086B9C1 /* Debug */,
+				BF66F6572F937F770086B9C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF66F6582F937F770086B9C1 /* Build configuration list for PBXNativeTarget "AudioTabHighlighter Extension (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF66F6592F937F770086B9C1 /* Debug */,
+				BF66F65A2F937F770086B9C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BF66F65C2F937F770086B9C1 /* Build configuration list for PBXNativeTarget "AudioTabHighlighter (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BF66F65D2F937F770086B9C1 /* Debug */,
+				BF66F65E2F937F770086B9C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BF66F6002F937F740086B9C1 /* Project object */;
+}

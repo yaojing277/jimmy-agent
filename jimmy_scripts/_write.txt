@@ -1,0 +1,20 @@
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/oauth2/__init__.py:40: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/auth/__init__.py:54: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/api_core/_python_version_support.py:242: FutureWarning: You are using a non-supported Python version (3.9.6). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+即將在分頁「股票買賣紀錄」第 4 列上方插入 6 個空列,
+再把資料寫入 股票買賣紀錄!A4:P9。預覽(只列有值的欄):
+
+  第4列: A股票=穎崴 | J賣出日=2026/4/24 | P應收付=329028
+  第5列: A股票=0056 | F買進日=2026/4/22 | P應收付=83070
+  第6列: A股票=穎崴 | J賣出日=2026/4/22 | P應收付=212279
+  第7列: A股票=穎崴 | J賣出日=2026/4/21 | P應收付=314086
+  第8列: A股票=穎崴 | J賣出日=2026/4/20 | P應收付=198632
+  第9列: A股票=穎崴 | J賣出日=2026/4/20 | P應收付=286890
+
+確認插入並寫入?(yes/no): 完成。已插入 6 列並更新 96 個儲存格,範圍 '股票買賣紀錄'!A4:P9
+exit=0

@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel 讀取顯示</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: '微軟正黑體', 'Microsoft JhengHei', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      padding: 24px;
+      color: #1a1a2e;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      color: #1a73e8;
+      margin-bottom: 24px;
+    }
+
+    /* ── 上傳區 ── */
+    #drop-zone {
+      border: 3px dashed #1a73e8;
+      border-radius: 16px;
+      padding: 56px 32px;
+      text-align: center;
+      background: white;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+      margin-bottom: 24px;
+      max-width: 680px;
+    }
+    #drop-zone:hover, #drop-zone.drag-over {
+      background: #e8f0fe;
+      border-color: #1558c0;
+    }
+    #drop-zone .icon { font-size: 3.5rem; margin-bottom: 12px; }
+    #drop-zone h2 { font-size: 1.2rem; color: #333; margin-bottom: 8px; }
+    #drop-zone p { color: #888; font-size: .9rem; }
+    #file-input { display: none; }
+
+    .btn {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: .95rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: bold;
+      transition: background .15s;
+      margin-top: 16px;
+      display: inline-block;
+    }
+    .btn:hover { background: #1558c0; }
+    .btn.secondary {
+      background: #f1f3f4;
+      color: #444;
+      border: 1px solid #dadce0;
+    }
+    .btn.secondary:hover { background: #e2e5e9; }
+
+    /* ── 工具列 ── */
+    #toolbar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    #toolbar .file-name-badge {
+      background: white;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: .9rem;
+      font-weight: bold;
+      color: #1a73e8;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 300px;
+    }
+    .search-box {
+      padding: 8px 14px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: .9rem;
+      font-family: inherit;
+      width: 200px;
+    }
+    .search-box:focus { outline: none; border-color: #1a73e8; }
+
+    /* ── 工作表 Tabs ── */
+    #sheet-tabs {
+      display: none;
+      gap: 4px;
+      margin-bottom: 0;
+      flex-wrap: wrap;
+    }
+    .sheet-tab {
+      padding: 8px 18px;
+      border-radius: 8px 8px 0 0;
+      font-size: .88rem;
+      cursor: pointer;
+      border: 1px solid #dadce0;
+      border-bottom: none;
+      background: #f1f3f4;
+      color: #444;
+      transition: background .15s;
+      font-family: inherit;
+    }
+    .sheet-tab.active { background: white; color: #1a73e8; font-weight: bold; border-color: #1a73e8; border-bottom: 1px solid white; z-index: 1; }
+    .sheet-tab:hover:not(.active) { background: #e8f0fe; }
+
+    /* ── 表格卡片 ── */
+    #table-card {
+      display: none;
+      background: white;
+      border-radius: 0 12px 12px 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      overflow: hidden;
+      border: 1px solid #1a73e8;
+    }
+    .table-meta {
+      padding: 10px 18px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e8eaed;
+      font-size: .82rem;
+      color: #666;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .table-meta strong { color: #1a73e8; }
+
+    .table-wrap { overflow: auto; max-height: 560px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    thead th {
+      background: #1a73e8;
+      color: white;
+      padding: 10px 14px;
+      text-align: left;
+      border-right: 1px solid rgba(255,255,255,.2);
+      white-space: nowrap;
+      position: sticky; top: 0; z-index: 2;
+      font-size: .85rem;
+    }
+    thead th.row-num-head {
+      background: #1558c0;
+      min-width: 44px;
+      text-align: center;
+    }
+    tbody td {
+      padding: 8px 14px;
+      border-bottom: 1px solid #f0f0f0;
+      border-right: 1px solid #f0f0f0;
+      white-space: nowrap;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    tbody td.row-num {
+      color: #bbb;
+      font-size: .78rem;
+      text-align: center;
+      background: #fafafa;
+      border-right: 2px solid #e8eaed;
+      min-width: 44px;
+    }
+    tbody tr:nth-child(even) td:not(.row-num) { background: #f8fbff; }
+    tbody tr:hover td:not(.row-num) { background: #e8f0fe; }
+
+    /* ── 空欄位 ── */
+    td.empty { color: #ccc; font-style: italic; }
+
+    /* ── 數字靠右 ── */
+    td.num-cell { text-align: right; color: #1558c0; }
+
+    /* ── 搜尋高亮 ── */
+    .highlight { background: #fff176; border-radius: 2px; }
+
+    /* ── 無資料 ── */
+    .no-data { padding: 48px; text-align: center; color: #aaa; font-size: .95rem; }
+
+    /* ── 統計列 ── */
+    .stats-row { color: #888; font-size: .82rem; }
+    .stats-row strong { color: #444; }
+  </style>
+</head>
+<body>
+
+  <h1>📊 Excel 讀取 & 顯示</h1>
+
+  <!-- 上傳區 -->
+  <div id="drop-zone">
+    <div class="icon">📂</div>
+    <h2>拖曳 Excel 檔案到這裡</h2>
+    <p>支援 .xlsx、.xls、.csv 格式</p>
+    <button class="btn" onclick="document.getElementById('file-input').click()">或點擊選擇檔案</button>
+    <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
+  </div>
+
+  <!-- 工具列 -->
+  <div id="toolbar" style="display:none">
+    <span class="file-name-badge" id="file-name-badge">—</span>
+    <input type="text" class="search-box" id="search-box" placeholder="搜尋資料…">
+    <button class="btn secondary" onclick="resetAll()">🔄 重新選擇</button>
+  </div>
+
+  <!-- 工作表 Tabs -->
+  <div id="sheet-tabs" style="display:flex"></div>
+
+  <!-- 表格卡片 -->
+  <div id="table-card">
+    <div class="table-meta" id="table-meta"></div>
+    <div class="table-wrap">
+      <div id="table-body"></div>
+    </div>
+  </div>
+
+  <script>
+    let workbook = null;
+    let currentSheet = null;
+    let currentData  = [];   // 原始資料（含 header）
+
+    // ── 拖曳 ──
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) readFile(file);
+    });
+    dropZone.addEventListener('click', () => document.getElementById('file-input').click());
+
+    document.getElementById('file-input').addEventListener('change', e => {
+      if (e.target.files[0]) readFile(e.target.files[0]);
+    });
+
+    // ── 讀取檔案 ──
+    function readFile(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          document.getElementById('file-name-badge').textContent = '📄 ' + file.name;
+          document.getElementById('drop-zone').style.display = 'none';
+          document.getElementById('toolbar').style.display   = 'flex';
+          buildSheetTabs();
+          switchSheet(workbook.SheetNames[0]);
+        } catch(err) {
+          alert('讀取失敗：' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // ── 工作表 Tabs ──
+    function buildSheetTabs() {
+      const tabs = document.getElementById('sheet-tabs');
+      tabs.style.display = 'flex';
+      tabs.innerHTML = workbook.SheetNames.map((name, i) =>
+        `<button class="sheet-tab${i===0?' active':''}" onclick="switchSheet('${esc(name)}',this)">${esc(name)}</button>`
+      ).join('');
+    }
+
+    function switchSheet(name, el) {
+      currentSheet = name;
+      document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+      if (el) el.classList.add('active');
+      else document.querySelector('.sheet-tab')?.classList.add('active');
+      document.getElementById('search-box').value = '';
+      loadSheetData(name);
+    }
+
+    // ── 解析工作表 ──
+    function loadSheetData(sheetName) {
+      const ws = workbook.Sheets[sheetName];
+      // header:1 → 第一列為 header，其餘為資料
+      currentData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+      renderTable(currentData, '');
+    }
+
+    // ── 渲染表格 ──
+    function renderTable(data, keyword) {
+      const tableCard = document.getElementById('table-card');
+      const meta      = document.getElementById('table-meta');
+      const body      = document.getElementById('table-body');
+
+      if (!data || data.length === 0) {
+        tableCard.style.display = 'block';
+        body.innerHTML = '<div class="no-data">此工作表沒有資料</div>';
+        meta.innerHTML = '';
+        return;
+      }
+
+      const headers  = data[0];
+      const rows     = data.slice(1).filter(r => r.some(c => c !== ''));
+      const kw       = keyword.trim().toLowerCase();
+
+      // 搜尋過濾
+      const filtered = kw
+        ? rows.filter(r => r.some(c => String(c).toLowerCase().includes(kw)))
+        : rows;
+
+      // 統計
+      meta.innerHTML = `
+        <span>工作表：<strong>${esc(currentSheet)}</strong></span>
+        <span>欄位：<strong>${headers.length}</strong></span>
+        <span>筆數：<strong>${filtered.length}</strong>（共 ${rows.length} 筆）</span>
+        ${kw ? `<span style="color:#1a73e8">已篩選：「${esc(kw)}」</span>` : ''}
+      `;
+
+      // 判斷數字欄位
+      const isNumCol = headers.map((_, ci) =>
+        rows.slice(0,20).filter(r => r[ci] !== '').every(r => !isNaN(Number(r[ci].toString().replace(/,/g,''))))
+      );
+
+      // 表頭
+      const thead = `<thead><tr>
+        <th class="row-num-head">列</th>
+        ${headers.map(h => `<th>${esc(String(h))}</th>`).join('')}
+      </tr></thead>`;
+
+      // 表身
+      const tbody = `<tbody>${
+        filtered.length === 0
+          ? `<tr><td colspan="${headers.length + 1}" class="no-data">沒有符合的資料</td></tr>`
+          : filtered.map((row, ri) => `<tr>
+              <td class="row-num">${ri + 1}</td>
+              ${headers.map((_, ci) => {
+                const val  = String(row[ci] ?? '');
+                const cls  = val === '' ? 'empty' : isNumCol[ci] ? 'num-cell' : '';
+                const disp = val === '' ? '—' : kw ? highlight(val, kw) : esc(val);
+                return `<td class="${cls}" title="${esc(val)}">${disp}</td>`;
+              }).join('')}
+            </tr>`).join('')
+      }</tbody>`;
+
+      tableCard.style.display = 'block';
+      body.innerHTML = `<table>${thead}${tbody}</table>`;
+    }
+
+    // ── 搜尋 ──
+    document.getElementById('search-box').addEventListener('input', e => {
+      renderTable(currentData, e.target.value);
+    });
+
+    // ── 重置 ──
+    function resetAll() {
+      workbook = null; currentSheet = null; currentData = [];
+      document.getElementById('drop-zone').style.display  = 'block';
+      document.getElementById('toolbar').style.display    = 'none';
+      document.getElementById('sheet-tabs').style.display = 'none';
+      document.getElementById('table-card').style.display = 'none';
+      document.getElementById('sheet-tabs').innerHTML     = '';
+      document.getElementById('file-input').value         = '';
+    }
+
+    // ── 工具 ──
+    function esc(str) {
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function highlight(str, kw) {
+      const re = new RegExp(`(${kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+      return esc(str).replace(re, '<span class="highlight">$1</span>');
+    }
+  </script>
+</body>
+</html>

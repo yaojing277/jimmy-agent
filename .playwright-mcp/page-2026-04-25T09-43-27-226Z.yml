@@ -1,0 +1,43 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - progressbar [ref=e6]
+      - main [ref=e14]:
+        - generic [ref=e15]:
+          - img [ref=e18]
+          - generic [ref=e23]:
+            - heading "登入" [level=1] [ref=e24]
+            - generic [ref=e25]: 使用 Google 帳戶登入。請注意，瀏覽器中的其他 Google 應用程式可以存取您登入的帳戶。
+        - generic [ref=e28]:
+          - generic [ref=e33]:
+            - generic [ref=e38]:
+              - textbox "電子郵件地址或電話號碼" [active] [ref=e39]
+              - generic: 電子郵件地址或電話號碼
+            - button "忘記電子郵件地址？" [ref=e43] [cursor=pointer]
+          - generic [ref=e46]:
+            - text: 如果這不是你的電腦，請使用訪客模式以私密方式登入。
+            - link "進一步瞭解如何使用訪客模式" [ref=e47] [cursor=pointer]:
+              - /url: https://support.google.com/chrome/answer/6130773?hl=zh-TW
+        - generic [ref=e49]:
+          - button "下一步" [ref=e53]:
+            - generic [ref=e56]: 下一步
+          - button "建立帳戶" [ref=e62]:
+            - generic [ref=e65]: 建立帳戶
+    - contentinfo [ref=e69]:
+      - combobox "變更語言 繁體中文" [ref=e73] [cursor=pointer]:
+        - generic:
+          - generic: 繁體中文
+        - generic:
+          - img
+      - list [ref=e75]:
+        - listitem [ref=e76]:
+          - link "說明" [ref=e77] [cursor=pointer]:
+            - /url: https://support.google.com/accounts?hl=zh-TW&p=account_iph
+        - listitem [ref=e78]:
+          - link "隱私權設定" [ref=e79] [cursor=pointer]:
+            - /url: https://accounts.google.com/TOS?loc=TW&hl=zh-TW&privacy=true
+        - listitem [ref=e80]:
+          - link "條款" [ref=e81] [cursor=pointer]:
+            - /url: https://accounts.google.com/TOS?loc=TW&hl=zh-TW
+  - iframe [ref=e82]:
+    

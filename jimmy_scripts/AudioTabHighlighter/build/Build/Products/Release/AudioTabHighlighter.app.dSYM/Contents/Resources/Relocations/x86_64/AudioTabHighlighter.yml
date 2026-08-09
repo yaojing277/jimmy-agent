@@ -1,0 +1,59 @@
+---
+triple:          'x86_64-apple-darwin'
+binary-path:     '/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Products/Release/AudioTabHighlighter.app/Contents/MacOS/AudioTabHighlighter'
+relocations:
+  - { offset: 0xD9A07, size: 0x8, addend: 0x0, symName: '_$sIeg_IeyB_TR', symObjAddr: 0x730, symBinAddr: 0x100001CE0, symSize: 0x30 }
+  - { offset: 0xD9A1F, size: 0x8, addend: 0x0, symName: '_$sSo22SFSafariExtensionStateCSgs5Error_pSgIeghgg_ACSo7NSErrorCSgIeyBhyy_TR', symObjAddr: 0x760, symBinAddr: 0x100001D10, symSize: 0x80 }
+  - { offset: 0xD9A37, size: 0x8, addend: 0x0, symName: '_$ss5Error_pSgIeghg_So7NSErrorCSgIeyBhy_TR', symObjAddr: 0xA10, symBinAddr: 0x100001FC0, symSize: 0x50 }
+  - { offset: 0xD9A5A, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerCfETo', symObjAddr: 0xF20, symBinAddr: 0x1000024D0, symSize: 0x20 }
+  - { offset: 0xD9A89, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerCMa', symObjAddr: 0xF40, symBinAddr: 0x1000024F0, symSize: 0x20 }
+  - { offset: 0xD9AA8, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC011userContentE0_10didReceiveySo06WKUsergE0C_So15WKScriptMessageCtFys5Error_pSgYbcfU_TA', symObjAddr: 0x1260, symBinAddr: 0x100002810, symSize: 0x10 }
+  - { offset: 0xD9ABC, size: 0x8, addend: 0x0, symName: _block_copy_helper, symObjAddr: 0x1270, symBinAddr: 0x100002820, symSize: 0x20 }
+  - { offset: 0xD9AD0, size: 0x8, addend: 0x0, symName: _block_destroy_helper, symObjAddr: 0x1290, symBinAddr: 0x100002840, symSize: 0x10 }
+  - { offset: 0xD9AE4, size: 0x8, addend: 0x0, symName: '_$sSo17OS_dispatch_queueCMa', symObjAddr: 0x12A0, symBinAddr: 0x100002850, symSize: 0x40 }
+  - { offset: 0xD9AF8, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC011userContentE0_10didReceiveySo06WKUsergE0C_So15WKScriptMessageCtFys5Error_pSgYbcfU_yyScMYccfU_TA', symObjAddr: 0x12E0, symBinAddr: 0x100002890, symSize: 0x30 }
+  - { offset: 0xD9B38, size: 0x8, addend: 0x0, symName: ___swift_instantiateConcreteTypeFromMangledNameV2, symObjAddr: 0x1310, symBinAddr: 0x1000028C0, symSize: 0x40 }
+  - { offset: 0xD9B4C, size: 0x8, addend: 0x0, symName: '_$sSay8Dispatch0A13WorkItemFlagsVGMa', symObjAddr: 0x1380, symBinAddr: 0x100002930, symSize: 0x50 }
+  - { offset: 0xD9B60, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC03webD0_9didFinishySo05WKWebD0C_So12WKNavigationCSgtFySo22SFSafariExtensionStateCSg_s5Error_pSgtYbScMYccfU_TA', symObjAddr: 0x13D0, symBinAddr: 0x100002980, symSize: 0x10 }
+  - { offset: 0xD9B74, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC03webD0_9didFinishySo05WKWebD0C_So12WKNavigationCSgtFySo22SFSafariExtensionStateCSg_s5Error_pSgtYbScMYccfU_yyScMYccfU_TA', symObjAddr: 0x1420, symBinAddr: 0x1000029D0, symSize: 0x20 }
+  - { offset: 0xD9B88, size: 0x8, addend: 0x0, symName: '_$sS2cMScAsWl', symObjAddr: 0x1440, symBinAddr: 0x1000029F0, symSize: 0x40 }
+  - { offset: 0xD9B9C, size: 0x8, addend: 0x0, symName: '_$ss36_deinitOnExecutorMainActorBackDeployyyyXln_yyXlnXfBeBwtFyyYaScMYccfU_TA', symObjAddr: 0x14D0, symBinAddr: 0x100002A80, symSize: 0x90 }
+  - { offset: 0xD9BB0, size: 0x8, addend: 0x0, symName: '_$ss36_deinitOnExecutorMainActorBackDeployyyyXln_yyXlnXfBeBwtFyyYaScMYccfU_TATQ0_', symObjAddr: 0x1560, symBinAddr: 0x100002B10, symSize: 0x50 }
+  - { offset: 0xD9BC4, size: 0x8, addend: 0x0, symName: '_$sScPSgWOc', symObjAddr: 0x15B0, symBinAddr: 0x100002B60, symSize: 0x40 }
+  - { offset: 0xD9BD8, size: 0x8, addend: 0x0, symName: '_$sScPSgWOh', symObjAddr: 0x15F0, symBinAddr: 0x100002BA0, symSize: 0x40 }
+  - { offset: 0xD9BEC, size: 0x8, addend: 0x0, symName: '_$sxIeAgHr_xs5Error_pIegHrzo_s8SendableRzs5NeverORs_r0_lTRyt_Tgq5TA', symObjAddr: 0x1650, symBinAddr: 0x100002C00, symSize: 0x80 }
+  - { offset: 0xD9C00, size: 0x8, addend: 0x0, symName: '_$sxIeAgHr_xs5Error_pIegHrzo_s8SendableRzs5NeverORs_r0_lTRyt_Tgq5TATQ0_', symObjAddr: 0x16D0, symBinAddr: 0x100002C80, symSize: 0x50 }
+  - { offset: 0xD9DA6, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC03webD0So05WKWebD0CSgvgTo', symObjAddr: 0x0, symBinAddr: 0x1000015B0, symSize: 0x20 }
+  - { offset: 0xD9E05, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC03webD0So05WKWebD0CSgvsTo', symObjAddr: 0x20, symBinAddr: 0x1000015D0, symSize: 0x30 }
+  - { offset: 0xD9E4E, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC11viewDidLoadyyF', symObjAddr: 0x50, symBinAddr: 0x100001600, symSize: 0x2D0 }
+  - { offset: 0xD9F03, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC11viewDidLoadyyFTo', symObjAddr: 0x320, symBinAddr: 0x1000018D0, symSize: 0x30 }
+  - { offset: 0xD9F4E, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC03webD0_9didFinishySo05WKWebD0C_So12WKNavigationCSgtFySo22SFSafariExtensionStateCSg_s5Error_pSgtYbScMYccfU_', symObjAddr: 0x350, symBinAddr: 0x100001900, symSize: 0x230 }
+  - { offset: 0xDA002, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC03webD0_9didFinishySo05WKWebD0C_So12WKNavigationCSgtFySo22SFSafariExtensionStateCSg_s5Error_pSgtYbScMYccfU_yyScMYccfU_', symObjAddr: 0x580, symBinAddr: 0x100001B30, symSize: 0x1B0 }
+  - { offset: 0xDA0FA, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC03webD0_9didFinishySo05WKWebD0C_So12WKNavigationCSgtFTo', symObjAddr: 0x7E0, symBinAddr: 0x100001D90, symSize: 0x60 }
+  - { offset: 0xDA124, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC011userContentE0_10didReceiveySo06WKUsergE0C_So15WKScriptMessageCtFys5Error_pSgYbcfU_', symObjAddr: 0x840, symBinAddr: 0x100001DF0, symSize: 0x1D0 }
+  - { offset: 0xDA182, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC011userContentE0_10didReceiveySo06WKUsergE0C_So15WKScriptMessageCtFTo', symObjAddr: 0xA60, symBinAddr: 0x100002010, symSize: 0x70 }
+  - { offset: 0xDA1F7, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC7nibName6bundleACSSSg_So8NSBundleCSgtcfcTo', symObjAddr: 0xAD0, symBinAddr: 0x100002080, symSize: 0xC0 }
+  - { offset: 0xDA24F, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC5coderACSgSo7NSCoderC_tcfcTo', symObjAddr: 0xB90, symBinAddr: 0x100002140, symSize: 0x90 }
+  - { offset: 0xDA286, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerCfZ', symObjAddr: 0xC20, symBinAddr: 0x1000021D0, symSize: 0x30 }
+  - { offset: 0xDA2CC, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerCfD', symObjAddr: 0xC50, symBinAddr: 0x100002200, symSize: 0x2D0 }
+  - { offset: 0xDA30B, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC03webD0_9didFinishySo05WKWebD0C_So12WKNavigationCSgtFTf4ndd_n', symObjAddr: 0xF60, symBinAddr: 0x100002510, symSize: 0x130 }
+  - { offset: 0xDA330, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter14ViewControllerC011userContentE0_10didReceiveySo06WKUsergE0C_So15WKScriptMessageCtFTf4dnn_n', symObjAddr: 0x1090, symBinAddr: 0x100002640, symSize: 0x1A0 }
+  - { offset: 0xDA4B6, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter11AppDelegateC29applicationDidFinishLaunchingyy10Foundation12NotificationVFTo', symObjAddr: 0x0, symBinAddr: 0x100002D50, symSize: 0x60 }
+  - { offset: 0xDA59D, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter11AppDelegateCMa', symObjAddr: 0x3D0, symBinAddr: 0x100003120, symSize: 0x20 }
+  - { offset: 0xDA5B1, size: 0x8, addend: 0x0, symName: '_$sxIeAgHr_xs5Error_pIegHrzo_s8SendableRzs5NeverORs_r0_lTRyt_Tgq5TA', symObjAddr: 0x640, symBinAddr: 0x1000031B0, symSize: 0x80 }
+  - { offset: 0xDA5C5, size: 0x8, addend: 0x0, symName: '_$sxIeAgHr_xs5Error_pIegHrzo_s8SendableRzs5NeverORs_r0_lTRyt_Tgq5TATQ0_', symObjAddr: 0x6C0, symBinAddr: 0x100003230, symSize: 0x47 }
+  - { offset: 0xDA5F6, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter11AppDelegateC29applicationDidFinishLaunchingyy10Foundation12NotificationVFTo', symObjAddr: 0x0, symBinAddr: 0x100002D50, symSize: 0x60 }
+  - { offset: 0xDA631, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter11AppDelegateC47applicationShouldTerminateAfterLastWindowClosedySbSo13NSApplicationCFTo', symObjAddr: 0x60, symBinAddr: 0x100002DB0, symSize: 0x10 }
+  - { offset: 0xDA65E, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter11AppDelegateCACycfcTo', symObjAddr: 0x70, symBinAddr: 0x100002DC0, symSize: 0x30 }
+  - { offset: 0xDA693, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter11AppDelegateCfZ', symObjAddr: 0xA0, symBinAddr: 0x100002DF0, symSize: 0x30 }
+  - { offset: 0xDA6D9, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter11AppDelegateCfD', symObjAddr: 0xD0, symBinAddr: 0x100002E20, symSize: 0x2D0 }
+  - { offset: 0xDA759, size: 0x8, addend: 0x0, symName: _main, symObjAddr: 0x3A0, symBinAddr: 0x1000030F0, symSize: 0x30 }
+  - { offset: 0xDA881, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter19ResourceBundleClass33_69A579D0260B27EC03467EF5C5E041A6LLCfZ', symObjAddr: 0x0, symBinAddr: 0x100003280, symSize: 0x40 }
+  - { offset: 0xDA8FA, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter19ResourceBundleClass33_69A579D0260B27EC03467EF5C5E041A6LLCMa', symObjAddr: 0x310, symBinAddr: 0x100003590, symSize: 0x20 }
+  - { offset: 0xDA90E, size: 0x8, addend: 0x0, symName: '_$ss36_deinitOnExecutorMainActorBackDeployyyyXln_yyXlnXfBeBwtFyyYaScMYccfU_', symObjAddr: 0x3D0, symBinAddr: 0x1000035D0, symSize: 0x70 }
+  - { offset: 0xDA926, size: 0x8, addend: 0x0, symName: '_$ss36_deinitOnExecutorMainActorBackDeployyyyXln_yyXlnXfBeBwtFyyYaScMYccfU_TY0_', symObjAddr: 0x440, symBinAddr: 0x100003640, symSize: 0x60 }
+  - { offset: 0xDA953, size: 0x8, addend: 0x0, symName: '_$sxIeAgHr_xs5Error_pIegHrzo_s8SendableRzs5NeverORs_r0_lTRyt_Tgq5', symObjAddr: 0x630, symBinAddr: 0x1000036D0, symSize: 0x60 }
+  - { offset: 0xDA972, size: 0x8, addend: 0x0, symName: '_$sxIeAgHr_xs5Error_pIegHrzo_s8SendableRzs5NeverORs_r0_lTRyt_Tgq5TQ0_', symObjAddr: 0x690, symBinAddr: 0x100003730, symSize: 0x50 }
+  - { offset: 0xDA9C0, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter19ResourceBundleClass33_69A579D0260B27EC03467EF5C5E041A6LLCfZ', symObjAddr: 0x0, symBinAddr: 0x100003280, symSize: 0x40 }
+  - { offset: 0xDAA34, size: 0x8, addend: 0x0, symName: '_$s19AudioTabHighlighter19ResourceBundleClass33_69A579D0260B27EC03467EF5C5E041A6LLCfD', symObjAddr: 0x40, symBinAddr: 0x1000032C0, symSize: 0x2D0 }
+...

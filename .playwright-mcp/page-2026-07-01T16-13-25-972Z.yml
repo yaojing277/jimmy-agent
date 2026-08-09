@@ -1,0 +1,302 @@
+- generic [ref=f377e2]:
+  - generic [ref=f377e3]:
+    - generic [ref=f377e5]:
+      - generic [ref=f377e6]: 玩股網全新登入機制上線，未來將更全面保護你的帳號安全
+      - link "搶先了解" [ref=f377e7] [cursor=pointer]:
+        - /url: https://www.wantgoo.com/edm/link/417
+    - button [ref=f377e8] [cursor=pointer]
+  - banner [ref=f377e9]:
+    - generic [ref=f377e11]:
+      - link "玩股網" [ref=f377e13] [cursor=pointer]:
+        - /url: /
+        - img "玩股網" [ref=f377e14]
+      - navigation [ref=f377e15]:
+        - list [ref=f377e16]:
+          - listitem [ref=f377e17]:
+            - link "首頁" [ref=f377e18] [cursor=pointer]:
+              - /url: /
+              - generic [ref=f377e19]: 首頁
+          - listitem [ref=f377e20]:
+            - link "社團" [ref=f377e21] [cursor=pointer]:
+              - /url: /club/promotion
+              - generic [ref=f377e22]: 社團
+          - listitem [ref=f377e23]:
+            - link "老鳥說" [ref=f377e24] [cursor=pointer]:
+              - /url: /laojiao
+              - generic [ref=f377e25]: 老鳥說
+          - listitem [ref=f377e26]:
+            - link "台股" [ref=f377e27] [cursor=pointer]:
+              - /url: /stock
+              - generic [ref=f377e28]: 台股
+          - listitem [ref=f377e29]:
+            - link "國際" [ref=f377e30] [cursor=pointer]:
+              - /url: /global
+              - generic [ref=f377e31]: 國際
+          - listitem [ref=f377e32]:
+            - link "選股" [ref=f377e33] [cursor=pointer]:
+              - /url: /screener
+              - generic [ref=f377e34]: 選股
+          - listitem [ref=f377e35]:
+            - link "網誌" [ref=f377e36] [cursor=pointer]:
+              - /url: /blog
+              - generic [ref=f377e37]: 網誌
+          - listitem [ref=f377e38]:
+            - link "動態牆" [ref=f377e39] [cursor=pointer]:
+              - /url: /social-wall
+              - generic [ref=f377e40]: 動態牆
+          - listitem [ref=f377e41]:
+            - link "新聞" [ref=f377e42] [cursor=pointer]:
+              - /url: /news
+              - generic [ref=f377e43]: 新聞
+          - listitem [ref=f377e44]:
+            - link "商城" [ref=f377e45] [cursor=pointer]:
+              - /url: /mall
+              - generic [ref=f377e46]: 商城
+          - listitem [ref=f377e47]:
+            - link "APP N" [ref=f377e48] [cursor=pointer]:
+              - /url: /app
+              - generic [ref=f377e49]: APP
+              - generic [ref=f377e51]: "N"
+      - generic [ref=f377e52]:
+        - textbox "輸入搜尋字串.." [ref=f377e56]
+        - link [ref=f377e58] [cursor=pointer]:
+          - /url: /member/login?returnUrl=%2Fstock%2F2308%2Fdividend-policy%2Fex-dividend
+  - list [ref=f377e61]:
+    - listitem [ref=f377e62]:
+      - link "玩股網" [ref=f377e63] [cursor=pointer]:
+        - /url: /
+    - listitem [ref=f377e64]:
+      - text: /
+      - link "台股" [ref=f377e65] [cursor=pointer]:
+        - /url: /stock
+    - listitem [ref=f377e66]:
+      - text: /
+      - link "台達電 (2308)" [ref=f377e67] [cursor=pointer]:
+        - /url: /stock/2308
+    - listitem [ref=f377e68]: / 歷年股利
+  - main [ref=f377e70]:
+    - generic [ref=f377e71]:
+      - generic [ref=f377e72]:
+        - generic [ref=f377e73]:
+          - heading "台達電" [level=3] [ref=f377e74]
+          - generic [ref=f377e75]: "2308"
+          - time [ref=f377e76]: 2026-07-01 13:30
+          - generic [ref=f377e77]: 成交量僅含一般交易、盤後定價交易
+          - list [ref=f377e78]:
+            - listitem [ref=f377e79]:
+              - link "上市" [ref=f377e80] [cursor=pointer]:
+                - /url: /index/listed/industry
+            - listitem [ref=f377e81]:
+              - link "電零組 0.72%" [ref=f377e82] [cursor=pointer]:
+                - /url: /index/^028
+          - button " 自選股 登入免費用" [ref=f377e83] [cursor=pointer]:
+            - generic [ref=f377e84]: 
+            - text: 自選股
+            - generic [ref=f377e85]: 登入免費用
+        - generic [ref=f377e86]:
+          - generic [ref=f377e87]:
+            - generic "台達電(2308) 最新股價" [ref=f377e88]: "1990.00"
+            - text: 40.00 2.05%
+          - list [ref=f377e90]:
+            - listitem [ref=f377e91]:
+              - generic [ref=f377e92]: 開盤
+              - generic [ref=f377e93]: "2020.00"
+            - listitem [ref=f377e94]:
+              - generic [ref=f377e95]: 昨收
+              - generic [ref=f377e96]: "1950.00"
+            - listitem [ref=f377e97]:
+              - generic [ref=f377e98]: 最高
+              - generic [ref=f377e99]: "2020.00"
+            - listitem [ref=f377e100]:
+              - generic [ref=f377e101]: 最低
+              - generic [ref=f377e102]: "1965.00"
+            - listitem [ref=f377e103]:
+              - generic [ref=f377e104]: 成交量(張)
+              - generic [ref=f377e105]: 7,896
+            - listitem [ref=f377e106]:
+              - generic [ref=f377e107]: 預估量(張)
+              - generic [ref=f377e108]: 7,896
+            - listitem [ref=f377e109]:
+              - generic [ref=f377e110]: 市值(億)
+              - generic [ref=f377e111]: 51,691.11
+            - listitem [ref=f377e112]:
+              - generic [ref=f377e113]: 股淨比
+              - generic [ref=f377e114]: "17.26"
+            - listitem [ref=f377e115]:
+              - generic [ref=f377e116]: 均價
+              - generic [ref=f377e117]: "2002.85"
+            - listitem [ref=f377e118]:
+              - generic [ref=f377e119]: 本益比
+              - generic [ref=f377e120]: "73.38"
+            - listitem [ref=f377e121]:
+              - generic [ref=f377e122]: 振幅
+              - generic [ref=f377e123]: 2.82%
+            - listitem [ref=f377e124]:
+              - generic [ref=f377e125]: 市營比
+              - generic [ref=f377e126]: "8.19"
+            - listitem [ref=f377e127]:
+              - generic [ref=f377e128]: 離季線
+              - generic [ref=f377e129]: "-93.69 (-4.5%)"
+            - listitem [ref=f377e130]:
+              - generic [ref=f377e131]: 發行權證(檔)
+              - generic [ref=f377e132]: "259"
+            - listitem [ref=f377e133]:
+              - generic [ref=f377e134]: Beta值(近半年)
+              - generic [ref=f377e135]: "1.74"
+      - generic [ref=f377e136]:
+        - generic [ref=f377e137]:
+          - generic [ref=f377e138]:
+            - list [ref=f377e139]:
+              - listitem [ref=f377e140]:
+                - link "群組1" [ref=f377e141] [cursor=pointer]:
+                  - /url: "javascript:"
+            - button "" [ref=f377e142] [cursor=pointer]:
+              - generic [ref=f377e143]: 
+          - list [ref=f377e145]:
+            - listitem [ref=f377e146]:
+              - button "台達電 1990.00 2.05%" [ref=f377e147] [cursor=pointer]:
+                - generic [ref=f377e148]: 台達電
+                - generic [ref=f377e149]: 1990.00 2.05%
+            - listitem [ref=f377e150]:
+              - button "歐特克公司 203.30 ∞%" [ref=f377e151] [cursor=pointer]:
+                - generic [ref=f377e152]: 歐特克公司
+                - generic [ref=f377e153]: 203.30 ∞%
+          - generic [ref=f377e154]:
+            - generic [ref=f377e155]:
+              - text: 立即
+              - link "登入" [ref=f377e156] [cursor=pointer]:
+                - /url: /member/login?returnUrl=%2Fstock%2F2308%2Fdividend-policy%2Fex-dividend
+              - text: 免費設定，快速切換你關注的股票
+            - link "前往我的庫存股" [ref=f377e157] [cursor=pointer]:
+              - /url: /treasury
+              - text: 前往我的庫存股
+              - generic [ref=f377e158]: 
+        - generic [ref=f377e160] [cursor=pointer]: 
+      - navigation [ref=f377e161]:
+        - list [ref=f377e162]:
+          - listitem [ref=f377e163]:
+            - link "個股概況" [ref=f377e164] [cursor=pointer]:
+              - /url: /stock/2308
+          - listitem [ref=f377e165]:
+            - link "技術分析" [ref=f377e166] [cursor=pointer]:
+              - /url: /stock/2308/technical-chart
+          - listitem [ref=f377e167]:
+            - link "法人動態" [ref=f377e168] [cursor=pointer]:
+              - /url: /stock/2308/institutional-investors/trend
+          - listitem [ref=f377e169]:
+            - link "資券變化" [ref=f377e170] [cursor=pointer]:
+              - /url: /stock/2308/margin-trading/synopsis
+          - listitem [ref=f377e171]:
+            - link "大戶籌碼" [ref=f377e172] [cursor=pointer]:
+              - /url: /stock/2308/major-investors/concentration
+          - listitem [ref=f377e173]:
+            - link "主力進出 " [ref=f377e174] [cursor=pointer]:
+              - /url: "javascript:"
+          - listitem [ref=f377e175]:
+            - link "股權分散" [ref=f377e176] [cursor=pointer]:
+              - /url: /stock/2308/shareholding-distribution
+          - listitem [ref=f377e177]:
+            - link "財報股利 " [ref=f377e178] [cursor=pointer]:
+              - /url: "javascript:"
+            - text:       
+          - listitem [ref=f377e179]:
+            - link "相關新聞" [ref=f377e180] [cursor=pointer]:
+              - /url: /news/tag/台達電
+      - generic [ref=f377e182]:
+        - heading "台達電(2308)歷年股利政策及除權息一覽表" [level=1] [ref=f377e184]
+        - table [ref=f377e189]:
+          - rowgroup [ref=f377e190]:
+            - row "除權息 年度 現金股利 (元) 股票股利 (股)" [ref=f377e191]:
+              - columnheader "除權息 年度" [ref=f377e192]:
+                - text: 除權息
+                - text: 年度
+              - columnheader "現金股利 (元)" [ref=f377e193]
+              - columnheader "股票股利 (股)" [ref=f377e194]
+            - row "股利 除息日 發放日 除息前股價 填息天數 年股利 年殖利率(%) 股利 除權日 除權前股價 填權天數" [ref=f377e195]:
+              - columnheader "股利" [ref=f377e196]
+              - columnheader "除息日" [ref=f377e197]
+              - columnheader "發放日" [ref=f377e198]
+              - columnheader "除息前股價" [ref=f377e199]
+              - columnheader "填息天數" [ref=f377e200]
+              - columnheader "年股利" [ref=f377e201]
+              - columnheader "年殖利率(%)" [ref=f377e202]
+              - columnheader "股利" [ref=f377e203]
+              - columnheader "除權日" [ref=f377e204]
+              - columnheader "除權前股價" [ref=f377e205]
+              - columnheader "填權天數" [ref=f377e206]
+        - list [ref=f377e207]:
+          - listitem [ref=f377e208]:
+            - heading "現金股利" [level=5] [ref=f377e209]
+            - paragraph [ref=f377e210]: 定義：公司將部分盈餘以現金方式發放給股東的收益。
+            - paragraph [ref=f377e211]: 現金股利可視為利息般的實質現金收益， 當公司的盈餘因應自身投資需求還有剩餘， 通常會以現金股利的方式回饋股東。 因此當企業處於成長需要大量再投資，現金股息發配就會較少； 當企業處於成熟期沒有太多成長機會，現金股息發配就會較多，所以不能單純用殖利率來判斷公司好壞。
+          - listitem [ref=f377e212]:
+            - heading "股票股利" [level=5] [ref=f377e213]
+            - paragraph [ref=f377e214]: 定義：公司將盈餘轉成增資，以股票形式分配給股東。
+            - paragraph [ref=f377e215]: 盈餘是屬於股東的投資成果， 如果企業因應成長所需，希望將盈餘留在公司內做廠房、設備等再投資， 可透過發配股票股利的方式，以股票換取原本應該分配股東的盈餘。 因此股票股利是將股東盈餘留在企業的手段，會讓股本和淨值膨脹。 當企業處於成長需要大量再投資，股票股利發配就會較多； 當企業處於成熟期沒有成長機會，股票股利發配就會較少。
+      - generic [ref=f377e216]:
+        - generic [ref=f377e217]:
+          - generic [ref=f377e218]:
+            - tab "財經編輯" [selected] [ref=f377e219] [cursor=pointer]
+            - tab "達人點評" [ref=f377e220] [cursor=pointer]
+          - link "更多" [ref=f377e221] [cursor=pointer]:
+            - /url: /blog
+        - tabpanel [ref=f377e223]:
+          - list [ref=f377e224]:
+            - listitem [ref=f377e225]:
+              - generic [ref=f377e228]:
+                - text: 玩股華安
+                - heading "華通、昇達科重挫，金寶今日大怒神！太空AI題材全面降溫，太空種電接棒成新戰場！" [level=4] [ref=f377e229]:
+                  - link "華通、昇達科重挫，金寶今日大怒神！太空AI題材全面降溫，太空種電接棒成新戰場！" [ref=f377e230] [cursor=pointer]:
+                    - /url: /blog/407988/post/680
+            - listitem [ref=f377e231]:
+              - generic [ref=f377e234]:
+                - text: 玩股摸金
+                - heading "月線又是假跌破！台股7/1漲893點價過所有均，6/29外資空單沒加碼早就洩底了" [level=4] [ref=f377e235]:
+                  - link "月線又是假跌破！台股7/1漲893點價過所有均，6/29外資空單沒加碼早就洩底了" [ref=f377e236] [cursor=pointer]:
+                    - /url: /blog/203663/post/1368
+            - listitem [ref=f377e237]:
+              - generic [ref=f377e240]:
+                - text: 玩股特派員
+                - heading "長線抱不住，短線抓不到？保證金逼退散戶的歷史大行情，小資如何複製贏家混搭戰略" [level=4] [ref=f377e241]:
+                  - link "長線抱不住，短線抓不到？保證金逼退散戶的歷史大行情，小資如何複製贏家混搭戰略" [ref=f377e242] [cursor=pointer]:
+                    - /url: /blog/144623/post/3017
+            - listitem [ref=f377e243]:
+              - generic [ref=f377e246]:
+                - text: 楚狂人
+                - heading "大盤天天上沖下洗一兩千點，這種盤到底要怎麼賺錢？" [level=4] [ref=f377e247]:
+                  - link "大盤天天上沖下洗一兩千點，這種盤到底要怎麼賺錢？" [ref=f377e248] [cursor=pointer]:
+                    - /url: /blog/119/post/3775
+            - listitem [ref=f377e249]:
+              - generic [ref=f377e252]:
+                - text: 玩股講客人
+                - heading "南電（8046）資本支出創史上最大規模：從消費電子到AI伺服器的結構性轉骨" [level=4] [ref=f377e253]:
+                  - link "南電（8046）資本支出創史上最大規模：從消費電子到AI伺服器的結構性轉骨" [ref=f377e254] [cursor=pointer]:
+                    - /url: /blog/343059/post/306
+  - generic [ref=f377e257]: 資訊來源：臺灣證券交易所 TWSE、財團法人中華民國證券櫃檯買賣中心 GTSM、台灣期貨交易所及本資訊內容係經玩股網有限公司處理提供。使用者須遵守台灣證券交易所「交易資訊使用管理辦法」等交易資訊管理相關規定，所有資訊以台灣證券交易所公告資料為主。本網站提供之資料僅供參考，對資訊正確、延遲或傳輸中斷不負任何責任，如使用者依本資料交易發生損失需自行負責。
+  - contentinfo [ref=f377e258]:
+    - generic [ref=f377e259]:
+      - generic [ref=f377e260]:
+        - generic [ref=f377e261]:
+          - link "關於玩股網" [ref=f377e262] [cursor=pointer]:
+            - /url: /about
+          - link "服務條款" [ref=f377e263] [cursor=pointer]:
+            - /url: /terms-and-policies
+          - link "隱私政策" [ref=f377e264] [cursor=pointer]:
+            - /url: /privacy-policy
+          - link "常見問題" [ref=f377e265] [cursor=pointer]:
+            - /url: https://wantgoo.tawk.help/
+        - generic [ref=f377e266]:
+          - generic [ref=f377e267]: 玩股網有限公司統編：24211075
+          - generic [ref=f377e268]:
+            - text: © 2010-2026
+            - link "WantGoo" [ref=f377e269] [cursor=pointer]:
+              - /url: /
+      - generic [ref=f377e271]:
+        - link [ref=f377e272] [cursor=pointer]:
+          - /url: https://www.facebook.com/wantgoo.fans/
+        - link [ref=f377e274] [cursor=pointer]:
+          - /url: https://t.me/wantgoo
+        - link [ref=f377e276] [cursor=pointer]:
+          - /url: https://www.youtube.com/c/WantGooYT
+        - link [ref=f377e278] [cursor=pointer]:
+          - /url: https://podcasts.apple.com/podcast/id1540541794

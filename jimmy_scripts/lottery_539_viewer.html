@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>539 開獎分析</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, "Noto Sans TC", sans-serif;
+    background: #0d1117;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 16px 60px;
+    color: #e6edf3;
+  }
+
+  /* ── 標題 ── */
+  header { text-align: center; margin-bottom: 28px; }
+  .logo-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: #fff; font-size: 13px; font-weight: 700;
+    letter-spacing: 2px; padding: 4px 14px;
+    border-radius: 20px; margin-bottom: 10px;
+  }
+  header h1 { font-size: clamp(22px, 5vw, 32px); font-weight: 800; }
+  header h1 span { color: #2ecc71; }
+  .subtitle { margin-top: 6px; font-size: 12px; color: #6e7681; }
+
+  /* ── Tab Bar ── */
+  .tab-bar {
+    display: flex;
+    gap: 6px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 5px;
+    margin-bottom: 28px;
+    width: 100%;
+    max-width: 540px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 9px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    color: #6e7681;
+    transition: background .18s, color .18s;
+    letter-spacing: 0.3px;
+  }
+  .tab-btn.active {
+    background: #2ecc71;
+    color: #0d1117;
+  }
+
+  /* ── Tab 內容 ── */
+  .tab-panel { display: none; width: 100%; align-items: center; flex-direction: column; }
+  .tab-panel.active { display: flex; }
+
+  /* ── 最近N期 ── */
+  .draws-grid {
+    display: flex; flex-direction: column; gap: 10px;
+    width: 100%; max-width: 540px;
+  }
+  .draw-card {
+    background: #161b22; border: 1px solid #30363d;
+    border-radius: 14px; padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+    transition: border-color .2s, transform .18s;
+  }
+  .draw-card:hover { border-color: #2ecc71; transform: translateY(-2px); }
+  .draw-card.latest {
+    border-color: #2ecc71;
+    background: linear-gradient(135deg, #161b22 70%, #0d2818);
+  }
+  .date-block { flex-shrink: 0; text-align: center; width: 46px; }
+  .date-wd { font-size: 11px; font-weight: 600; color: #6e7681; margin-bottom: 4px; }
+  .date-md { font-size: 20px; font-weight: 800; line-height: 1.1; }
+  .date-md em { font-size: 11px; font-weight: 500; color: #8b949e; font-style: normal; }
+  .latest-tag {
+    font-size: 9px; font-weight: 700; color: #2ecc71;
+    background: rgba(46,204,113,.12); border: 1px solid rgba(46,204,113,.3);
+    padding: 1px 7px; border-radius: 10px; margin-top: 6px; display: inline-block;
+  }
+  .sep { width: 1px; height: 54px; background: #30363d; flex-shrink: 0; }
+  .draw-card.latest .sep { background: rgba(46,204,113,.4); }
+  .balls { display: flex; justify-content: space-evenly; flex-wrap: nowrap; flex: 1; }
+  .ball {
+    width: 54px; height: 54px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; color: #fff;
+    position: relative; box-shadow: 0 3px 10px rgba(0,0,0,.4);
+    flex-shrink: 0;
+  }
+  .ball[data-r="1"] { background: linear-gradient(135deg,#e74c3c,#c0392b); }
+  .ball[data-r="2"] { background: linear-gradient(135deg,#3498db,#2980b9); }
+  .ball[data-r="3"] { background: linear-gradient(135deg,#f39c12,#e67e22); }
+  .ball::before {
+    content:''; position:absolute; top:8px; left:10px;
+    width:12px; height:6px;
+    background:rgba(255,255,255,.35); border-radius:50%;
+  }
+
+  /* 色例 */
+  .legend {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 14px; align-self: flex-start;
+    padding-left: 2px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #8b949e; }
+  .ldot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ── 分析三欄 ── */
+  .analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    width: 100%; max-width: 900px;
+  }
+  .analysis-card {
+    background: #161b22; border: 1px solid #30363d;
+    border-radius: 14px; padding: 18px;
+  }
+  .analysis-card h3 {
+    font-size: 14px; font-weight: 700; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .method-desc { font-size: 11px; color: #6e7681; margin-bottom: 14px; line-height: 1.5; }
+  .rank-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 5px 0; border-bottom: 1px solid #21262d;
+  }
+  .rank-row:last-child { border-bottom: none; }
+  .rank-no { font-size: 20px; font-weight: 700; color: #6e7681; width: 28px; text-align: right; flex-shrink: 0; }
+  .rank-ball {
+    width: 54px; height: 54px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; color: #fff; flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(0,0,0,.4);
+  }
+  .rank-bar-wrap { width: 130px; flex-shrink: 0; height: 11px; background: #21262d; border-radius: 6px; overflow: hidden; }
+  .rank-bar { height: 100%; border-radius: 6px; }
+  .rank-score { font-size: 22px; font-weight: 700; color: #e6edf3; flex-shrink: 0; min-width: 100px; text-align: right; }
+  .hot  .rank-bar { background: linear-gradient(90deg,#e74c3c,#f39c12); }
+  .cold .rank-bar { background: linear-gradient(90deg,#3498db,#9b59b6); }
+  .comp .rank-bar { background: linear-gradient(90deg,#2ecc71,#3498db); }
+
+  /* footer */
+  footer { margin-top: 32px; font-size: 12px; color: #484f58; text-align: center; line-height: 2; }
+  footer a { color: #2ecc71; text-decoration: none; }
+
+  /* ── iPhone SE3 / 小螢幕（≤430px）── */
+  @media (max-width: 430px) {
+    body { padding: 18px 10px 40px; }
+
+    header { margin-bottom: 18px; }
+    header h1 { font-size: 22px; }
+    .subtitle { font-size: 11px; }
+
+    /* Tab bar */
+    .tab-bar { margin-bottom: 18px; padding: 4px; }
+    .tab-btn { font-size: 11px; padding: 8px 6px; letter-spacing: 0; }
+
+    /* 色例 */
+    .legend { gap: 10px; margin-bottom: 10px; }
+    .legend-item { font-size: 11px; }
+
+    /* 開獎卡片 */
+    .draws-grid { gap: 8px; }
+    .draw-card { padding: 10px 12px; gap: 10px; }
+    .date-block { width: 42px; }
+    .date-wd { font-size: 10px; }
+    .date-md { font-size: 17px; }
+    .latest-tag { font-size: 8px; padding: 1px 6px; }
+    .sep { height: 46px; }
+
+    /* 彩球：均分右側區塊 */
+    .balls { justify-content: space-evenly; flex-wrap: nowrap; }
+    .ball { width: 46px; height: 46px; font-size: 15px; }
+    .ball::before { top: 6px; left: 8px; width: 11px; height: 6px; }
+
+    /* 分析卡片：單欄 */
+    .analysis-grid { grid-template-columns: 1fr; gap: 10px; }
+    .analysis-card { padding: 14px 14px; }
+    .analysis-card h3 { font-size: 13px; }
+    .method-desc { font-size: 11px; margin-bottom: 10px; }
+    .rank-row { gap: 6px; padding: 6px 0; }
+    .rank-no { font-size: 17px; width: 24px; }
+    .rank-ball { width: 46px; height: 46px; font-size: 15px; }
+    .rank-bar-wrap { width: 70px; height: 9px; }
+    .rank-score { font-size: 18px; min-width: 80px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>開獎號碼 <span>&</span> 熱度分析</h1>
+  <p class="subtitle">資料涵蓋 <span id="total_draws"></span> 期｜最新 <span id="latest_date"></span>｜v1.0</p>
+</header>
+
+<!-- ── Tab Bar ── -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('draws')">🎱 最近10期開獎</button>
+  <button class="tab-btn"        onclick="switchTab('analysis')">📊 下期熱度分析</button>
+</div>
+
+<!-- ── Tab 1：開獎號碼 ── -->
+<div class="tab-panel active" id="tab-draws">
+  <div class="legend">
+    <div class="legend-item"><div class="ldot" style="background:#e74c3c"></div>01–13</div>
+    <div class="legend-item"><div class="ldot" style="background:#3498db"></div>14–26</div>
+    <div class="legend-item"><div class="ldot" style="background:#f39c12"></div>27–39</div>
+  </div>
+  <div class="draws-grid" id="draws"></div>
+</div>
+
+<!-- ── Tab 2：熱度分析 ── -->
+<div class="tab-panel" id="tab-analysis">
+  <div class="analysis-grid">
+    <div class="analysis-card hot">
+      <h3>🔥 近50期熱號</h3>
+      <p class="method-desc">最近50期出現次數最多<br>熱度 >1.0 代表高於統計期望值（≈6.4次）</p>
+      <div id="hot-rows"></div>
+    </div>
+    <div class="analysis-card cold">
+      <h3>❄️ 遺漏值冷號</h3>
+      <p class="method-desc">距上次開出已過最多期數<br>倍數越高代表「欠出」越久</p>
+      <div id="cold-rows"></div>
+    </div>
+    <div class="analysis-card comp">
+      <h3>⚖️ 加權綜合分</h3>
+      <p class="method-desc">近50期×50% + 近200期×30% + 全史×20%<br>綜合短中長期熱度趨勢</p>
+      <div id="comp-rows"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  資料來源：<a href="https://www.pilio.idv.tw/lto539/list.asp" target="_blank">pilio.idv.tw</a>
+  &nbsp;｜&nbsp;本頁僅供統計參考，樂透為隨機事件，無法預測
+</footer>
+
+<script>
+// ── 資料區（由 generate_539_html.py 自動更新） ──
+const DRAWS = [
+  { date:"2026-05-20", weekday:"Wed", numbers:[1,20,21,23,35] },
+  { date:"2026-05-21", weekday:"Thu", numbers:[9,25,28,34,36] },
+  { date:"2026-05-22", weekday:"Fri", numbers:[4,8,15,16,37] },
+  { date:"2026-05-23", weekday:"Sat", numbers:[6,15,16,24,38] },
+  { date:"2026-05-25", weekday:"Mon", numbers:[5,6,12,36,37] },
+  { date:"2026-05-26", weekday:"Tue", numbers:[2,7,11,14,37] },
+  { date:"2026-05-27", weekday:"Wed", numbers:[2,3,18,19,21] },
+  { date:"2026-05-28", weekday:"Thu", numbers:[6,9,12,19,31] },
+  { date:"2026-05-29", weekday:"Fri", numbers:[12,15,20,34,35] },
+  { date:"2026-05-30", weekday:"Sat", numbers:[2,3,4,13,39] },
+];
+
+const ANALYSIS = {"generated": "2026-05-30", "total_draws": 5875, "latest_date": "2026-05-30", "hot50": [{"num": 2, "score": 2.028}, {"num": 6, "score": 1.872}, {"num": 25, "score": 1.872}, {"num": 8, "score": 1.716}, {"num": 21, "score": 1.56}, {"num": 4, "score": 1.404}, {"num": 31, "score": 1.404}, {"num": 36, "score": 1.404}, {"num": 7, "score": 1.248}, {"num": 9, "score": 1.248}], "cold": [{"num": 29, "score": 31}, {"num": 30, "score": 26}, {"num": 17, "score": 24}, {"num": 27, "score": 22}, {"num": 10, "score": 21}, {"num": 22, "score": 16}, {"num": 26, "score": 16}, {"num": 33, "score": 11}, {"num": 32, "score": 10}, {"num": 1, "score": 9}], "composite": [{"num": 2, "score": 1.5889}, {"num": 25, "score": 1.4912}, {"num": 8, "score": 1.4783}, {"num": 6, "score": 1.4617}, {"num": 36, "score": 1.2955}, {"num": 21, "score": 1.2679}, {"num": 31, "score": 1.2612}, {"num": 4, "score": 1.2266}, {"num": 7, "score": 1.1271}, {"num": 9, "score": 1.0691}]};
+
+// ── Tab 切換 ──
+function switchTab(name) {
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  event.currentTarget.classList.add("active");
+}
+
+// ── 工具函式 ──
+const WD = { Mon:"週一",Tue:"週二",Wed:"週三",Thu:"週四",Fri:"週五",Sat:"週六",Sun:"週日" };
+const pad = n => String(n).padStart(2, "0");
+const br  = n => n <= 13 ? "1" : n <= 26 ? "2" : "3";
+const ballColor = n => n <= 13 ? "#e74c3c" : n <= 26 ? "#3498db" : "#f39c12";
+
+// ── 資料摘要 ──
+document.getElementById("total_draws").textContent = ANALYSIS.total_draws.toLocaleString();
+document.getElementById("latest_date").textContent = new Date(ANALYSIS.latest_date)
+  .toLocaleDateString("zh-TW", { year:"numeric", month:"long", day:"numeric" });
+
+// ── 渲染開獎卡片 ──
+const drawsEl = document.getElementById("draws");
+[...DRAWS].reverse().forEach((d, idx) => {
+  const dt = new Date(d.date);
+  const card = document.createElement("div");
+  card.className = "draw-card" + (idx === 0 ? " latest" : "");
+  card.innerHTML = `
+    <div class="date-block">
+      <div class="date-wd">${WD[d.weekday] ?? d.weekday}</div>
+      <div class="date-md">${dt.getMonth()+1}<em>月</em>${dt.getDate()}</div>
+      ${idx === 0 ? '<div class="latest-tag">最新</div>' : ""}
+    </div>
+    <div class="sep"></div>
+    <div class="balls">
+      ${d.numbers.map(n => `<div class="ball" data-r="${br(n)}">${pad(n)}</div>`).join("")}
+    </div>`;
+  drawsEl.appendChild(card);
+});
+
+// ── 渲染排行列 ──
+function renderRanks(elId, data, maxScore, fmtScore) {
+  const el = document.getElementById(elId);
+  data.forEach((item, i) => {
+    const pct = Math.min(100, (item.score / maxScore) * 100);
+    const row = document.createElement("div");
+    row.className = "rank-row";
+    row.innerHTML = `
+      <div class="rank-no">${i + 1}</div>
+      <div class="rank-ball" style="background:${ballColor(item.num)}">${pad(item.num)}</div>
+      <div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}%"></div></div>
+      <div class="rank-score">${fmtScore(item)}</div>`;
+    el.appendChild(row);
+  });
+}
+
+renderRanks("hot-rows",  ANALYSIS.hot50,      ANALYSIS.hot50[0].score,      x => `熱度 ${x.score.toFixed(2)}`);
+renderRanks("cold-rows", ANALYSIS.cold,       ANALYSIS.cold[0].score,       x => `遺漏 ${x.score} 期`);
+renderRanks("comp-rows", ANALYSIS.composite,  ANALYSIS.composite[0].score,  x => x.score.toFixed(3));
+</script>
+</body>
+</html>

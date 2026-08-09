@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "static-jimmy-scripts",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /Users/jimmy/Downloads/jimmy-agent/jimmy_scripts && python3 -m http.server 8123"],
+      "port": 8123
+    }
+  ]
+}

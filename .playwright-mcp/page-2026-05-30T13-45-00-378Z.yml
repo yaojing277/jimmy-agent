@@ -1,0 +1,152 @@
+- generic [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]: 今彩 539
+    - heading "開獎號碼 & 熱度分析" [level=1] [ref=e4]
+    - paragraph [ref=e5]: 資料涵蓋 5,875 期｜最新 2026年5月30日
+  - generic [ref=e6]:
+    - button "🎱 最近10期開獎" [ref=e7] [cursor=pointer]
+    - button "📊 下期熱度分析" [active] [ref=e8] [cursor=pointer]
+  - generic [ref=e152]:
+    - generic [ref=e153]:
+      - heading "🔥 近50期熱號" [level=3] [ref=e154]
+      - paragraph [ref=e155]:
+        - text: 最近50期出現次數最多
+        - text: 熱度 >1.0 代表高於統計期望值（≈6.4次）
+      - generic [ref=e156]:
+        - generic [ref=e157]:
+          - generic [ref=e158]: "1"
+          - generic [ref=e159]: "02"
+          - generic [ref=e162]: 熱度 2.03
+        - generic [ref=e163]:
+          - generic [ref=e164]: "2"
+          - generic [ref=e165]: "06"
+          - generic [ref=e168]: 熱度 1.87
+        - generic [ref=e169]:
+          - generic [ref=e170]: "3"
+          - generic [ref=e171]: "25"
+          - generic [ref=e174]: 熱度 1.87
+        - generic [ref=e175]:
+          - generic [ref=e176]: "4"
+          - generic [ref=e177]: "08"
+          - generic [ref=e180]: 熱度 1.72
+        - generic [ref=e181]:
+          - generic [ref=e182]: "5"
+          - generic [ref=e183]: "21"
+          - generic [ref=e186]: 熱度 1.56
+        - generic [ref=e187]:
+          - generic [ref=e188]: "6"
+          - generic [ref=e189]: "04"
+          - generic [ref=e192]: 熱度 1.40
+        - generic [ref=e193]:
+          - generic [ref=e194]: "7"
+          - generic [ref=e195]: "31"
+          - generic [ref=e198]: 熱度 1.40
+        - generic [ref=e199]:
+          - generic [ref=e200]: "8"
+          - generic [ref=e201]: "36"
+          - generic [ref=e204]: 熱度 1.40
+        - generic [ref=e205]:
+          - generic [ref=e206]: "9"
+          - generic [ref=e207]: "07"
+          - generic [ref=e210]: 熱度 1.25
+        - generic [ref=e211]:
+          - generic [ref=e212]: "10"
+          - generic [ref=e213]: "09"
+          - generic [ref=e216]: 熱度 1.25
+    - generic [ref=e217]:
+      - heading "❄️ 遺漏值冷號" [level=3] [ref=e218]
+      - paragraph [ref=e219]:
+        - text: 距上次開出已過最多期數
+        - text: 倍數越高代表「欠出」越久
+      - generic [ref=e220]:
+        - generic [ref=e221]:
+          - generic [ref=e222]: "1"
+          - generic [ref=e223]: "29"
+          - generic [ref=e226]: 遺漏 31 期
+        - generic [ref=e227]:
+          - generic [ref=e228]: "2"
+          - generic [ref=e229]: "30"
+          - generic [ref=e232]: 遺漏 26 期
+        - generic [ref=e233]:
+          - generic [ref=e234]: "3"
+          - generic [ref=e235]: "17"
+          - generic [ref=e238]: 遺漏 24 期
+        - generic [ref=e239]:
+          - generic [ref=e240]: "4"
+          - generic [ref=e241]: "27"
+          - generic [ref=e244]: 遺漏 22 期
+        - generic [ref=e245]:
+          - generic [ref=e246]: "5"
+          - generic [ref=e247]: "10"
+          - generic [ref=e250]: 遺漏 21 期
+        - generic [ref=e251]:
+          - generic [ref=e252]: "6"
+          - generic [ref=e253]: "22"
+          - generic [ref=e256]: 遺漏 16 期
+        - generic [ref=e257]:
+          - generic [ref=e258]: "7"
+          - generic [ref=e259]: "26"
+          - generic [ref=e262]: 遺漏 16 期
+        - generic [ref=e263]:
+          - generic [ref=e264]: "8"
+          - generic [ref=e265]: "33"
+          - generic [ref=e268]: 遺漏 11 期
+        - generic [ref=e269]:
+          - generic [ref=e270]: "9"
+          - generic [ref=e271]: "32"
+          - generic [ref=e274]: 遺漏 10 期
+        - generic [ref=e275]:
+          - generic [ref=e276]: "10"
+          - generic [ref=e277]: "01"
+          - generic [ref=e280]: 遺漏 9 期
+    - generic [ref=e281]:
+      - heading "⚖️ 加權綜合分" [level=3] [ref=e282]
+      - paragraph [ref=e283]:
+        - text: 近50期×50% + 近200期×30% + 全史×20%
+        - text: 綜合短中長期熱度趨勢
+      - generic [ref=e284]:
+        - generic [ref=e285]:
+          - generic [ref=e286]: "1"
+          - generic [ref=e287]: "02"
+          - generic [ref=e290]: "1.589"
+        - generic [ref=e291]:
+          - generic [ref=e292]: "2"
+          - generic [ref=e293]: "25"
+          - generic [ref=e296]: "1.491"
+        - generic [ref=e297]:
+          - generic [ref=e298]: "3"
+          - generic [ref=e299]: "08"
+          - generic [ref=e302]: "1.478"
+        - generic [ref=e303]:
+          - generic [ref=e304]: "4"
+          - generic [ref=e305]: "06"
+          - generic [ref=e308]: "1.462"
+        - generic [ref=e309]:
+          - generic [ref=e310]: "5"
+          - generic [ref=e311]: "36"
+          - generic [ref=e314]: "1.296"
+        - generic [ref=e315]:
+          - generic [ref=e316]: "6"
+          - generic [ref=e317]: "21"
+          - generic [ref=e320]: "1.268"
+        - generic [ref=e321]:
+          - generic [ref=e322]: "7"
+          - generic [ref=e323]: "31"
+          - generic [ref=e326]: "1.261"
+        - generic [ref=e327]:
+          - generic [ref=e328]: "8"
+          - generic [ref=e329]: "04"
+          - generic [ref=e332]: "1.227"
+        - generic [ref=e333]:
+          - generic [ref=e334]: "9"
+          - generic [ref=e335]: "07"
+          - generic [ref=e338]: "1.127"
+        - generic [ref=e339]:
+          - generic [ref=e340]: "10"
+          - generic [ref=e341]: "09"
+          - generic [ref=e344]: "1.069"
+  - contentinfo [ref=e149]:
+    - text: 資料來源：
+    - link "pilio.idv.tw" [ref=e150] [cursor=pointer]:
+      - /url: https://www.pilio.idv.tw/lto539/list.asp
+    - text: ｜ 本頁僅供統計參考，樂透為隨機事件，無法預測

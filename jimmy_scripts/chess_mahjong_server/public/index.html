@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>象棋麻將 – 多人版</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Serif TC', '標楷體', serif;
+      background: #2d5a1b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: white;
+    }
+    h1 { font-size: 2rem; margin-bottom: 16px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+
+    /* ── 通用元件 ────────────────────────────────────── */
+    .card {
+      background: rgba(0,0,0,0.35);
+      border-radius: 12px;
+      padding: 24px 32px;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 16px;
+    }
+    .card h2 { font-size: 1.2rem; margin-bottom: 16px; color: #ffd700; }
+
+    .btn {
+      background: #ffd700; color: #333;
+      border: none; padding: 11px 28px;
+      font-size: 1rem; border-radius: 8px;
+      cursor: pointer; font-weight: bold;
+      transition: background .2s, transform .1s;
+      margin: 4px;
+    }
+    .btn:hover:not(:disabled) { background: #ffe96e; transform: translateY(-2px); }
+    .btn:disabled { background: #555; color: #888; cursor: not-allowed; }
+    .btn.secondary { background: #5a8a5a; color: white; }
+    .btn.secondary:hover:not(:disabled) { background: #6aaa6a; }
+    .btn.danger { background: #cc3333; color: white; }
+    .btn.danger:hover:not(:disabled) { background: #ee4444; }
+    .btn.eat { background: #e05c00; color: white; }
+    .btn.eat:hover:not(:disabled) { background: #ff7020; }
+
+    input[type=text] {
+      width: 100%; padding: 10px 14px;
+      border-radius: 8px; border: 2px solid #666;
+      background: rgba(255,255,255,0.1); color: white;
+      font-size: 1rem; margin-bottom: 10px;
+      font-family: inherit;
+    }
+    input[type=text]::placeholder { color: #999; }
+    input[type=text]:focus { outline: none; border-color: #ffd700; }
+
+    .error-msg { color: #ff7070; font-size: 0.9rem; margin-top: 8px; min-height: 1.3rem; }
+    .divider { border: none; border-top: 1px solid rgba(255,255,255,0.15); margin: 18px 0; }
+
+    /* ── 大廳畫面 ────────────────────────────────────── */
+    #lobby-screen { display: flex; flex-direction: column; align-items: center; width: 100%; }
+
+    /* ── 等待畫面 ────────────────────────────────────── */
+    #waiting-screen { display: none; flex-direction: column; align-items: center; width: 100%; }
+    .room-code-box {
+      text-align: center; margin-bottom: 12px;
+    }
+    .room-code-box .label { font-size: 0.9rem; color: #aaa; }
+    .room-code-box .code {
+      font-size: 3rem; font-weight: bold; color: #ffd700;
+      letter-spacing: 8px; text-shadow: 0 0 20px rgba(255,215,0,0.4);
+    }
+    .player-list { list-style: none; padding: 0; }
+    .player-list li {
+      padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex; align-items: center; gap: 10px; font-size: 1rem;
+    }
+    .player-list li:last-child { border-bottom: none; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .dot.online  { background: #4ade80; }
+    .dot.offline { background: #555; }
+    .host-badge {
+      background: #ffd700; color: #333; font-size: 0.65rem;
+      padding: 1px 6px; border-radius: 10px; font-weight: bold;
+    }
+    .wait-hint { color: #888; font-size: 0.85rem; margin-top: 10px; text-align: center; }
+
+    /* ── 遊戲畫面 ────────────────────────────────────── */
+    #game-screen { display: none; flex-direction: column; align-items: center; width: 100%; }
+
+    .game-info {
+      background: rgba(0,0,0,0.3); border-radius: 10px;
+      padding: 10px 20px; margin-bottom: 16px; text-align: center;
+      width: 100%; max-width: 840px; font-size: 1rem;
+    }
+    #turn-info { font-size: 1.1rem; color: #ffd700; font-weight: bold; }
+    #deck-count { color: #aaa; font-size: 0.9rem; margin-top: 4px; }
+
+    .players-area {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 12px; width: 100%; max-width: 840px; margin-bottom: 16px;
+    }
+    .player-panel {
+      background: rgba(0,0,0,0.3); border-radius: 10px;
+      padding: 14px; border: 2px solid transparent;
+      transition: border-color .3s, background .3s;
+    }
+    .player-panel.active   { border-color: #ffd700; background: rgba(255,215,0,0.08); }
+    .player-panel.me-panel { border-color: #4ade80; }
+    .player-panel.me-panel.active { border-color: #ffd700; background: rgba(255,215,0,0.12); }
+
+    .player-name {
+      font-size: 0.95rem; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .dealer-badge {
+      background: #ffd700; color: #333; font-size: 0.65rem;
+      padding: 1px 6px; border-radius: 10px; font-weight: bold;
+    }
+    .me-badge {
+      background: #4ade80; color: #1a3a1a; font-size: 0.65rem;
+      padding: 1px 6px; border-radius: 10px; font-weight: bold;
+    }
+    .offline-badge {
+      background: #555; color: #aaa; font-size: 0.65rem;
+      padding: 1px 6px; border-radius: 10px;
+    }
+
+    .hand { display: flex; flex-wrap: wrap; gap: 6px; }
+    .piece {
+      width: 50px; height: 50px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.15rem; font-weight: bold; border: 3px solid;
+      transition: transform .2s, box-shadow .2s; user-select: none;
+    }
+    .piece.red    { background: #cc0000; color: #fff;   border-color: #8b0000; }
+    .piece.black  { background: #3a3a3a; color: #ddd;   border-color: #111; }
+    .piece.hidden { background: #5c3d1a; color: #5c3d1a; border-color: #3d2710; }
+    .piece.selectable:hover {
+      transform: translateY(-6px); box-shadow: 0 6px 18px rgba(0,0,0,0.5); cursor: pointer;
+    }
+    .piece.drawn  { animation: pop .4s ease-out; box-shadow: 0 0 14px #ffd700; }
+    @keyframes pop {
+      0%   { transform: scale(0.6); opacity: .4; }
+      70%  { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .piece.eatable {
+      animation: glow 1s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+      from { box-shadow: 0 0 8px #ffd700; }
+      to   { box-shadow: 0 0 20px #ffd700, 0 0 36px #ffd70066; }
+    }
+
+    .controls {
+      background: rgba(0,0,0,0.3); border-radius: 10px;
+      padding: 14px 24px; margin-bottom: 16px; text-align: center;
+      width: 100%; max-width: 840px;
+    }
+    .status-msg { font-size: 1rem; margin-top: 8px; min-height: 1.4rem; color: #ffd700; font-weight: bold; }
+    .eat-controls { margin-top: 8px; }
+
+    .win-overlay { display: none; width: 100%; max-width: 840px; margin-bottom: 12px; }
+    .win-overlay.show { display: block; }
+    .win-box {
+      background: #fff8e8; color: #333; border-radius: 12px;
+      padding: 16px 24px; text-align: center; border: 3px solid #ffd700;
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .win-box h2 { font-size: 1.3rem; color: #cc0000; margin: 0; }
+    .win-box p  { font-size: 0.95rem; color: #555; margin: 0; }
+
+    .discard-area {
+      background: rgba(0,0,0,0.3); border-radius: 10px;
+      padding: 14px 18px; margin-bottom: 16px;
+      width: 100%; max-width: 840px;
+    }
+    .discard-area h3 { font-size: 0.9rem; color: #aaa; margin-bottom: 10px; letter-spacing: 1px; }
+    .discard-rows { display: flex; flex-direction: column; gap: 8px; }
+    .discard-row  { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .discard-label { font-size: 0.78rem; color: #888; min-width: 60px; flex-shrink: 0; }
+    .piece.small  { width: 34px; height: 34px; font-size: 0.8rem; border-width: 2px; }
+
+    .log {
+      background: rgba(0,0,0,0.4); border-radius: 8px;
+      padding: 10px 14px; max-height: 130px; overflow-y: auto;
+      width: 100%; max-width: 840px; font-size: 0.82rem; color: #bbb;
+    }
+    .log p { margin: 2px 0; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <h1>♟ 象棋麻將</h1>
+
+  <!-- ── 大廳畫面 ────────────────────────────────────── -->
+  <div id="lobby-screen">
+    <div class="card">
+      <h2>進入遊戲</h2>
+      <label style="font-size:.9rem;color:#ccc">你的名字</label>
+      <input type="text" id="player-name" placeholder="輸入名字" maxlength="10">
+
+      <button class="btn" style="width:100%;margin-top:4px" onclick="createRoom()">建立新房間</button>
+
+      <hr class="divider">
+
+      <label style="font-size:.9rem;color:#ccc">加入現有房間</label>
+      <input type="text" id="room-code-input" placeholder="輸入 4 碼房間代碼" maxlength="4"
+             style="letter-spacing:4px;text-transform:uppercase">
+      <button class="btn secondary" style="width:100%;margin-top:4px" onclick="joinRoom()">加入房間</button>
+
+      <div class="error-msg" id="lobby-error"></div>
+    </div>
+  </div>
+
+  <!-- ── 等待畫面 ────────────────────────────────────── -->
+  <div id="waiting-screen">
+    <div class="card">
+      <div class="room-code-box">
+        <div class="label">房間代碼（告訴其他玩家）</div>
+        <div class="code" id="display-room-code">----</div>
+      </div>
+      <hr class="divider">
+      <h2>玩家列表</h2>
+      <ul class="player-list" id="player-list-waiting"></ul>
+      <div class="wait-hint" id="wait-hint">等待玩家加入…</div>
+      <div style="text-align:center;margin-top:16px">
+        <button class="btn" id="start-btn" disabled onclick="startGame()">開始遊戲</button>
+      </div>
+      <div class="error-msg" id="waiting-error"></div>
+    </div>
+  </div>
+
+  <!-- ── 遊戲畫面 ────────────────────────────────────── -->
+  <div id="game-screen">
+    <div class="game-info">
+      <div id="turn-info">—</div>
+      <div id="deck-count">牌堆：32 張</div>
+    </div>
+
+    <div class="players-area" id="players-area"></div>
+
+    <div class="controls">
+      <button class="btn" id="draw-btn" disabled onclick="sendDraw()">摸牌</button>
+      <div class="eat-controls" id="eat-controls" style="display:none">
+        <button class="btn eat" onclick="sendEat()">吃牌</button>
+        <button class="btn secondary" onclick="sendSkip()">跳過</button>
+      </div>
+      <div class="status-msg" id="status-msg"></div>
+    </div>
+
+    <div class="win-overlay" id="win-overlay">
+      <div class="win-box">
+        <h2>胡牌！</h2>
+        <p id="win-msg"></p>
+        <button class="btn" id="new-game-btn" style="display:none" onclick="sendNewGame()">再來一局</button>
+      </div>
+    </div>
+
+    <div class="discard-area">
+      <h3>棄牌區</h3>
+      <div class="discard-rows" id="discard-rows"></div>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    let myIndex  = -1;
+    let myRoomId = '';
+    let isHost   = false;
+    let gameState = null;
+
+    // ── 畫面切換 ──────────────────────────────────────
+    function showScreen(name) {
+      document.getElementById('lobby-screen').style.display   = name === 'lobby'   ? 'flex' : 'none';
+      document.getElementById('waiting-screen').style.display = name === 'waiting' ? 'flex' : 'none';
+      document.getElementById('game-screen').style.display    = name === 'game'    ? 'flex' : 'none';
+    }
+
+    // ── 大廳操作 ──────────────────────────────────────
+    function createRoom() {
+      const name = document.getElementById('player-name').value.trim();
+      if (!name) return showLobbyError('請輸入名字');
+      socket.emit('create_room', { playerName: name });
+    }
+
+    function joinRoom() {
+      const name = document.getElementById('player-name').value.trim();
+      const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+      if (!name) return showLobbyError('請輸入名字');
+      if (code.length !== 4) return showLobbyError('請輸入 4 碼房間代碼');
+      socket.emit('join_room', { roomId: code, playerName: name });
+    }
+
+    function showLobbyError(msg) {
+      document.getElementById('lobby-error').textContent = msg;
+    }
+
+    // ── 等待室操作 ─────────────────────────────────────
+    function startGame() { socket.emit('start_game'); }
+
+    function renderWaiting(lobby) {
+      document.getElementById('display-room-code').textContent = lobby.roomId;
+      const ul = document.getElementById('player-list-waiting');
+      ul.innerHTML = '';
+      lobby.players.forEach((p, idx) => {
+        const li = document.createElement('li');
+        const dot = `<span class="dot ${p.online ? 'online' : 'offline'}"></span>`;
+        const hostBadge = idx === 0 ? ' <span class="host-badge">房主</span>' : '';
+        const meBadge   = p.id === myIndex ? ' <span class="me-badge">你</span>' : '';
+        li.innerHTML = `${dot} ${p.name}${hostBadge}${meBadge}`;
+        ul.appendChild(li);
+      });
+      const hint = document.getElementById('wait-hint');
+      hint.textContent = lobby.players.length < 4
+        ? `等待中…（${lobby.players.length}/4 人）`
+        : '人數已滿，房主可開始遊戲';
+      const btn = document.getElementById('start-btn');
+      btn.disabled = !isHost || lobby.players.length < 2;
+    }
+
+    // ── 遊戲操作 ───────────────────────────────────────
+    function sendDraw()    { socket.emit('draw'); }
+    function sendEat()     { socket.emit('eat'); }
+    function sendSkip()    { socket.emit('skip_eat'); }
+    function sendNewGame() { socket.emit('new_game'); }
+
+    function renderGame(st) {
+      gameState = st;
+      renderPlayers(st);
+      renderDiscards(st);
+      renderLog(st);
+
+      const isMyTurn = st.myIndex === st.currentPlayer;
+      const phase    = st.phase;
+
+      // 回合資訊
+      const me = st.players[st.myIndex];
+      const cur = st.players[st.currentPlayer];
+      const phaseText =
+        phase === 'idle'    ? '遊戲結束' :
+        phase === 'draw'    ? (isMyTurn ? '輪到你 – 摸牌' : `等待「${cur.name}」摸牌…`) :
+        phase === 'can-eat' ? (isMyTurn ? '輪到你 – 吃牌或跳過' : `等待「${cur.name}」決定是否吃牌…`) :
+                              (isMyTurn ? '請打出一張牌'          : `等待「${cur.name}」打牌…`);
+      document.getElementById('turn-info').textContent = phaseText;
+      document.getElementById('deck-count').textContent = `牌堆剩餘：${st.deckCount} 張`;
+
+      // 控制鈕
+      document.getElementById('draw-btn').disabled = !(isMyTurn && phase === 'draw');
+      const eatCtrl = document.getElementById('eat-controls');
+      eatCtrl.style.display = (isMyTurn && phase === 'can-eat') ? 'block' : 'none';
+
+      document.getElementById('status-msg').textContent =
+        phase === 'discard' && isMyTurn ? '點擊手牌打出一張' : '';
+    }
+
+    function renderPlayers(st) {
+      const area = document.getElementById('players-area');
+      area.innerHTML = '';
+      for (const player of st.players) {
+        const isMe     = player.id === st.myIndex;
+        const isActive = player.id === st.currentPlayer;
+        const canDiscard = isMe && isActive && st.phase === 'discard';
+
+        const panel = document.createElement('div');
+        let cls = 'player-panel';
+        if (isActive) cls += ' active';
+        if (isMe)     cls += ' me-panel';
+        panel.className = cls;
+
+        // 名稱列
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'player-name';
+        let badges = player.isDealer ? ' <span class="dealer-badge">莊</span>' : '';
+        if (isMe) badges += ' <span class="me-badge">你</span>';
+        if (!player.online) badges += ' <span class="offline-badge">離線</span>';
+        nameDiv.innerHTML = `${player.name}${badges} <span style="color:#aaa;font-size:.82rem">(${player.handCount}張)</span>`;
+        panel.appendChild(nameDiv);
+
+        // 手牌
+        const handDiv = document.createElement('div');
+        handDiv.className = 'hand';
+        for (const piece of player.hand) {
+          const el = document.createElement('div');
+          if (piece.hidden) {
+            el.className = 'piece hidden';
+            el.textContent = '♟';
+          } else {
+            const isNew = piece.id === st.drawnPieceId;
+            el.className = `piece ${piece.color}${canDiscard ? ' selectable' : ''}${isNew ? ' drawn' : ''}`;
+            el.textContent = piece.type;
+            el.title = `${piece.color === 'red' ? '紅' : '黑'}${piece.type}`;
+            if (canDiscard) el.onclick = () => socket.emit('discard', { pieceId: piece.id });
+          }
+          handDiv.appendChild(el);
+        }
+        panel.appendChild(handDiv);
+        area.appendChild(panel);
+      }
+    }
+
+    function renderDiscards(st) {
+      const rows = document.getElementById('discard-rows');
+      rows.innerHTML = '';
+      st.players.forEach((player, i) => {
+        const row = document.createElement('div');
+        row.className = 'discard-row';
+        const label = document.createElement('span');
+        label.className = 'discard-label';
+        label.textContent = `${player.name}：`;
+        row.appendChild(label);
+
+        if (!st.discards[i] || st.discards[i].length === 0) {
+          const empty = document.createElement('span');
+          empty.style.cssText = 'color:#555;font-size:.8rem';
+          empty.textContent = '尚無棄牌';
+          row.appendChild(empty);
+        } else {
+          for (const piece of st.discards[i]) {
+            const el = document.createElement('div');
+            const isEatable = st.lastDiscard && piece.id === st.lastDiscard.id;
+            el.className = `piece small ${piece.color}${isEatable ? ' eatable' : ''}`;
+            el.textContent = piece.type;
+            el.title = `${piece.color === 'red' ? '紅' : '黑'}${piece.type}${isEatable ? '（可吃）' : ''}`;
+            row.appendChild(el);
+          }
+        }
+        rows.appendChild(row);
+      });
+    }
+
+    function renderLog(st) {
+      const log = document.getElementById('log');
+      const atBottom = log.scrollHeight - log.scrollTop <= log.clientHeight + 2;
+      log.innerHTML = st.log.map(l => `<p>${l}</p>`).join('');
+      if (atBottom) log.scrollTop = log.scrollHeight;
+    }
+
+    // ── Socket 事件 ────────────────────────────────────
+    socket.on('joined', ({ roomId, playerIndex, isHost: host }) => {
+      myIndex  = playerIndex;
+      myRoomId = roomId;
+      isHost   = host;
+      showLobbyError('');
+      showScreen('waiting');
+    });
+
+    socket.on('lobby_update', (lobby) => {
+      if (document.getElementById('waiting-screen').style.display !== 'none') {
+        renderWaiting(lobby);
+      }
+    });
+
+    socket.on('game_update', (st) => {
+      if (document.getElementById('game-screen').style.display === 'none') {
+        showScreen('game');
+        document.getElementById('win-overlay').classList.remove('show');
+      }
+      renderGame(st);
+    });
+
+    socket.on('win', ({ playerIndex, playerName, pattern }) => {
+      const isMe = playerIndex === myIndex;
+      document.getElementById('win-msg').textContent =
+        isMe ? `你以「${pattern}」胡牌！` : `「${playerName}」以「${pattern}」胡牌！`;
+      document.getElementById('win-overlay').classList.add('show');
+      document.getElementById('new-game-btn').style.display = isHost ? 'inline-block' : 'none';
+    });
+
+    socket.on('error', ({ message }) => {
+      const lobbyErr   = document.getElementById('lobby-error');
+      const waitingErr = document.getElementById('waiting-error');
+      if (document.getElementById('lobby-screen').style.display !== 'none') {
+        lobbyErr.textContent = message;
+      } else {
+        waitingErr.textContent = message;
+      }
+    });
+
+    // Enter 鍵快捷
+    document.getElementById('room-code-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') joinRoom();
+    });
+    document.getElementById('player-name').addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const code = document.getElementById('room-code-input').value.trim();
+        code.length === 4 ? joinRoom() : createRoom();
+      }
+    });
+
+    showScreen('lobby');
+  </script>
+</body>
+</html>

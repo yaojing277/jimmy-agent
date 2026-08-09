@@ -1,0 +1,34 @@
+name: 股價跌幅警示
+
+on:
+  # 由 cron-job.org 觸發（Asia/Taipei 時區，週一至週五）
+  # 每 10 分鐘：09:00~13:50，加上 14:00
+  workflow_dispatch:
+
+jobs:
+  alert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install yfinance requests
+
+      - name: 執行股價跌幅警示
+        env:
+          LINE_TOKEN:   ${{ secrets.LINE_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: python jimmy_scripts/stock_alert.py
+
+      - name: 更新警示狀態
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          git add jimmy_scripts/stock_alert_state.json
+          git diff --staged --quiet || (git commit -m "chore: update alert state [skip ci]" && git push)

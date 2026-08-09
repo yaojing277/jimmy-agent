@@ -1,0 +1,680 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - generic [ref=e8]:
+        - generic [ref=e9]: 玩股網全新登入機制上線，未來將更全面保護你的帳號安全
+        - link "搶先了解" [ref=e10] [cursor=pointer]:
+          - /url: https://www.wantgoo.com/edm/link/417
+      - button [ref=e11] [cursor=pointer]
+    - banner [ref=e12]:
+      - generic [ref=e14]:
+        - link "玩股網" [ref=e16] [cursor=pointer]:
+          - /url: /
+          - img "玩股網" [ref=e17]
+        - navigation [ref=e18]:
+          - list [ref=e19]:
+            - listitem [ref=e20]:
+              - link "首頁" [ref=e21] [cursor=pointer]:
+                - /url: /
+                - generic [ref=e22]: 首頁
+            - listitem [ref=e23]:
+              - link "社團" [ref=e24] [cursor=pointer]:
+                - /url: /club/promotion
+                - generic [ref=e25]: 社團
+            - listitem [ref=e26]:
+              - link "老鳥說" [ref=e27] [cursor=pointer]:
+                - /url: /laojiao
+                - generic [ref=e28]: 老鳥說
+            - listitem [ref=e29]:
+              - link "台股" [ref=e30] [cursor=pointer]:
+                - /url: /stock
+                - generic [ref=e31]: 台股
+            - listitem [ref=e32]:
+              - link "國際" [ref=e33] [cursor=pointer]:
+                - /url: /global
+                - generic [ref=e34]: 國際
+            - listitem [ref=e35]:
+              - link "選股" [ref=e36] [cursor=pointer]:
+                - /url: /screener
+                - generic [ref=e37]: 選股
+            - listitem [ref=e38]:
+              - link "網誌" [ref=e39] [cursor=pointer]:
+                - /url: /blog
+                - generic [ref=e40]: 網誌
+            - listitem [ref=e41]:
+              - link "動態牆" [ref=e42] [cursor=pointer]:
+                - /url: /social-wall
+                - generic [ref=e43]: 動態牆
+            - listitem [ref=e44]:
+              - link "新聞" [ref=e45] [cursor=pointer]:
+                - /url: /news
+                - generic [ref=e46]: 新聞
+            - listitem [ref=e47]:
+              - link "商城" [ref=e48] [cursor=pointer]:
+                - /url: /mall
+                - generic [ref=e49]: 商城
+            - listitem [ref=e50]:
+              - link "APP N" [ref=e51] [cursor=pointer]:
+                - /url: /app
+                - generic [ref=e52]: APP
+                - generic [ref=e54]: "N"
+        - generic [ref=e55]:
+          - textbox "輸入搜尋字串.." [ref=e59]
+          - link [ref=e61] [cursor=pointer]:
+            - /url: /member/login?returnUrl=%2Fstock%2F2327%2Fdividend-policy%2Fex-dividend
+    - list [ref=e64]:
+      - listitem [ref=e65]:
+        - link "玩股網" [ref=e66] [cursor=pointer]:
+          - /url: /
+      - listitem [ref=e67]:
+        - text: /
+        - link "台股" [ref=e68] [cursor=pointer]:
+          - /url: /stock
+      - listitem [ref=e69]:
+        - text: /
+        - link "國巨* (2327)" [ref=e70] [cursor=pointer]:
+          - /url: /stock/2327
+      - listitem [ref=e71]: / 歷年股利
+    - main [ref=e73]:
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - generic [ref=e76]:
+            - heading "國巨*" [level=3] [ref=e77]
+            - generic [ref=e78]: "2327"
+            - time [ref=e79]: 2026-07-01 13:30
+            - generic [ref=e80]: 成交量僅含一般交易、盤後定價交易
+            - list [ref=e81]:
+              - listitem [ref=e82]:
+                - link "上市" [ref=e83] [cursor=pointer]:
+                  - /url: /index/listed/industry
+              - listitem [ref=e84]:
+                - link "電零組 0.72%" [ref=e85] [cursor=pointer]:
+                  - /url: /index/^028
+            - button " 自選股 登入免費用" [ref=e86] [cursor=pointer]:
+              - generic [ref=e87]: 
+              - text: 自選股
+              - generic [ref=e88]: 登入免費用
+          - generic [ref=e89]:
+            - generic [ref=e90]:
+              - generic "國巨*(2327) 最新股價" [ref=e91]: "1140.00"
+              - text: 0.00 0%
+            - list [ref=e93]:
+              - listitem [ref=e94]:
+                - generic [ref=e95]: 開盤
+                - generic [ref=e96]: "1200.00"
+              - listitem [ref=e97]:
+                - generic [ref=e98]: 昨收
+                - generic [ref=e99]: "1140.00"
+              - listitem [ref=e100]:
+                - generic [ref=e101]: 最高
+                - generic [ref=e102]: "1220.00"
+              - listitem [ref=e103]:
+                - generic [ref=e104]: 最低
+                - generic [ref=e105]: "1130.00"
+              - listitem [ref=e106]:
+                - generic [ref=e107]: 成交量(張)
+                - generic [ref=e108]: 69,855
+              - listitem [ref=e109]:
+                - generic [ref=e110]: 預估量(張)
+                - generic [ref=e111]: 69,855
+              - listitem [ref=e112]:
+                - generic [ref=e113]: 市值(億)
+                - generic [ref=e114]: 23,614.71
+              - listitem [ref=e115]:
+                - generic [ref=e116]: 股淨比
+                - generic [ref=e117]: "14.05"
+              - listitem [ref=e118]:
+                - generic [ref=e119]: 均價
+                - generic [ref=e120]: "1176.61"
+              - listitem [ref=e121]:
+                - generic [ref=e122]: 本益比
+                - generic [ref=e123]: "89.76"
+              - listitem [ref=e124]:
+                - generic [ref=e125]: 振幅
+                - generic [ref=e126]: 7.89%
+              - listitem [ref=e127]:
+                - generic [ref=e128]: 市營比
+                - generic [ref=e129]: "16.02"
+              - listitem [ref=e130]:
+                - generic [ref=e131]: 離季線
+                - generic [ref=e132]: 540.99 (90.31%)
+              - listitem [ref=e133]:
+                - generic [ref=e134]: 發行權證(檔)
+                - generic [ref=e135]: "285"
+              - listitem [ref=e136]:
+                - generic [ref=e137]: Beta值(近半年)
+                - generic [ref=e138]: "1.48"
+        - generic [ref=e139]:
+          - generic [ref=e140]:
+            - generic [ref=e141]:
+              - list [ref=e142]:
+                - listitem [ref=e143]:
+                  - link "群組1" [ref=e144] [cursor=pointer]:
+                    - /url: "javascript:"
+              - button "" [ref=e145] [cursor=pointer]:
+                - generic [ref=e146]: 
+            - list [ref=e148]:
+              - listitem [ref=e149]:
+                - button "國巨* 1140.00 0%" [ref=e150] [cursor=pointer]:
+                  - generic [ref=e151]: 國巨*
+                  - generic [ref=e152]: 1140.00 0%
+              - listitem [ref=e153]:
+                - button "歐特克公司 203.30 ∞%" [ref=e154] [cursor=pointer]:
+                  - generic [ref=e155]: 歐特克公司
+                  - generic [ref=e156]: 203.30 ∞%
+            - generic [ref=e157]:
+              - generic [ref=e158]:
+                - text: 立即
+                - link "登入" [ref=e159] [cursor=pointer]:
+                  - /url: /member/login?returnUrl=%2Fstock%2F2327%2Fdividend-policy%2Fex-dividend
+                - text: 免費設定，快速切換你關注的股票
+              - link "前往我的庫存股" [ref=e160] [cursor=pointer]:
+                - /url: /treasury
+                - text: 前往我的庫存股
+                - generic [ref=e161]: 
+          - generic [ref=e163] [cursor=pointer]: 
+        - generic [ref=e165]:
+          - generic [ref=e166]: 
+          - generic [ref=e167]:
+            - text: 看盤、練手兩相宜，真實報價配模擬單，試試
+            - link "台指當沖模擬器" [ref=e168] [cursor=pointer]:
+              - /url: javascript:;
+            - text: 。
+          - button "Close" [ref=e169] [cursor=pointer]:
+            - generic [ref=e170]: 
+        - navigation [ref=e171]:
+          - list [ref=e172]:
+            - listitem [ref=e173]:
+              - link "個股概況" [ref=e174] [cursor=pointer]:
+                - /url: /stock/2327
+            - listitem [ref=e175]:
+              - link "技術分析" [ref=e176] [cursor=pointer]:
+                - /url: /stock/2327/technical-chart
+            - listitem [ref=e177]:
+              - link "法人動態" [ref=e178] [cursor=pointer]:
+                - /url: /stock/2327/institutional-investors/trend
+            - listitem [ref=e179]:
+              - link "資券變化" [ref=e180] [cursor=pointer]:
+                - /url: /stock/2327/margin-trading/synopsis
+            - listitem [ref=e181]:
+              - link "大戶籌碼" [ref=e182] [cursor=pointer]:
+                - /url: /stock/2327/major-investors/concentration
+            - listitem [ref=e183]:
+              - link "主力進出 " [ref=e184] [cursor=pointer]:
+                - /url: "javascript:"
+            - listitem [ref=e185]:
+              - link "股權分散" [ref=e186] [cursor=pointer]:
+                - /url: /stock/2327/shareholding-distribution
+            - listitem [ref=e187]:
+              - link "財報股利 " [ref=e188] [cursor=pointer]:
+                - /url: "javascript:"
+              - text:       
+            - listitem [ref=e189]:
+              - link "相關新聞" [ref=e190] [cursor=pointer]:
+                - /url: /news/tag/國巨*
+        - generic [ref=e192]:
+          - heading "國巨*(2327)歷年股利政策及除權息一覽表" [level=1] [ref=e194]
+          - img [ref=e199]:
+            - generic [ref=e228]: © WantGoo 玩股網
+            - generic [ref=e229]:
+              - generic [ref=e230]: "2007"
+              - generic [ref=e231]: "2008"
+              - generic [ref=e232]: "2009"
+              - generic [ref=e233]: "2010"
+              - generic [ref=e234]: "2011"
+              - generic [ref=e235]: "2014"
+              - generic [ref=e236]: "2015"
+              - generic [ref=e237]: "2016"
+              - generic [ref=e238]: "2017"
+              - generic [ref=e239]: "2018"
+              - generic [ref=e240]: "2019"
+              - generic [ref=e241]: "2020"
+              - generic [ref=e242]: "2021"
+              - generic [ref=e243]: "2022"
+              - generic [ref=e244]: "2023"
+              - generic [ref=e245]: "2024"
+              - generic [ref=e246]: "2025"
+              - generic [ref=e247]: "2026"
+            - generic [ref=e248]:
+              - generic [ref=e249]: "0"
+              - generic [ref=e250]: "10"
+              - generic [ref=e251]: "20"
+              - generic [ref=e252]: "30"
+              - generic [ref=e253]: "40"
+              - generic [ref=e254]: "50"
+          - iframe [ref=e258]:
+            - generic [active] [ref=f17e1]:
+              - generic [ref=f17e3]:
+                - link [ref=f17e4] [cursor=pointer]:
+                  - /url: https://adclick.g.doubleclick.net/aclk?sa=l&ai=CZk7vhTtFau7yHo6V29gPg6_QsAm5qcqOiAHu78mO8xXit4zxvgEQASC2pKKUAWCfAaABuafv5EHIAQmpAkmwkgkw1mA-4AIAqAMByAMKqgTYAk_Qo4yS1piohJQ5Z2mvWLdDkg37resSAGjGu85V20ehJj9RMyH_4TN4Y0v6XN8YW62Z9EIzW81CxOwj9vd6-l6J_6MedjQUeZsRTkRFLkGjOpennXGI9H1WS3tCVZw0R7kA5F9yoOSus3dSRGZehKla4NTGC8QB_kK-PaHzHe1zGRWacSMxgJnbgBstgipAiqszQz9O4X8q4CiF2-778vRUdLcdOHvBo0nhh_TF67i4YT6HVaIoIjWxC3lepvDyhgMh87HTYEGv1WOZA2ZcinzPUoIYvIZkMEbXWox34ssXOPFefJmcAx7QwnziV8RkfRYYi9xbG3I5pXxVExg4xJok2j1QL5qR5Lfq3ZLu-tt4fr7f3gxnSJ3cFtKPeiSPLpzTFEcwI-yT7Ynam8IFvpJM9xW8KAquumX42NtPs__gbOzyHNiAMiIs-LtsY5ZuFvhbd2C20ax8wASi4bGh5QXgBAGIBeSCnrBZoAYugAe537_EHKgHp8yxAqgH4tixAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHANIIMwiAYRABGJ0BMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpYsK_mu-6xlQNgAbEJgqrPhoJOP3KACgOYCwHICwGADAGiDAOQAQGqDQJUV8gNAeINEwje3ea77rGVAxWOyhYFHYMXFJbqDRMItabnu-6xlQMVjsoWBR2DFxSW8A0CiA7___________8BuBPkA9gTA9AVAZgWAcoWAgoA-BYBgBcBshcQGAEqCjY2MTA0OTAyMDlQBroXAjgBqhgXCQAAAADwz_VAEgo2NjEwNDkwMjA5GAGyGAkSAr9OGC4iAQDQGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIrsnnu-6xlQMVjsoWBR2DFxSWEAEYASAAEgLQ5vD_BwE&num=1&cid=CAQS9QEAEQoqgVLvnV33mMTI4m2fYXzGWLrPy-0W40bomxLkg_lhbx1kqFVFW3jvf3_ECb4_0nigiSYGVmIkaUt_c7wjbF5lNy5xxmVfceYg6rB8RbRvsJ06gUMHGXZ7OdFcAdjC30B9mCrmk40oHwrL2s7QoOOKHBgvisdjmz4r0AhwKqFXFyaVaMbAE-dkgI9f5vti28yjdlYWwc6SytJZA8yFPAJwWYdodns5G45HnH0Mmjba0uK5i8PLSqqk9ltxELL-JhI2G5nC2W5MQPaJ3Y4tadZC_4PSNv7wfQtJXjpojGAgIQdsc_aUszZbt7PBDARQL77R7xgB&sig=AOD64_17Ng6M7X4leV08X7LQ60BO49JDYA&client=ca-pub-7122514039256629&rf=4&nb=9&adurl=https://10therma.com%3Futm_source%3Dgoogle%26utm_medium%3Dads%26utm_campagn%3Drda_2607%26gad_source%3D5%26gad_campaignid%3D23991910756%26gclid%3DEAIaIQobChMIrsnnu-6xlQMVjsoWBR2DFxSWEAEYASAAEgLQ5vD_BwE
+                  - img [ref=f17e5]
+                - generic [ref=f17e6]:
+                  - link "十蓓電波" [ref=f17e9] [cursor=pointer]:
+                    - /url: https://adclick.g.doubleclick.net/aclk?sa=l&ai=CZk7vhTtFau7yHo6V29gPg6_QsAm5qcqOiAHu78mO8xXit4zxvgEQASC2pKKUAWCfAaABuafv5EHIAQmpAkmwkgkw1mA-4AIAqAMByAMKqgTYAk_Qo4yS1piohJQ5Z2mvWLdDkg37resSAGjGu85V20ehJj9RMyH_4TN4Y0v6XN8YW62Z9EIzW81CxOwj9vd6-l6J_6MedjQUeZsRTkRFLkGjOpennXGI9H1WS3tCVZw0R7kA5F9yoOSus3dSRGZehKla4NTGC8QB_kK-PaHzHe1zGRWacSMxgJnbgBstgipAiqszQz9O4X8q4CiF2-778vRUdLcdOHvBo0nhh_TF67i4YT6HVaIoIjWxC3lepvDyhgMh87HTYEGv1WOZA2ZcinzPUoIYvIZkMEbXWox34ssXOPFefJmcAx7QwnziV8RkfRYYi9xbG3I5pXxVExg4xJok2j1QL5qR5Lfq3ZLu-tt4fr7f3gxnSJ3cFtKPeiSPLpzTFEcwI-yT7Ynam8IFvpJM9xW8KAquumX42NtPs__gbOzyHNiAMiIs-LtsY5ZuFvhbd2C20ax8wASi4bGh5QXgBAGIBeSCnrBZoAYugAe537_EHKgHp8yxAqgH4tixAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHANIIMwiAYRABGJ0BMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpYsK_mu-6xlQNgAbEJgqrPhoJOP3KACgOYCwHICwGADAGiDAOQAQGqDQJUV8gNAeINEwje3ea77rGVAxWOyhYFHYMXFJbqDRMItabnu-6xlQMVjsoWBR2DFxSW8A0CiA7___________8BuBPkA9gTA9AVAZgWAcoWAgoA-BYBgBcBshcQGAEqCjY2MTA0OTAyMDlQBroXAjgBqhgXCQAAAADwz_VAEgo2NjEwNDkwMjA5GAGyGAkSAr9OGC4iAQDQGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIrsnnu-6xlQMVjsoWBR2DFxSWEAEYASAAEgLQ5vD_BwE&num=1&cid=CAQS9QEAEQoqgVLvnV33mMTI4m2fYXzGWLrPy-0W40bomxLkg_lhbx1kqFVFW3jvf3_ECb4_0nigiSYGVmIkaUt_c7wjbF5lNy5xxmVfceYg6rB8RbRvsJ06gUMHGXZ7OdFcAdjC30B9mCrmk40oHwrL2s7QoOOKHBgvisdjmz4r0AhwKqFXFyaVaMbAE-dkgI9f5vti28yjdlYWwc6SytJZA8yFPAJwWYdodns5G45HnH0Mmjba0uK5i8PLSqqk9ltxELL-JhI2G5nC2W5MQPaJ3Y4tadZC_4PSNv7wfQtJXjpojGAgIQdsc_aUszZbt7PBDARQL77R7xgB&sig=AOD64_17Ng6M7X4leV08X7LQ60BO49JDYA&client=ca-pub-7122514039256629&rf=4&nb=1&adurl=https://10therma.com%3Futm_source%3Dgoogle%26utm_medium%3Dads%26utm_campagn%3Drda_2607%26gad_source%3D5%26gad_campaignid%3D23991910756%26gclid%3DEAIaIQobChMIrsnnu-6xlQMVjsoWBR2DFxSWEAEYASAAEgLQ5vD_BwE
+                  - link "十蓓電波 給你隨時在 線的狀態" [ref=f17e11] [cursor=pointer]:
+                    - /url: https://adclick.g.doubleclick.net/aclk?sa=l&ai=CZk7vhTtFau7yHo6V29gPg6_QsAm5qcqOiAHu78mO8xXit4zxvgEQASC2pKKUAWCfAaABuafv5EHIAQmpAkmwkgkw1mA-4AIAqAMByAMKqgTYAk_Qo4yS1piohJQ5Z2mvWLdDkg37resSAGjGu85V20ehJj9RMyH_4TN4Y0v6XN8YW62Z9EIzW81CxOwj9vd6-l6J_6MedjQUeZsRTkRFLkGjOpennXGI9H1WS3tCVZw0R7kA5F9yoOSus3dSRGZehKla4NTGC8QB_kK-PaHzHe1zGRWacSMxgJnbgBstgipAiqszQz9O4X8q4CiF2-778vRUdLcdOHvBo0nhh_TF67i4YT6HVaIoIjWxC3lepvDyhgMh87HTYEGv1WOZA2ZcinzPUoIYvIZkMEbXWox34ssXOPFefJmcAx7QwnziV8RkfRYYi9xbG3I5pXxVExg4xJok2j1QL5qR5Lfq3ZLu-tt4fr7f3gxnSJ3cFtKPeiSPLpzTFEcwI-yT7Ynam8IFvpJM9xW8KAquumX42NtPs__gbOzyHNiAMiIs-LtsY5ZuFvhbd2C20ax8wASi4bGh5QXgBAGIBeSCnrBZoAYugAe537_EHKgHp8yxAqgH4tixAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHANIIMwiAYRABGJ0BMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpYsK_mu-6xlQNgAbEJgqrPhoJOP3KACgOYCwHICwGADAGiDAOQAQGqDQJUV8gNAeINEwje3ea77rGVAxWOyhYFHYMXFJbqDRMItabnu-6xlQMVjsoWBR2DFxSW8A0CiA7___________8BuBPkA9gTA9AVAZgWAcoWAgoA-BYBgBcBshcQGAEqCjY2MTA0OTAyMDlQBroXAjgBqhgXCQAAAADwz_VAEgo2NjEwNDkwMjA5GAGyGAkSAr9OGC4iAQDQGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIrsnnu-6xlQMVjsoWBR2DFxSWEAEYASAAEgLQ5vD_BwE&num=1&cid=CAQS9QEAEQoqgVLvnV33mMTI4m2fYXzGWLrPy-0W40bomxLkg_lhbx1kqFVFW3jvf3_ECb4_0nigiSYGVmIkaUt_c7wjbF5lNy5xxmVfceYg6rB8RbRvsJ06gUMHGXZ7OdFcAdjC30B9mCrmk40oHwrL2s7QoOOKHBgvisdjmz4r0AhwKqFXFyaVaMbAE-dkgI9f5vti28yjdlYWwc6SytJZA8yFPAJwWYdodns5G45HnH0Mmjba0uK5i8PLSqqk9ltxELL-JhI2G5nC2W5MQPaJ3Y4tadZC_4PSNv7wfQtJXjpojGAgIQdsc_aUszZbt7PBDARQL77R7xgB&sig=AOD64_17Ng6M7X4leV08X7LQ60BO49JDYA&client=ca-pub-7122514039256629&rf=4&nb=0&adurl=https://10therma.com%3Futm_source%3Dgoogle%26utm_medium%3Dads%26utm_campagn%3Drda_2607%26gad_source%3D5%26gad_campaignid%3D23991910756%26gclid%3DEAIaIQobChMIrsnnu-6xlQMVjsoWBR2DFxSWEAEYASAAEgLQ5vD_BwE
+                    - text: 十蓓電波 給你隨時在
+                    - text: 線的狀態
+                - link "開啟" [ref=f17e14] [cursor=pointer]:
+                  - /url: https://adclick.g.doubleclick.net/aclk?sa=l&ai=CZk7vhTtFau7yHo6V29gPg6_QsAm5qcqOiAHu78mO8xXit4zxvgEQASC2pKKUAWCfAaABuafv5EHIAQmpAkmwkgkw1mA-4AIAqAMByAMKqgTYAk_Qo4yS1piohJQ5Z2mvWLdDkg37resSAGjGu85V20ehJj9RMyH_4TN4Y0v6XN8YW62Z9EIzW81CxOwj9vd6-l6J_6MedjQUeZsRTkRFLkGjOpennXGI9H1WS3tCVZw0R7kA5F9yoOSus3dSRGZehKla4NTGC8QB_kK-PaHzHe1zGRWacSMxgJnbgBstgipAiqszQz9O4X8q4CiF2-778vRUdLcdOHvBo0nhh_TF67i4YT6HVaIoIjWxC3lepvDyhgMh87HTYEGv1WOZA2ZcinzPUoIYvIZkMEbXWox34ssXOPFefJmcAx7QwnziV8RkfRYYi9xbG3I5pXxVExg4xJok2j1QL5qR5Lfq3ZLu-tt4fr7f3gxnSJ3cFtKPeiSPLpzTFEcwI-yT7Ynam8IFvpJM9xW8KAquumX42NtPs__gbOzyHNiAMiIs-LtsY5ZuFvhbd2C20ax8wASi4bGh5QXgBAGIBeSCnrBZoAYugAe537_EHKgHp8yxAqgH4tixAqgHpr4bqAfMzrECqAfz0RuoB5bYG6gHqpuxAqgHjs4bqAeT2BuoB_DgG6gH7paxAqgH_p6xAqgHr76xAqgH1ckbqAfZtrECqAeaBqgH_56xAqgH35-xAqgH-MKxAqgH-8KxAtgHANIIMwiAYRABGJ0BMgiKgoCAgICACDoPgECAwICAgICogAKog4AQSL39wTpYsK_mu-6xlQNgAbEJgqrPhoJOP3KACgOYCwHICwGADAGiDAOQAQGqDQJUV8gNAeINEwje3ea77rGVAxWOyhYFHYMXFJbqDRMItabnu-6xlQMVjsoWBR2DFxSW8A0CiA7___________8BuBPkA9gTA9AVAZgWAcoWAgoA-BYBgBcBshcQGAEqCjY2MTA0OTAyMDlQBroXAjgBqhgXCQAAAADwz_VAEgo2NjEwNDkwMjA5GAGyGAkSAr9OGC4iAQDQGAHCGQIIAQ&ae=1&gclid=EAIaIQobChMIrsnnu-6xlQMVjsoWBR2DFxSWEAEYASAAEgLQ5vD_BwE&num=1&cid=CAQS9QEAEQoqgVLvnV33mMTI4m2fYXzGWLrPy-0W40bomxLkg_lhbx1kqFVFW3jvf3_ECb4_0nigiSYGVmIkaUt_c7wjbF5lNy5xxmVfceYg6rB8RbRvsJ06gUMHGXZ7OdFcAdjC30B9mCrmk40oHwrL2s7QoOOKHBgvisdjmz4r0AhwKqFXFyaVaMbAE-dkgI9f5vti28yjdlYWwc6SytJZA8yFPAJwWYdodns5G45HnH0Mmjba0uK5i8PLSqqk9ltxELL-JhI2G5nC2W5MQPaJ3Y4tadZC_4PSNv7wfQtJXjpojGAgIQdsc_aUszZbt7PBDARQL77R7xgB&sig=AOD64_17Ng6M7X4leV08X7LQ60BO49JDYA&client=ca-pub-7122514039256629&rf=4&nb=8&adurl=https://10therma.com%3Futm_source%3Dgoogle%26utm_medium%3Dads%26utm_campagn%3Drda_2607%26gad_source%3D5%26gad_campaignid%3D23991910756%26gclid%3DEAIaIQobChMIrsnnu-6xlQMVjsoWBR2DFxSWEAEYASAAEgLQ5vD_BwE
+                  - generic [ref=f17e16]: 開啟
+              - generic [ref=f17e18]:
+                - link [ref=f17e20] [cursor=pointer]:
+                  - /url: https://adssettings.google.com/whythisad?source=display&reasons=AXOIBo_okZ5yCZJjKLYzQDMliqkSkKbZPjdGnJj2UaGhNx8JLt0DWla9F5OL9VPzJWKwTDlnb0vjXbVLomJa5uGDrJFniAO9j-nnKYc98qA9_ApyiA1MRb_WzYm6IDqKsnJJDfWOxd_F6LTFlBGHMcYJqMCtzIxkQag0TqQp78jzKYR48vrx3gOfac8uTf6BXNswyoIH_UjIo4RMpKJGt4g5tkseyO1gnKJ4OjbI8i5jZ8SqVDDhUw9sK7RIwW97lwqSHVK8RokHL_I7adnxSeWL7rqjdSxxjgsBte-JzN1g5e7z8_SUIuTb_h7i9VxH7LHnKbgqnQAJoo_b6dDEcf4gKRMB2XWbVuPXx9ND2LgczooJVu0cQWZcHrfJfTrBxy1WFf8U9dtYkwFfYCSYX6YRZ7hWibgQuRHM9GaApL2jjsVobjkcSqBFqEJCItIFTJUPcyE8LCMe-uDhOFBCwE-pvRXdRiHE3Ne1RgZasaoSZbGGMzOLSkEAiWSco01CDTmp7ypzH6of3oSc5Wo7EFXsERv7gQ5Ybd7wSHN4uKKV0wQitZoejr0bFipvpKs2Lcps0G6mJXSJGgQEG-CeralWQgnaIu-gxkYSwjWlyWkx2yaiB1JWOafSXg9OaF8dznPhcsc31ouWLHEG1iHGwGVJHG4RWkRU_QdrqFCOBB65EDxDtoxtIO2J9AtIqDOcWZwVtX913OJ6YilrzLqfQblzFp2x4mOtL25KJuvXcSpiishp9C71P6hUAgpmbPJMERtNmF8oa0G4zBqF-FJLlw96ZEJQHG2MSflKnKHrhztch2zp5Smt604KEtWCe1NLS5EqNX8h4XcrNdv8BLF8apG--bq-QxkGwj1GQ5UiAcuS8u12156OtkWyzsLiJso5gjI-DpFfdBGqnsD67VHBFPS2g0Yle1duxj2xgtCRR_-4pcor0NI-TdwF1ua3-V-1u4A6auQYj4SEfuOht6mIO6dQytZ9_an0vUE4xiro_RrVH00l_vf78nNv_X5vHqlMFKS1Zv6T1ba89xus-tL26RiCkDQP-gS2MkqXEUqZwhBqT-Ss6Z64JEOqm17bTv9J70vI0UX3wOQJvbyO7kN6gWQYML0ifJivP3zZhUb-tBVCOQQiUOSgBfkGK_O-6o1WmK0ErflFIns0fkJVBrH6_l_SCH8UUk5F_oYVtBu15CYJoTk3tsGxE-5GUQ4QWHNsDgXh03_I7INvrSsF4vkKWTkOMH9GsHrF-uR1WzssYfDT4mux4Qvu47P-Xg6liedI0ocz4BC04NrCscekcCfLiwAxMARTQCGMg-VHkYk_E5LTQb0aBpj6NDevd7n6POY6YH7eiKdIdVenA5yRJhGwAY-ql9Liz9Epg_VHHKQjGWAcUIpeHEVPzdKyMa-kWznUUBZr1jQ62zqn0bLspcBCe_NYN12uC12tYn_fB24QU0lZhWDS8gGDI-D7h68YplnEJL203qCIm3-7RVTMpu9uGYYqx-NO2eGfa48ekfdJuO-qWe-R9KUWKBccw8n2djN7XwDzTFcKDdJE7Vk0UQqgWtNvjIqe2Hsr-Rm78pz0XvvatLhx6QraycpKwhH6to2HHJfJOwf7SYgezGxu3jRaiUeX50k4pCVFd3P8CQqnL6Em9HkiHQLDDHWDrA2lWR6qoUtyPkVcApi3Yx3BlZ0gwyIXBH64CIDDklSqMtgjpWOHJ8Hz1bedKUoU8dDD_6O2umwvFjRxzT_ZchvGV0QSYWn1hWswIDY74WPhSfdDfzLtRXEGnzGTLk61iD6QL0UV3S2OZnaoTSyGEXJY2X1d36zldmbcr1z8Rd-iiiAMvUydpywfzRxF7QIEfGgsQOcBKePFwo0IAavqgISqAU_8rJgJJpgYIL8dGDPI5vsodUgyxryF4a2NzKLYOp1nsC4QklpxULOGrZkCWDbsfd5GdTwwvXbPtdwx5GIdWYikBSlKL3nU3j6vrLQOcs8kRt0X1ZJNF7kOPUMsEc78tPXdCXOqZbNQ7IygHG5xPvzuxoMJlk4U38HjBRN2Jyfb9ZE1cj33UgOfYC-m3wzaGqfUiLYcUNegDh4HBhNBocoAIaWOqtNt_FqZ5xzxEVgnjOzmkPYiKCGb_R-o5-y9tS2phtn1PEE-_W9Im4GCyNKg844QplVHNXTHtWVl6lcd2ETDWGskxIGB944VsTHyBx2Xr6cK-LMIbNICzKfkgDBbhngr8ATSjISfoqGm7oT2nFDDtgcrF4REku6LaszI7ClZrgVsX1gHILrKI1JSSG7FPpEL-qOl4zG35eJxKuh4bkHdYqR59qBWtl4l_F2PtjmH1EPSe2PH6waG48GsxCeCkmMKRXcXn2p9lkC1IqI1WkbK1oswe6FDZ8eN4jTgNnu4VrJdLOtDATVOInS_ODw3men4UAkqRInuCT-JMFrsS2dNxiLztx5-e6KvUH3acLH9kvrVXJwSLllKM_vnh3azYzbM9y-_J-2SjS4t72qVg9wVhgNfIDn_VPmKFQqk-H8U3bmQ19sBuGIK2zQrGnwlNGaugrdUIo8iCNRmcIh2Ass8FgDAm0B_F4erN3AxEDqqUrMWR-zmm2dyfw1ntU_b1_r6Aq_HvW8XXn-QEeaxsvMTYawk4u8mDMgcgvqF567OsKMZ0nj3ygQEOTYlo1ImSY362JqQwheRBwBueZWeoA9NOMIAvu8D8uVIFCQwbivUwzMJ1nQYuCcBPepC8to5AHHXjl4T4-rZ3PMnpcJNWZbvINloWCx2CUkabpUI4TYu9L1Pm114XO1guSVMbY6pWKmVIR407CjXkAwp24XV5g&opi=122715837
+                  - img [ref=f17e22]
+                - link [ref=f17e24] [cursor=pointer]:
+                  - /url: https://adssettings.google.com/whythisad?source=display&reasons=AXOIBo_okZ5yCZJjKLYzQDMliqkSkKbZPjdGnJj2UaGhNx8JLt0DWla9F5OL9VPzJWKwTDlnb0vjXbVLomJa5uGDrJFniAO9j-nnKYc98qA9_ApyiA1MRb_WzYm6IDqKsnJJDfWOxd_F6LTFlBGHMcYJqMCtzIxkQag0TqQp78jzKYR48vrx3gOfac8uTf6BXNswyoIH_UjIo4RMpKJGt4g5tkseyO1gnKJ4OjbI8i5jZ8SqVDDhUw9sK7RIwW97lwqSHVK8RokHL_I7adnxSeWL7rqjdSxxjgsBte-JzN1g5e7z8_SUIuTb_h7i9VxH7LHnKbgqnQAJoo_b6dDEcf4gKRMB2XWbVuPXx9ND2LgczooJVu0cQWZcHrfJfTrBxy1WFf8U9dtYkwFfYCSYX6YRZ7hWibgQuRHM9GaApL2jjsVobjkcSqBFqEJCItIFTJUPcyE8LCMe-uDhOFBCwE-pvRXdRiHE3Ne1RgZasaoSZbGGMzOLSkEAiWSco01CDTmp7ypzH6of3oSc5Wo7EFXsERv7gQ5Ybd7wSHN4uKKV0wQitZoejr0bFipvpKs2Lcps0G6mJXSJGgQEG-CeralWQgnaIu-gxkYSwjWlyWkx2yaiB1JWOafSXg9OaF8dznPhcsc31ouWLHEG1iHGwGVJHG4RWkRU_QdrqFCOBB65EDxDtoxtIO2J9AtIqDOcWZwVtX913OJ6YilrzLqfQblzFp2x4mOtL25KJuvXcSpiishp9C71P6hUAgpmbPJMERtNmF8oa0G4zBqF-FJLlw96ZEJQHG2MSflKnKHrhztch2zp5Smt604KEtWCe1NLS5EqNX8h4XcrNdv8BLF8apG--bq-QxkGwj1GQ5UiAcuS8u12156OtkWyzsLiJso5gjI-DpFfdBGqnsD67VHBFPS2g0Yle1duxj2xgtCRR_-4pcor0NI-TdwF1ua3-V-1u4A6auQYj4SEfuOht6mIO6dQytZ9_an0vUE4xiro_RrVH00l_vf78nNv_X5vHqlMFKS1Zv6T1ba89xus-tL26RiCkDQP-gS2MkqXEUqZwhBqT-Ss6Z64JEOqm17bTv9J70vI0UX3wOQJvbyO7kN6gWQYML0ifJivP3zZhUb-tBVCOQQiUOSgBfkGK_O-6o1WmK0ErflFIns0fkJVBrH6_l_SCH8UUk5F_oYVtBu15CYJoTk3tsGxE-5GUQ4QWHNsDgXh03_I7INvrSsF4vkKWTkOMH9GsHrF-uR1WzssYfDT4mux4Qvu47P-Xg6liedI0ocz4BC04NrCscekcCfLiwAxMARTQCGMg-VHkYk_E5LTQb0aBpj6NDevd7n6POY6YH7eiKdIdVenA5yRJhGwAY-ql9Liz9Epg_VHHKQjGWAcUIpeHEVPzdKyMa-kWznUUBZr1jQ62zqn0bLspcBCe_NYN12uC12tYn_fB24QU0lZhWDS8gGDI-D7h68YplnEJL203qCIm3-7RVTMpu9uGYYqx-NO2eGfa48ekfdJuO-qWe-R9KUWKBccw8n2djN7XwDzTFcKDdJE7Vk0UQqgWtNvjIqe2Hsr-Rm78pz0XvvatLhx6QraycpKwhH6to2HHJfJOwf7SYgezGxu3jRaiUeX50k4pCVFd3P8CQqnL6Em9HkiHQLDDHWDrA2lWR6qoUtyPkVcApi3Yx3BlZ0gwyIXBH64CIDDklSqMtgjpWOHJ8Hz1bedKUoU8dDD_6O2umwvFjRxzT_ZchvGV0QSYWn1hWswIDY74WPhSfdDfzLtRXEGnzGTLk61iD6QL0UV3S2OZnaoTSyGEXJY2X1d36zldmbcr1z8Rd-iiiAMvUydpywfzRxF7QIEfGgsQOcBKePFwo0IAavqgISqAU_8rJgJJpgYIL8dGDPI5vsodUgyxryF4a2NzKLYOp1nsC4QklpxULOGrZkCWDbsfd5GdTwwvXbPtdwx5GIdWYikBSlKL3nU3j6vrLQOcs8kRt0X1ZJNF7kOPUMsEc78tPXdCXOqZbNQ7IygHG5xPvzuxoMJlk4U38HjBRN2Jyfb9ZE1cj33UgOfYC-m3wzaGqfUiLYcUNegDh4HBhNBocoAIaWOqtNt_FqZ5xzxEVgnjOzmkPYiKCGb_R-o5-y9tS2phtn1PEE-_W9Im4GCyNKg844QplVHNXTHtWVl6lcd2ETDWGskxIGB944VsTHyBx2Xr6cK-LMIbNICzKfkgDBbhngr8ATSjISfoqGm7oT2nFDDtgcrF4REku6LaszI7ClZrgVsX1gHILrKI1JSSG7FPpEL-qOl4zG35eJxKuh4bkHdYqR59qBWtl4l_F2PtjmH1EPSe2PH6waG48GsxCeCkmMKRXcXn2p9lkC1IqI1WkbK1oswe6FDZ8eN4jTgNnu4VrJdLOtDATVOInS_ODw3men4UAkqRInuCT-JMFrsS2dNxiLztx5-e6KvUH3acLH9kvrVXJwSLllKM_vnh3azYzbM9y-_J-2SjS4t72qVg9wVhgNfIDn_VPmKFQqk-H8U3bmQ19sBuGIK2zQrGnwlNGaugrdUIo8iCNRmcIh2Ass8FgDAm0B_F4erN3AxEDqqUrMWR-zmm2dyfw1ntU_b1_r6Aq_HvW8XXn-QEeaxsvMTYawk4u8mDMgcgvqF567OsKMZ0nj3ygQEOTYlo1ImSY362JqQwheRBwBueZWeoA9NOMIAvu8D8uVIFCQwbivUwzMJ1nQYuCcBPepC8to5AHHXjl4T4-rZ3PMnpcJNWZbvINloWCx2CUkabpUI4TYu9L1Pm114XO1guSVMbY6pWKmVIR407CjXkAwp24XV5g&opi=122715837
+                  - img [ref=f17e26]
+              - img [ref=f17e29] [cursor=pointer]
+              - generic [ref=f17e40]:
+                - img [ref=f17e43]
+                - generic [ref=f17e46]:
+                  - img [ref=f17e47]
+                  - text: 提供的廣告
+                - generic [ref=f17e50]:
+                  - generic [ref=f17e53] [cursor=pointer]: 提供意見
+                  - link [ref=f17e55] [cursor=pointer]:
+                    - /url: https://adssettings.google.com/whythisad?source=display&reasons=AXOIBo_okZ5yCZJjKLYzQDMliqkSkKbZPjdGnJj2UaGhNx8JLt0DWla9F5OL9VPzJWKwTDlnb0vjXbVLomJa5uGDrJFniAO9j-nnKYc98qA9_ApyiA1MRb_WzYm6IDqKsnJJDfWOxd_F6LTFlBGHMcYJqMCtzIxkQag0TqQp78jzKYR48vrx3gOfac8uTf6BXNswyoIH_UjIo4RMpKJGt4g5tkseyO1gnKJ4OjbI8i5jZ8SqVDDhUw9sK7RIwW97lwqSHVK8RokHL_I7adnxSeWL7rqjdSxxjgsBte-JzN1g5e7z8_SUIuTb_h7i9VxH7LHnKbgqnQAJoo_b6dDEcf4gKRMB2XWbVuPXx9ND2LgczooJVu0cQWZcHrfJfTrBxy1WFf8U9dtYkwFfYCSYX6YRZ7hWibgQuRHM9GaApL2jjsVobjkcSqBFqEJCItIFTJUPcyE8LCMe-uDhOFBCwE-pvRXdRiHE3Ne1RgZasaoSZbGGMzOLSkEAiWSco01CDTmp7ypzH6of3oSc5Wo7EFXsERv7gQ5Ybd7wSHN4uKKV0wQitZoejr0bFipvpKs2Lcps0G6mJXSJGgQEG-CeralWQgnaIu-gxkYSwjWlyWkx2yaiB1JWOafSXg9OaF8dznPhcsc31ouWLHEG1iHGwGVJHG4RWkRU_QdrqFCOBB65EDxDtoxtIO2J9AtIqDOcWZwVtX913OJ6YilrzLqfQblzFp2x4mOtL25KJuvXcSpiishp9C71P6hUAgpmbPJMERtNmF8oa0G4zBqF-FJLlw96ZEJQHG2MSflKnKHrhztch2zp5Smt604KEtWCe1NLS5EqNX8h4XcrNdv8BLF8apG--bq-QxkGwj1GQ5UiAcuS8u12156OtkWyzsLiJso5gjI-DpFfdBGqnsD67VHBFPS2g0Yle1duxj2xgtCRR_-4pcor0NI-TdwF1ua3-V-1u4A6auQYj4SEfuOht6mIO6dQytZ9_an0vUE4xiro_RrVH00l_vf78nNv_X5vHqlMFKS1Zv6T1ba89xus-tL26RiCkDQP-gS2MkqXEUqZwhBqT-Ss6Z64JEOqm17bTv9J70vI0UX3wOQJvbyO7kN6gWQYML0ifJivP3zZhUb-tBVCOQQiUOSgBfkGK_O-6o1WmK0ErflFIns0fkJVBrH6_l_SCH8UUk5F_oYVtBu15CYJoTk3tsGxE-5GUQ4QWHNsDgXh03_I7INvrSsF4vkKWTkOMH9GsHrF-uR1WzssYfDT4mux4Qvu47P-Xg6liedI0ocz4BC04NrCscekcCfLiwAxMARTQCGMg-VHkYk_E5LTQb0aBpj6NDevd7n6POY6YH7eiKdIdVenA5yRJhGwAY-ql9Liz9Epg_VHHKQjGWAcUIpeHEVPzdKyMa-kWznUUBZr1jQ62zqn0bLspcBCe_NYN12uC12tYn_fB24QU0lZhWDS8gGDI-D7h68YplnEJL203qCIm3-7RVTMpu9uGYYqx-NO2eGfa48ekfdJuO-qWe-R9KUWKBccw8n2djN7XwDzTFcKDdJE7Vk0UQqgWtNvjIqe2Hsr-Rm78pz0XvvatLhx6QraycpKwhH6to2HHJfJOwf7SYgezGxu3jRaiUeX50k4pCVFd3P8CQqnL6Em9HkiHQLDDHWDrA2lWR6qoUtyPkVcApi3Yx3BlZ0gwyIXBH64CIDDklSqMtgjpWOHJ8Hz1bedKUoU8dDD_6O2umwvFjRxzT_ZchvGV0QSYWn1hWswIDY74WPhSfdDfzLtRXEGnzGTLk61iD6QL0UV3S2OZnaoTSyGEXJY2X1d36zldmbcr1z8Rd-iiiAMvUydpywfzRxF7QIEfGgsQOcBKePFwo0IAavqgISqAU_8rJgJJpgYIL8dGDPI5vsodUgyxryF4a2NzKLYOp1nsC4QklpxULOGrZkCWDbsfd5GdTwwvXbPtdwx5GIdWYikBSlKL3nU3j6vrLQOcs8kRt0X1ZJNF7kOPUMsEc78tPXdCXOqZbNQ7IygHG5xPvzuxoMJlk4U38HjBRN2Jyfb9ZE1cj33UgOfYC-m3wzaGqfUiLYcUNegDh4HBhNBocoAIaWOqtNt_FqZ5xzxEVgnjOzmkPYiKCGb_R-o5-y9tS2phtn1PEE-_W9Im4GCyNKg844QplVHNXTHtWVl6lcd2ETDWGskxIGB944VsTHyBx2Xr6cK-LMIbNICzKfkgDBbhngr8ATSjISfoqGm7oT2nFDDtgcrF4REku6LaszI7ClZrgVsX1gHILrKI1JSSG7FPpEL-qOl4zG35eJxKuh4bkHdYqR59qBWtl4l_F2PtjmH1EPSe2PH6waG48GsxCeCkmMKRXcXn2p9lkC1IqI1WkbK1oswe6FDZ8eN4jTgNnu4VrJdLOtDATVOInS_ODw3men4UAkqRInuCT-JMFrsS2dNxiLztx5-e6KvUH3acLH9kvrVXJwSLllKM_vnh3azYzbM9y-_J-2SjS4t72qVg9wVhgNfIDn_VPmKFQqk-H8U3bmQ19sBuGIK2zQrGnwlNGaugrdUIo8iCNRmcIh2Ass8FgDAm0B_F4erN3AxEDqqUrMWR-zmm2dyfw1ntU_b1_r6Aq_HvW8XXn-QEeaxsvMTYawk4u8mDMgcgvqF567OsKMZ0nj3ygQEOTYlo1ImSY362JqQwheRBwBueZWeoA9NOMIAvu8D8uVIFCQwbivUwzMJ1nQYuCcBPepC8to5AHHXjl4T4-rZ3PMnpcJNWZbvINloWCx2CUkabpUI4TYu9L1Pm114XO1guSVMbY6pWKmVIR407CjXkAwp24XV5g&opi=122715837
+                    - generic [ref=f17e56]:
+                      - text: 為什麼會顯示這則廣告？
+                      - img [ref=f17e57]
+              - generic [ref=f17e59]:
+                - generic [ref=f17e62] [cursor=pointer]: 廣告內容不當
+                - generic [ref=f17e65] [cursor=pointer]: 已多次看到這則廣告
+                - generic [ref=f17e68] [cursor=pointer]: 廣告遮蓋內容
+                - generic [ref=f17e71] [cursor=pointer]: 對這則廣告沒興趣
+              - generic [ref=f17e77]: 謝謝您。您的意見回饋有助於改善 Google Ads
+              - generic [ref=f17e83]:
+                - img [ref=f17e84]
+                - text: 已關閉廣告
+          - table [ref=e259]:
+            - rowgroup [ref=e260]:
+              - row "除權息 年度 現金股利 (元) 股票股利 (股)" [ref=e261]:
+                - columnheader "除權息 年度" [ref=e262]:
+                  - text: 除權息
+                  - text: 年度
+                - columnheader "現金股利 (元)" [ref=e263]
+                - columnheader "股票股利 (股)" [ref=e264]
+              - row "股利 除息日 發放日 除息前股價 填息天數 年股利 年殖利率(%) 股利 除權日 除權前股價 填權天數" [ref=e265]:
+                - columnheader "股利" [ref=e266]
+                - columnheader "除息日" [ref=e267]
+                - columnheader "發放日" [ref=e268]
+                - columnheader "除息前股價" [ref=e269]
+                - columnheader "填息天數" [ref=e270]
+                - columnheader "年股利" [ref=e271]
+                - columnheader "年殖利率(%)" [ref=e272]
+                - columnheader "股利" [ref=e273]
+                - columnheader "除權日" [ref=e274]
+                - columnheader "除權前股價" [ref=e275]
+                - columnheader "填權天數" [ref=e276]
+            - rowgroup [ref=e277]:
+              - row "2026 5.999 2026/06/12 2026/07/03 842 4 5.999 0.71 -- -- -- --" [ref=e278]:
+                - cell "2026" [ref=e279]
+                - cell "5.999" [ref=e280]
+                - cell "2026/06/12" [ref=e281]
+                - cell "2026/07/03" [ref=e282]
+                - cell "842" [ref=e283]
+                - cell "4" [ref=e284]
+                - cell "5.999" [ref=e285]
+                - cell "0.71" [ref=e286]
+                - cell "--" [ref=e287]
+                - cell "--" [ref=e288]
+                - cell "--" [ref=e289]
+                - cell "--" [ref=e290]
+            - rowgroup [ref=e291]:
+              - row "2025 19.995 2025/06/13 2025/07/04 487 15 19.995 4.11 -- -- -- --" [ref=e292]:
+                - cell "2025" [ref=e293]
+                - cell "19.995" [ref=e294]
+                - cell "2025/06/13" [ref=e295]
+                - cell "2025/07/04" [ref=e296]
+                - cell "487" [ref=e297]
+                - cell "15" [ref=e298]
+                - cell "19.995" [ref=e299]
+                - cell "4.11" [ref=e300]
+                - cell "--" [ref=e301]
+                - cell "--" [ref=e302]
+                - cell "--" [ref=e303]
+                - cell "--" [ref=e304]
+            - rowgroup [ref=e305]:
+              - row "2024 -- -- -- -- -- 19.972 2.62 1.95 2024/08/15 745 --" [ref=e306]:
+                - cell "2024" [ref=e307]
+                - cell "--" [ref=e308]
+                - cell "--" [ref=e309]
+                - cell "--" [ref=e310]
+                - cell "--" [ref=e311]
+                - cell "--" [ref=e312]
+                - cell "19.972" [ref=e313]
+                - cell "2.62" [ref=e314]
+                - cell "1.95" [ref=e315]
+                - cell "2024/08/15" [ref=e316]
+                - cell "745" [ref=e317]
+                - cell "--" [ref=e318]
+              - row "19.972 2024/06/27 2024/07/19 763 14 -- -- -- --" [ref=e319]:
+                - cell "19.972" [ref=e320]
+                - cell "2024/06/27" [ref=e321]
+                - cell "2024/07/19" [ref=e322]
+                - cell "763" [ref=e323]
+                - cell "14" [ref=e324]
+                - cell "--" [ref=e325]
+                - cell "--" [ref=e326]
+                - cell "--" [ref=e327]
+                - cell "--" [ref=e328]
+            - rowgroup [ref=e329]:
+              - row "2023 9.994 2023/07/05 2023/07/26 497.5 13 9.994 2.01 -- -- -- --" [ref=e330]:
+                - cell "2023" [ref=e331]
+                - cell "9.994" [ref=e332]
+                - cell "2023/07/05" [ref=e333]
+                - cell "2023/07/26" [ref=e334]
+                - cell "497.5" [ref=e335]
+                - cell "13" [ref=e336]
+                - cell "9.994" [ref=e337]
+                - cell "2.01" [ref=e338]
+                - cell "--" [ref=e339]
+                - cell "--" [ref=e340]
+                - cell "--" [ref=e341]
+                - cell "--" [ref=e342]
+            - rowgroup [ref=e343]:
+              - row "2022 10.103 2022/07/04 2022/07/22 282 2 10.103 3.58 -- -- -- --" [ref=e344]:
+                - cell "2022" [ref=e345]
+                - cell "10.103" [ref=e346]
+                - cell "2022/07/04" [ref=e347]
+                - cell "2022/07/22" [ref=e348]
+                - cell "282" [ref=e349]
+                - cell "2" [ref=e350]
+                - cell "10.103" [ref=e351]
+                - cell "3.58" [ref=e352]
+                - cell "--" [ref=e353]
+                - cell "--" [ref=e354]
+                - cell "--" [ref=e355]
+                - cell "--" [ref=e356]
+            - rowgroup [ref=e357]:
+              - row "2021 10.081 2021/08/02 2021/08/20 560 -- 10.081 1.80 -- -- -- --" [ref=e358]:
+                - cell "2021" [ref=e359]
+                - cell "10.081" [ref=e360]
+                - cell "2021/08/02" [ref=e361]
+                - cell "2021/08/20" [ref=e362]
+                - cell "560" [ref=e363]
+                - cell "--" [ref=e364]
+                - cell "10.081" [ref=e365]
+                - cell "1.80" [ref=e366]
+                - cell "--" [ref=e367]
+                - cell "--" [ref=e368]
+                - cell "--" [ref=e369]
+                - cell "--" [ref=e370]
+            - rowgroup [ref=e371]:
+              - row "2020 13.062 2020/06/22 2020/07/10 404.5 2 13.062 3.23 -- -- -- --" [ref=e372]:
+                - cell "2020" [ref=e373]
+                - cell "13.062" [ref=e374]
+                - cell "2020/06/22" [ref=e375]
+                - cell "2020/07/10" [ref=e376]
+                - cell "404.5" [ref=e377]
+                - cell "2" [ref=e378]
+                - cell "13.062" [ref=e379]
+                - cell "3.23" [ref=e380]
+                - cell "--" [ref=e381]
+                - cell "--" [ref=e382]
+                - cell "--" [ref=e383]
+                - cell "--" [ref=e384]
+            - rowgroup [ref=e385]:
+              - row "2019 44.835 2019/08/26 2019/10/03 258 37 44.835 17.38 -- -- -- --" [ref=e386]:
+                - cell "2019" [ref=e387]
+                - cell "44.835" [ref=e388]
+                - cell "2019/08/26" [ref=e389]
+                - cell "2019/10/03" [ref=e390]
+                - cell "258" [ref=e391]
+                - cell "37" [ref=e392]
+                - cell "44.835" [ref=e393]
+                - cell "17.38" [ref=e394]
+                - cell "--" [ref=e395]
+                - cell "--" [ref=e396]
+                - cell "--" [ref=e397]
+                - cell "--" [ref=e398]
+            - rowgroup [ref=e399]:
+              - row "2018 14.865 2018/07/09 2018/08/08 1175 -- 14.865 1.27 1.98 2018/07/09 1175 --" [ref=e400]:
+                - cell "2018" [ref=e401]
+                - cell "14.865" [ref=e402]
+                - cell "2018/07/09" [ref=e403]
+                - cell "2018/08/08" [ref=e404]
+                - cell "1175" [ref=e405]
+                - cell "--" [ref=e406]
+                - cell "14.865" [ref=e407]
+                - cell "1.27" [ref=e408]
+                - cell "1.98" [ref=e409]
+                - cell "2018/07/09" [ref=e410]
+                - cell "1175" [ref=e411]
+                - cell "--" [ref=e412]
+            - rowgroup [ref=e413]:
+              - row "2017 3 2017/06/22 2017/07/12 111.5 34 3 2.69 -- -- -- --" [ref=e414]:
+                - cell "2017" [ref=e415]
+                - cell "3" [ref=e416]
+                - cell "2017/06/22" [ref=e417]
+                - cell "2017/07/12" [ref=e418]
+                - cell "111.5" [ref=e419]
+                - cell "34" [ref=e420]
+                - cell "3" [ref=e421]
+                - cell "2.69" [ref=e422]
+                - cell "--" [ref=e423]
+                - cell "--" [ref=e424]
+                - cell "--" [ref=e425]
+                - cell "--" [ref=e426]
+            - rowgroup [ref=e427]:
+              - row "2016 2 2016/06/21 2016/07/07 54.4 39 2 3.68 -- -- -- --" [ref=e428]:
+                - cell "2016" [ref=e429]
+                - cell "2" [ref=e430]
+                - cell "2016/06/21" [ref=e431]
+                - cell "2016/07/07" [ref=e432]
+                - cell "54.4" [ref=e433]
+                - cell "39" [ref=e434]
+                - cell "2" [ref=e435]
+                - cell "3.68" [ref=e436]
+                - cell "--" [ref=e437]
+                - cell "--" [ref=e438]
+                - cell "--" [ref=e439]
+                - cell "--" [ref=e440]
+            - rowgroup [ref=e441]:
+              - row "2015 4 2015/06/30 2015/07/15 53 95 4 7.55 -- -- -- --" [ref=e442]:
+                - cell "2015" [ref=e443]
+                - cell "4" [ref=e444]
+                - cell "2015/06/30" [ref=e445]
+                - cell "2015/07/15" [ref=e446]
+                - cell "53" [ref=e447]
+                - cell "95" [ref=e448]
+                - cell "4" [ref=e449]
+                - cell "7.55" [ref=e450]
+                - cell "--" [ref=e451]
+                - cell "--" [ref=e452]
+                - cell "--" [ref=e453]
+                - cell "--" [ref=e454]
+            - rowgroup [ref=e455]:
+              - row "2014 0.102 2014/06/26 2014/07/18 21.05 5 0.102 0.48 -- -- -- --" [ref=e456]:
+                - cell "2014" [ref=e457]
+                - cell "0.102" [ref=e458]
+                - cell "2014/06/26" [ref=e459]
+                - cell "2014/07/18" [ref=e460]
+                - cell "21.05" [ref=e461]
+                - cell "5" [ref=e462]
+                - cell "0.102" [ref=e463]
+                - cell "0.48" [ref=e464]
+                - cell "--" [ref=e465]
+                - cell "--" [ref=e466]
+                - cell "--" [ref=e467]
+                - cell "--" [ref=e468]
+            - rowgroup [ref=e469]:
+              - row "2011 0.1 2011/09/20 2011/10/21 9.27 37 0.1 1.08 -- -- -- --" [ref=e470]:
+                - cell "2011" [ref=e471]
+                - cell "0.1" [ref=e472]
+                - cell "2011/09/20" [ref=e473]
+                - cell "2011/10/21" [ref=e474]
+                - cell "9.27" [ref=e475]
+                - cell "37" [ref=e476]
+                - cell "0.1" [ref=e477]
+                - cell "1.08" [ref=e478]
+                - cell "--" [ref=e479]
+                - cell "--" [ref=e480]
+                - cell "--" [ref=e481]
+                - cell "--" [ref=e482]
+            - rowgroup [ref=e483]:
+              - row "2010 0.15 2010/12/07 2011/01/12 14 4 0.15 1.07 -- -- -- --" [ref=e484]:
+                - cell "2010" [ref=e485]
+                - cell "0.15" [ref=e486]
+                - cell "2010/12/07" [ref=e487]
+                - cell "2011/01/12" [ref=e488]
+                - cell "14" [ref=e489]
+                - cell "4" [ref=e490]
+                - cell "0.15" [ref=e491]
+                - cell "1.07" [ref=e492]
+                - cell "--" [ref=e493]
+                - cell "--" [ref=e494]
+                - cell "--" [ref=e495]
+                - cell "--" [ref=e496]
+            - rowgroup [ref=e497]:
+              - row "2009 0.1 2009/07/14 2009/07/31 7.02 2 0.1 1.42 -- -- -- --" [ref=e498]:
+                - cell "2009" [ref=e499]
+                - cell "0.1" [ref=e500]
+                - cell "2009/07/14" [ref=e501]
+                - cell "2009/07/31" [ref=e502]
+                - cell "7.02" [ref=e503]
+                - cell "2" [ref=e504]
+                - cell "0.1" [ref=e505]
+                - cell "1.42" [ref=e506]
+                - cell "--" [ref=e507]
+                - cell "--" [ref=e508]
+                - cell "--" [ref=e509]
+                - cell "--" [ref=e510]
+            - rowgroup [ref=e511]:
+              - row "2008 0.313 2008/07/22 2008/08/28 9.4 3 0.313 3.33 -- -- -- --" [ref=e512]:
+                - cell "2008" [ref=e513]
+                - cell "0.313" [ref=e514]
+                - cell "2008/07/22" [ref=e515]
+                - cell "2008/08/28" [ref=e516]
+                - cell "9.4" [ref=e517]
+                - cell "3" [ref=e518]
+                - cell "0.313" [ref=e519]
+                - cell "3.33" [ref=e520]
+                - cell "--" [ref=e521]
+                - cell "--" [ref=e522]
+                - cell "--" [ref=e523]
+                - cell "--" [ref=e524]
+            - rowgroup [ref=e525]:
+              - row "2007 0.498 2007/07/16 2007/08/22 15.5 2 0.498 3.21 -- -- -- --" [ref=e526]:
+                - cell "2007" [ref=e527]
+                - cell "0.498" [ref=e528]
+                - cell "2007/07/16" [ref=e529]
+                - cell "2007/08/22" [ref=e530]
+                - cell "15.5" [ref=e531]
+                - cell "2" [ref=e532]
+                - cell "0.498" [ref=e533]
+                - cell "3.21" [ref=e534]
+                - cell "--" [ref=e535]
+                - cell "--" [ref=e536]
+                - cell "--" [ref=e537]
+                - cell "--" [ref=e538]
+          - list [ref=e539]:
+            - listitem [ref=e540]:
+              - heading "現金股利" [level=5] [ref=e541]
+              - paragraph [ref=e542]: 定義：公司將部分盈餘以現金方式發放給股東的收益。
+              - paragraph [ref=e543]: 現金股利可視為利息般的實質現金收益， 當公司的盈餘因應自身投資需求還有剩餘， 通常會以現金股利的方式回饋股東。 因此當企業處於成長需要大量再投資，現金股息發配就會較少； 當企業處於成熟期沒有太多成長機會，現金股息發配就會較多，所以不能單純用殖利率來判斷公司好壞。
+            - listitem [ref=e544]:
+              - heading "股票股利" [level=5] [ref=e545]
+              - paragraph [ref=e546]: 定義：公司將盈餘轉成增資，以股票形式分配給股東。
+              - paragraph [ref=e547]: 盈餘是屬於股東的投資成果， 如果企業因應成長所需，希望將盈餘留在公司內做廠房、設備等再投資， 可透過發配股票股利的方式，以股票換取原本應該分配股東的盈餘。 因此股票股利是將股東盈餘留在企業的手段，會讓股本和淨值膨脹。 當企業處於成長需要大量再投資，股票股利發配就會較多； 當企業處於成熟期沒有成長機會，股票股利發配就會較少。
+        - generic [ref=e548]:
+          - generic [ref=e549]:
+            - generic [ref=e550]:
+              - tab "財經編輯" [selected] [ref=e551] [cursor=pointer]
+              - tab "達人點評" [ref=e552] [cursor=pointer]
+            - link "更多" [ref=e553] [cursor=pointer]:
+              - /url: /blog
+          - tabpanel [ref=e555]:
+            - list [ref=e556]:
+              - listitem [ref=e557]:
+                - generic [ref=e560]:
+                  - text: 玩股華安
+                  - heading "華通、昇達科重挫，金寶今日大怒神！太空AI題材全面降溫，太空種電接棒成新戰場！" [level=4] [ref=e561]:
+                    - link "華通、昇達科重挫，金寶今日大怒神！太空AI題材全面降溫，太空種電接棒成新戰場！" [ref=e562] [cursor=pointer]:
+                      - /url: /blog/407988/post/680
+              - listitem [ref=e563]:
+                - generic [ref=e566]:
+                  - text: 玩股摸金
+                  - heading "月線又是假跌破！台股7/1漲893點價過所有均，6/29外資空單沒加碼早就洩底了" [level=4] [ref=e567]:
+                    - link "月線又是假跌破！台股7/1漲893點價過所有均，6/29外資空單沒加碼早就洩底了" [ref=e568] [cursor=pointer]:
+                      - /url: /blog/203663/post/1368
+              - listitem [ref=e569]:
+                - generic [ref=e572]:
+                  - text: 玩股特派員
+                  - heading "長線抱不住，短線抓不到？保證金逼退散戶的歷史大行情，小資如何複製贏家混搭戰略" [level=4] [ref=e573]:
+                    - link "長線抱不住，短線抓不到？保證金逼退散戶的歷史大行情，小資如何複製贏家混搭戰略" [ref=e574] [cursor=pointer]:
+                      - /url: /blog/144623/post/3017
+              - listitem [ref=e575]:
+                - generic [ref=e578]:
+                  - text: 楚狂人
+                  - heading "大盤天天上沖下洗一兩千點，這種盤到底要怎麼賺錢？" [level=4] [ref=e579]:
+                    - link "大盤天天上沖下洗一兩千點，這種盤到底要怎麼賺錢？" [ref=e580] [cursor=pointer]:
+                      - /url: /blog/119/post/3775
+              - listitem [ref=e581]:
+                - generic [ref=e584]:
+                  - text: 玩股講客人
+                  - heading "南電（8046）資本支出創史上最大規模：從消費電子到AI伺服器的結構性轉骨" [level=4] [ref=e585]:
+                    - link "南電（8046）資本支出創史上最大規模：從消費電子到AI伺服器的結構性轉骨" [ref=e586] [cursor=pointer]:
+                      - /url: /blog/343059/post/306
+    - generic [ref=e589]:
+      - generic [ref=e594]:
+        - generic:
+          - generic:
+            - generic:
+              - iframe
+        - generic:
+          - generic:
+            - generic:
+              - generic "Play":
+                - img
+              - generic "volume":
+                - img
+              - generic:
+                - generic: 00:00
+                - generic: /
+                - generic: 07:10
+            - generic:
+              - generic "Truvid.com":
+                - img
+              - generic "Full Screen":
+                - img
+        - generic [ref=e600] [cursor=pointer]:
+          - img "變身半個AI基金 五成持股押進供應鏈｜楚狂人｜狂人Talk｜玩股網20260531"
+        - generic [ref=e601] [cursor=pointer]:
+          - img [ref=e603]
+          - img [ref=e607]
+          - img [ref=e612]
+      - iframe [ref=e616]:
+        
+    - generic [ref=e619]: 資訊來源：臺灣證券交易所 TWSE、財團法人中華民國證券櫃檯買賣中心 GTSM、台灣期貨交易所及本資訊內容係經玩股網有限公司處理提供。使用者須遵守台灣證券交易所「交易資訊使用管理辦法」等交易資訊管理相關規定，所有資訊以台灣證券交易所公告資料為主。本網站提供之資料僅供參考，對資訊正確、延遲或傳輸中斷不負任何責任，如使用者依本資料交易發生損失需自行負責。
+    - contentinfo [ref=e620]:
+      - generic [ref=e621]:
+        - generic [ref=e622]:
+          - generic [ref=e623]:
+            - link "關於玩股網" [ref=e624] [cursor=pointer]:
+              - /url: /about
+            - link "服務條款" [ref=e625] [cursor=pointer]:
+              - /url: /terms-and-policies
+            - link "隱私政策" [ref=e626] [cursor=pointer]:
+              - /url: /privacy-policy
+            - link "常見問題" [ref=e627] [cursor=pointer]:
+              - /url: https://wantgoo.tawk.help/
+          - generic [ref=e628]:
+            - generic [ref=e629]: 玩股網有限公司統編：24211075
+            - generic [ref=e630]:
+              - text: © 2010-2026
+              - link "WantGoo" [ref=e631] [cursor=pointer]:
+                - /url: /
+        - generic [ref=e633]:
+          - link [ref=e634] [cursor=pointer]:
+            - /url: https://www.facebook.com/wantgoo.fans/
+          - link [ref=e636] [cursor=pointer]:
+            - /url: https://t.me/wantgoo
+          - link [ref=e638] [cursor=pointer]:
+            - /url: https://www.youtube.com/c/WantGooYT
+          - link [ref=e640] [cursor=pointer]:
+            - /url: https://podcasts.apple.com/podcast/id1540541794
+  - iframe [ref=e642]:
+    - button "聊天小工具" [ref=f10e4] [cursor=pointer]:
+      - img "Opens Chat This icon Opens the chat window." [ref=f10e7]

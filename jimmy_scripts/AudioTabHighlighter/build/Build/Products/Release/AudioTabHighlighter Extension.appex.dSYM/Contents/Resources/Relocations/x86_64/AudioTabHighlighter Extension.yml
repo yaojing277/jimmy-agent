@@ -1,0 +1,23 @@
+---
+triple:          'x86_64-apple-darwin'
+binary-path:     '/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Products/Release/AudioTabHighlighter Extension.appex/Contents/MacOS/AudioTabHighlighter Extension'
+relocations:
+  - { offset: 0xBF538, size: 0x8, addend: 0x0, symName: '_$s29AudioTabHighlighter_Extension09SafariWebD7HandlerCMa', symObjAddr: 0xB0, symBinAddr: 0x1000012F0, symSize: 0x20 }
+  - { offset: 0xBF557, size: 0x8, addend: 0x0, symName: '_$ss22__RawDictionaryStorageC4findys10_HashTableV6BucketV6bucket_Sb5foundtxSHRzlFs11AnyHashableV_Tg5', symObjAddr: 0xD0, symBinAddr: 0x100001310, symSize: 0x30 }
+  - { offset: 0xBF58F, size: 0x8, addend: 0x0, symName: '_$ss22__RawDictionaryStorageC4findys10_HashTableV6BucketV6bucket_Sb5foundtxSHRzlFSS_Tg5', symObjAddr: 0x100, symBinAddr: 0x100001340, symSize: 0x60 }
+  - { offset: 0xBF5C7, size: 0x8, addend: 0x0, symName: '_$ss22__RawDictionaryStorageC4find_9hashValues10_HashTableV6BucketV6bucket_Sb5foundtx_SitSHRzlFs11AnyHashableV_Tg5', symObjAddr: 0x160, symBinAddr: 0x1000013A0, symSize: 0xC0 }
+  - { offset: 0xBF615, size: 0x8, addend: 0x0, symName: '_$ss22__RawDictionaryStorageC4find_9hashValues10_HashTableV6BucketV6bucket_Sb5foundtx_SitSHRzlFSS_Tg5', symObjAddr: 0x220, symBinAddr: 0x100001460, symSize: 0xC0 }
+  - { offset: 0xBF871, size: 0x8, addend: 0x0, symName: '_$sypWOc', symObjAddr: 0xED0, symBinAddr: 0x100002110, symSize: 0x30 }
+  - { offset: 0xBF885, size: 0x8, addend: 0x0, symName: ___swift_instantiateConcreteTypeFromMangledNameV2, symObjAddr: 0xF00, symBinAddr: 0x100002140, symSize: 0x40 }
+  - { offset: 0xBF899, size: 0x8, addend: 0x0, symName: '_$s10Foundation4UUIDVSgWOb', symObjAddr: 0xF40, symBinAddr: 0x100002180, symSize: 0x40 }
+  - { offset: 0xBF8AD, size: 0x8, addend: 0x0, symName: '_$sS2Ss7CVarArg10FoundationWl', symObjAddr: 0xF80, symBinAddr: 0x1000021C0, symSize: 0x30 }
+  - { offset: 0xBF8C1, size: 0x8, addend: 0x0, symName: '_$ss11AnyHashableVWOh', symObjAddr: 0x1010, symBinAddr: 0x100002250, symSize: 0x30 }
+  - { offset: 0xBF8D5, size: 0x8, addend: 0x0, symName: '_$ss11AnyHashableVWOc', symObjAddr: 0x1040, symBinAddr: 0x100002280, symSize: 0x30 }
+  - { offset: 0xBF8E9, size: 0x8, addend: 0x0, symName: '_$sypWOb', symObjAddr: 0x1070, symBinAddr: 0x1000022B0, symSize: 0x20 }
+  - { offset: 0xBF964, size: 0x8, addend: 0x0, symName: '_$s29AudioTabHighlighter_Extension09SafariWebD7HandlerC12beginRequest4withySo18NSExtensionContextC_tFTo', symObjAddr: 0x0, symBinAddr: 0x100001240, symSize: 0x50 }
+  - { offset: 0xBF9A7, size: 0x8, addend: 0x0, symName: '_$s29AudioTabHighlighter_Extension09SafariWebD7HandlerCACycfcTo', symObjAddr: 0x50, symBinAddr: 0x100001290, symSize: 0x30 }
+  - { offset: 0xBF9DC, size: 0x8, addend: 0x0, symName: '_$s29AudioTabHighlighter_Extension09SafariWebD7HandlerCfD', symObjAddr: 0x80, symBinAddr: 0x1000012C0, symSize: 0x30 }
+  - { offset: 0xBFA2C, size: 0x8, addend: 0x0, symName: '_$sSD17dictionaryLiteralSDyxq_Gx_q_td_tcfCSS_ypSgTt0g5Tf4g_n', symObjAddr: 0x2E0, symBinAddr: 0x100001520, symSize: 0x120 }
+  - { offset: 0xBFB47, size: 0x8, addend: 0x0, symName: '_$sSD17dictionaryLiteralSDyxq_Gx_q_td_tcfCs11AnyHashableV_ypTt0g5Tf4g_n', symObjAddr: 0x400, symBinAddr: 0x100001640, symSize: 0x120 }
+  - { offset: 0xBFE10, size: 0x8, addend: 0x0, symName: '_$s29AudioTabHighlighter_Extension09SafariWebD7HandlerC12beginRequest4withySo18NSExtensionContextC_tFTf4nd_n', symObjAddr: 0x520, symBinAddr: 0x100001760, symSize: 0x9B0 }
+...

@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\":\"💹 股價工作流提醒:記得先「更新股價」(股價試算快照滾動),再「同步股價」(同步到雲端 Wealth OS xlsm)。\"}'"
+          }
+        ]
+      }
+    ]
+  }
+}

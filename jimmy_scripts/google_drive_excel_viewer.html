@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google 雲端硬碟 Excel 瀏覽器</title>
+  <!-- SheetJS：解析 .xlsx 二進位檔案 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: '微軟正黑體', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      padding: 24px;
+      color: #1a1a2e;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 24px;
+      color: #1a73e8;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ── 登入區 ── */
+    #login-section {
+      background: white;
+      border-radius: 16px;
+      padding: 48px;
+      text-align: center;
+      box-shadow: 0 2px 16px rgba(0,0,0,.08);
+      max-width: 480px;
+      margin: 60px auto;
+    }
+    #login-section p { color: #666; margin-bottom: 24px; line-height: 1.7; }
+
+    /* ── 主要內容區 ── */
+    #main-section { display: none; }
+
+    /* ── 使用者資訊列 ── */
+    .user-bar {
+      background: white;
+      border-radius: 12px;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.07);
+    }
+    .user-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #1a73e8; color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 1rem;
+    }
+    .user-name { flex: 1; font-weight: bold; font-size: .95rem; }
+    .user-email { color: #888; font-size: .82rem; }
+
+    /* ── 按鈕 ── */
+    .btn {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 11px 24px;
+      border-radius: 10px;
+      font-size: .95rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: bold;
+      transition: background .18s, transform .12s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover:not(:disabled) { background: #1558c0; transform: translateY(-1px); }
+    .btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+    .btn.google {
+      background: white;
+      color: #3c4043;
+      border: 1px solid #dadce0;
+      font-size: 1rem;
+      padding: 13px 28px;
+    }
+    .btn.google:hover { background: #f8f9fa; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+    .btn.secondary {
+      background: #f1f3f4;
+      color: #1a1a2e;
+      border: 1px solid #dadce0;
+    }
+    .btn.secondary:hover { background: #e8eaed; }
+    .btn.danger {
+      background: #ea4335;
+    }
+    .btn.danger:hover { background: #c5221f; }
+
+    /* ── 工具列 ── */
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .toolbar select {
+      padding: 9px 14px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: .9rem;
+      font-family: inherit;
+      background: white;
+      color: #1a1a2e;
+      cursor: pointer;
+    }
+
+    /* ── 檔案列表 ── */
+    .file-list {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,.07);
+      margin-bottom: 24px;
+    }
+    .file-list-header {
+      padding: 14px 20px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e8eaed;
+      font-size: .85rem;
+      color: #666;
+      font-weight: bold;
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+    }
+    .file-item {
+      padding: 13px 20px;
+      border-bottom: 1px solid #f0f0f0;
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .file-item:last-child { border-bottom: none; }
+    .file-item:hover { background: #f8f9fa; }
+    .file-item.selected { background: #e8f0fe; }
+    .file-icon { font-size: 1.4rem; }
+    .file-name { font-size: .95rem; font-weight: 500; }
+    .file-date { font-size: .8rem; color: #888; white-space: nowrap; }
+    .file-type {
+      font-size: .72rem;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .type-xlsx { background: #e6f4ea; color: #137333; }
+    .type-gsheet { background: #e8f0fe; color: #1a73e8; }
+
+    /* ── 表格區 ── */
+    .table-section {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.07);
+      overflow: hidden;
+    }
+    .table-header {
+      padding: 14px 20px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e8eaed;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .table-title { font-weight: bold; font-size: 1rem; flex: 1; }
+    .sheet-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 0 20px 12px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #e8eaed;
+      overflow-x: auto;
+    }
+    .sheet-tab {
+      padding: 6px 16px;
+      border-radius: 6px 6px 0 0;
+      font-size: .85rem;
+      cursor: pointer;
+      border: 1px solid #dadce0;
+      border-bottom: none;
+      background: white;
+      color: #444;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .sheet-tab.active { background: #1a73e8; color: white; border-color: #1a73e8; }
+    .sheet-tab:hover:not(.active) { background: #e8f0fe; }
+    .table-wrap { overflow: auto; max-height: 500px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    th {
+      background: #f8f9fa;
+      padding: 9px 14px;
+      text-align: left;
+      border: 1px solid #e8eaed;
+      font-weight: bold;
+      color: #444;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    td {
+      padding: 8px 14px;
+      border: 1px solid #f0f0f0;
+      white-space: nowrap;
+    }
+    tr:nth-child(even) td { background: #fafafa; }
+    tr:hover td { background: #e8f0fe; }
+    .row-num {
+      color: #bbb;
+      font-size: .78rem;
+      text-align: center;
+      min-width: 40px;
+    }
+
+    /* ── 狀態訊息 ── */
+    .msg {
+      padding: 40px;
+      text-align: center;
+      color: #888;
+      font-size: .95rem;
+    }
+    .loading {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 3px solid #e8eaed;
+      border-top-color: #1a73e8;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg { color: #ea4335; background: #fce8e6; border-radius: 8px; padding: 12px 16px; margin: 10px 0; font-size: .9rem; }
+    .stats { color: #666; font-size: .82rem; }
+
+    /* ── 搜尋欄 ── */
+    .search-box {
+      padding: 9px 14px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: .9rem;
+      font-family: inherit;
+      width: 220px;
+      transition: border-color .2s;
+    }
+    .search-box:focus { outline: none; border-color: #1a73e8; }
+
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .file-list-header { display: none; }
+      .file-item { grid-template-columns: auto 1fr auto; }
+      .file-date { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1>📊 Google 雲端硬碟 Excel 瀏覽器</h1>
+
+  <!-- ── 登入畫面 ── -->
+  <div id="login-section">
+    <div style="font-size:4rem;margin-bottom:16px">📂</div>
+    <h2 style="margin-bottom:12px;font-size:1.3rem">登入以存取你的雲端硬碟</h2>
+    <p>授權後可瀏覽並讀取雲端硬碟中的<br>Excel（.xlsx）與 Google 試算表檔案</p>
+    <button class="btn google" id="login-btn">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/></svg>
+      使用 Google 帳號登入
+    </button>
+    <div class="error-msg" id="login-error" style="display:none"></div>
+  </div>
+
+  <!-- ── 主要內容 ── -->
+  <div id="main-section">
+
+    <!-- 使用者資訊列 -->
+    <div class="user-bar">
+      <div class="user-avatar" id="user-avatar">U</div>
+      <div>
+        <div class="user-name" id="user-name">載入中…</div>
+        <div class="user-email" id="user-email"></div>
+      </div>
+      <button class="btn secondary" id="logout-btn">登出</button>
+    </div>
+
+    <!-- 工具列 -->
+    <div class="toolbar">
+      <button class="btn" id="refresh-btn">🔄 重新整理</button>
+      <select id="type-filter">
+        <option value="all">全部類型</option>
+        <option value="xlsx">Excel (.xlsx)</option>
+        <option value="gsheet">Google 試算表</option>
+      </select>
+      <input type="text" class="search-box" id="search-box" placeholder="搜尋檔案名稱…">
+      <span class="stats" id="file-stats"></span>
+    </div>
+
+    <!-- 錯誤訊息 -->
+    <div class="error-msg" id="main-error" style="display:none"></div>
+
+    <!-- 檔案列表 -->
+    <div class="file-list">
+      <div class="file-list-header">
+        <span></span>
+        <span>檔案名稱</span>
+        <span>類型</span>
+        <span>修改日期</span>
+      </div>
+      <div id="file-list-body">
+        <div class="msg"><span class="loading"></span>載入中…</div>
+      </div>
+    </div>
+
+    <!-- 表格區 -->
+    <div class="table-section" id="table-section" style="display:none">
+      <div class="table-header">
+        <div class="table-title" id="table-title">—</div>
+        <button class="btn secondary" id="close-table-btn">✕ 關閉</button>
+      </div>
+      <div class="sheet-tabs" id="sheet-tabs"></div>
+      <div class="table-wrap">
+        <div id="table-content" class="msg"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Google Identity Services + Drive API -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script>
+    // ══════════════════════════════════════════════════════
+    //  ★ 請將下方替換為你自己的 OAuth Client ID
+    //    前往 Google Cloud Console → API 和服務 → 憑證 → 建立 OAuth 用戶端 ID
+    // ══════════════════════════════════════════════════════
+    const CLIENT_ID = '613914242956-9kddoecdql3nc2vn38q9g8rjas66b4jh.apps.googleusercontent.com';
+
+    const SCOPES = [
+      'https://www.googleapis.com/auth/drive.readonly',
+      'https://www.googleapis.com/auth/userinfo.profile',
+      'https://www.googleapis.com/auth/userinfo.email',
+    ].join(' ');
+
+    let accessToken = null;
+    let allFiles    = [];
+    let currentFile = null;
+    let workbook    = null;
+
+    // ── 登入 ──
+
+    document.getElementById('login-btn').onclick = () => {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: async (resp) => {
+          if (resp.error) return showLoginErr('授權失敗：' + resp.error);
+          accessToken = resp.access_token;
+          showMain();
+          await loadUserInfo();
+          await loadFiles();
+        },
+      });
+      client.requestAccessToken();
+    };
+
+    document.getElementById('logout-btn').onclick = () => {
+      google.accounts.oauth2.revoke(accessToken, () => {
+        accessToken = null;
+        document.getElementById('login-section').style.display = 'block';
+        document.getElementById('main-section').style.display  = 'none';
+        document.getElementById('table-section').style.display = 'none';
+      });
+    };
+
+    function showMain() {
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('main-section').style.display  = 'block';
+    }
+    function showLoginErr(msg) {
+      const el = document.getElementById('login-error');
+      el.textContent = msg; el.style.display = 'block';
+    }
+    function showMainErr(msg) {
+      const el = document.getElementById('main-error');
+      el.textContent = msg; el.style.display = 'block';
+    }
+    function hideMainErr() {
+      document.getElementById('main-error').style.display = 'none';
+    }
+
+    // ── 使用者資訊 ──
+
+    async function loadUserInfo() {
+      const res  = await gFetch('https://www.googleapis.com/oauth2/v2/userinfo');
+      const data = await res.json();
+      document.getElementById('user-name').textContent  = data.name  || '使用者';
+      document.getElementById('user-email').textContent = data.email || '';
+      document.getElementById('user-avatar').textContent = (data.name || 'U').charAt(0).toUpperCase();
+    }
+
+    // ── 檔案列表 ──
+
+    async function loadFiles() {
+      document.getElementById('file-list-body').innerHTML =
+        '<div class="msg"><span class="loading"></span>載入中…</div>';
+      hideMainErr();
+      try {
+        const mimeTypes = [
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+          'application/vnd.google-apps.spreadsheet',                            // Google 試算表
+        ];
+        const q = mimeTypes.map(m => `mimeType='${m}'`).join(' or ');
+        const url = `https://www.googleapis.com/drive/v3/files?`
+          + `q=(${q}) and trashed=false`
+          + `&fields=files(id,name,mimeType,modifiedTime)`
+          + `&orderBy=modifiedTime desc`
+          + `&pageSize=100`;
+        const res  = await gFetch(url);
+        const data = await res.json();
+        allFiles = data.files || [];
+        renderFiles();
+      } catch(e) {
+        showMainErr('載入失敗：' + e.message);
+        document.getElementById('file-list-body').innerHTML = '<div class="msg">載入失敗</div>';
+      }
+    }
+
+    function renderFiles() {
+      const filter = document.getElementById('type-filter').value;
+      const search = document.getElementById('search-box').value.toLowerCase();
+
+      const filtered = allFiles.filter(f => {
+        const isXlsx   = f.mimeType.includes('spreadsheetml');
+        const isGSheet = f.mimeType.includes('google-apps.spreadsheet');
+        const typeOk   = filter === 'all'
+          || (filter === 'xlsx'   && isXlsx)
+          || (filter === 'gsheet' && isGSheet);
+        const nameOk   = !search || f.name.toLowerCase().includes(search);
+        return typeOk && nameOk;
+      });
+
+      document.getElementById('file-stats').textContent = `共 ${filtered.length} 個檔案`;
+
+      if (filtered.length === 0) {
+        document.getElementById('file-list-body').innerHTML =
+          '<div class="msg">沒有找到符合條件的檔案</div>';
+        return;
+      }
+
+      document.getElementById('file-list-body').innerHTML = filtered.map(f => {
+        const isXlsx  = f.mimeType.includes('spreadsheetml');
+        const icon    = isXlsx ? '📗' : '📊';
+        const typeBadge = isXlsx
+          ? '<span class="file-type type-xlsx">XLSX</span>'
+          : '<span class="file-type type-gsheet">試算表</span>';
+        const date = new Date(f.modifiedTime).toLocaleDateString('zh-TW');
+        return `<div class="file-item" onclick="openFile('${f.id}','${escHtml(f.name)}','${f.mimeType}')">
+          <span class="file-icon">${icon}</span>
+          <span class="file-name">${escHtml(f.name)}</span>
+          ${typeBadge}
+          <span class="file-date">${date}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // ── 開啟檔案 ──
+
+    async function openFile(id, name, mimeType) {
+      // 高亮選取
+      document.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
+      event.currentTarget.classList.add('selected');
+
+      currentFile = { id, name, mimeType };
+      document.getElementById('table-section').style.display = 'block';
+      document.getElementById('table-title').textContent = name;
+      document.getElementById('table-content').innerHTML = '<span class="loading"></span>讀取中…';
+      document.getElementById('sheet-tabs').innerHTML = '';
+      workbook = null;
+      hideMainErr();
+
+      try {
+        const isGSheet = mimeType.includes('google-apps.spreadsheet');
+
+        if (isGSheet) {
+          // Google 試算表：匯出為 xlsx 再解析
+          const url = `https://www.googleapis.com/drive/v3/files/${id}/export?mimeType=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`;
+          const res  = await gFetch(url);
+          const buf  = await res.arrayBuffer();
+          workbook = XLSX.read(buf, { type: 'array' });
+        } else {
+          // xlsx：直接下載
+          const url = `https://www.googleapis.com/drive/v3/files/${id}?alt=media`;
+          const res  = await gFetch(url);
+          const buf  = await res.arrayBuffer();
+          workbook = XLSX.read(buf, { type: 'array' });
+        }
+
+        renderSheetTabs();
+        // 自動找最新的 Jimmy_ 工作表，否則顯示第一張
+        const latestJimmy = findLatestJimmySheet();
+        renderSheet(latestJimmy || workbook.SheetNames[0]);
+        // 捲動到表格
+        document.getElementById('table-section').scrollIntoView({ behavior: 'smooth' });
+      } catch(e) {
+        document.getElementById('table-content').innerHTML =
+          `<div style="color:#ea4335;padding:20px">讀取失敗：${escHtml(e.message)}</div>`;
+      }
+    }
+
+    // 找出最新的 Jimmy_ 工作表（格式 Jimmy_YYMMDD，數字越大越新）
+    function findLatestJimmySheet() {
+      if (!workbook) return null;
+      const jimmySheets = workbook.SheetNames
+        .filter(n => /^Jimmy_\d{6}$/.test(n))
+        .sort((a, b) => b.split('_')[1].localeCompare(a.split('_')[1]));
+      return jimmySheets[0] || null;
+    }
+
+    function renderSheetTabs() {
+      if (!workbook) return;
+      const latest = findLatestJimmySheet();
+      document.getElementById('sheet-tabs').innerHTML = workbook.SheetNames.map(name => {
+        const isActive = name === (latest || workbook.SheetNames[0]);
+        const isLatest = name === latest;
+        return `<div class="sheet-tab${isActive?' active':''}" onclick="switchSheet('${escHtml(name)}',this)">
+          ${escHtml(name)}${isLatest?' <span style="font-size:.7rem;opacity:.75">★最新</span>':''}
+        </div>`;
+      }).join('');
+    }
+
+    function switchSheet(name, el) {
+      document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      renderSheet(name);
+    }
+
+    function renderSheet(sheetName) {
+      if (!workbook) return;
+      const ws   = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (data.length === 0) {
+        document.getElementById('table-content').innerHTML = '<div class="msg">此工作表沒有資料</div>';
+        return;
+      }
+
+      const headers = data[0];
+      const rows    = data.slice(1);
+
+      const thead = `<thead><tr>
+        <th class="row-num">#</th>
+        ${headers.map(h => `<th>${escHtml(String(h))}</th>`).join('')}
+      </tr></thead>`;
+
+      const tbody = `<tbody>
+        ${rows.map((row, ri) => `<tr>
+          <td class="row-num">${ri + 1}</td>
+          ${headers.map((_, ci) => `<td>${escHtml(String(row[ci] ?? ''))}</td>`).join('')}
+        </tr>`).join('')}
+      </tbody>`;
+
+      document.getElementById('table-content').innerHTML =
+        `<div style="padding:8px 16px;font-size:.8rem;color:#888;background:#f8f9fa;border-bottom:1px solid #e8eaed">
+          共 ${rows.length} 筆資料，${headers.length} 個欄位
+        </div>
+        <table>${thead}${tbody}</table>`;
+    }
+
+    // ── 關閉表格 ──
+
+    document.getElementById('close-table-btn').onclick = () => {
+      document.getElementById('table-section').style.display = 'none';
+      document.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
+    };
+
+    // ── 工具 ──
+
+    function gFetch(url) {
+      return fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    document.getElementById('refresh-btn').onclick    = loadFiles;
+    document.getElementById('type-filter').onchange  = renderFiles;
+    document.getElementById('search-box').oninput    = renderFiles;
+  </script>
+</body>
+</html>

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>象棋麻將</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Serif TC', '標楷體', serif;
+      background: #2d5a1b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      color: white;
+    }
+    h1 { font-size: 2rem; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+    .game-info {
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      padding: 10px 20px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 1rem;
+    }
+    .players-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      width: 100%;
+      max-width: 820px;
+      margin-bottom: 20px;
+    }
+    .player-panel {
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      padding: 15px;
+      border: 2px solid transparent;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    .player-panel.active {
+      border-color: #ffd700;
+      background: rgba(255,215,0,0.08);
+    }
+    .player-name {
+      font-size: 1rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .dealer-badge {
+      background: #ffd700;
+      color: #333;
+      font-size: 0.65rem;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+    .hand { display: flex; flex-wrap: wrap; gap: 8px; }
+    .piece {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: bold;
+      border: 3px solid;
+      transition: transform 0.2s, box-shadow 0.2s;
+      user-select: none;
+    }
+    .piece.red    { background: #f5e6c8; color: #cc0000; border-color: #8b0000; }
+    .piece.black  { background: #3a3a3a; color: #ddd;    border-color: #111; }
+    .piece.hidden { background: #5c3d1a; color: #5c3d1a; border-color: #3d2710; cursor: default; }
+    .piece.selectable:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+      cursor: pointer;
+    }
+    .piece.drawn { animation: pop 0.4s ease-out; box-shadow: 0 0 14px #ffd700; }
+    @keyframes pop {
+      0%   { transform: scale(0.6); opacity: 0.4; }
+      70%  { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .controls {
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      padding: 15px 25px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .btn {
+      background: #ffd700;
+      color: #333;
+      border: none;
+      padding: 11px 28px;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s, transform 0.1s;
+      margin: 4px;
+    }
+    .btn:hover:not(:disabled) { background: #ffe96e; transform: translateY(-2px); }
+    .btn:disabled { background: #666; cursor: not-allowed; }
+    .btn.secondary { background: #5a8a5a; color: white; }
+    .btn.secondary:hover:not(:disabled) { background: #6aaa6a; }
+    .status-msg { font-size: 1.05rem; margin-top: 10px; min-height: 1.4rem; color: #ffd700; font-weight: bold; }
+    .log {
+      background: rgba(0,0,0,0.4);
+      border-radius: 8px;
+      padding: 10px 14px;
+      max-height: 130px;
+      overflow-y: auto;
+      width: 100%;
+      max-width: 820px;
+      font-size: 0.82rem;
+      color: #bbb;
+    }
+    .log p { margin: 2px 0; line-height: 1.4; }
+    .win-overlay { display: none; width: 100%; max-width: 820px; margin-bottom: 12px; }
+    .win-overlay.show { display: block; }
+    .win-box {
+      background: #fff8e8;
+      color: #333;
+      border-radius: 12px;
+      padding: 14px 24px;
+      text-align: center;
+      border: 3px solid #ffd700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .win-box h2 { font-size: 1.3rem; color: #cc0000; margin: 0; }
+    .win-box p  { font-size: 0.95rem; color: #555; margin: 0; }
+    .discard-area {
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      width: 100%;
+      max-width: 820px;
+    }
+    .discard-area h3 {
+      font-size: 0.95rem;
+      color: #aaa;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+    .discard-rows { display: flex; flex-direction: column; gap: 10px; }
+    .discard-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .discard-label {
+      font-size: 0.78rem;
+      color: #888;
+      min-width: 52px;
+      flex-shrink: 0;
+    }
+    .piece.small {
+      width: 36px;
+      height: 36px;
+      font-size: 0.85rem;
+      border-width: 2px;
+    }
+    .piece.eatable {
+      box-shadow: 0 0 12px #ffd700, 0 0 24px #ffd70088;
+      animation: glow 1s ease-in-out infinite alternate;
+      cursor: default;
+    }
+    @keyframes glow {
+      from { box-shadow: 0 0 8px #ffd700; }
+      to   { box-shadow: 0 0 20px #ffd700, 0 0 36px #ffd70066; }
+    }
+    .eat-controls { margin-top: 10px; }
+    .btn.eat { background: #e05c00; color: white; }
+    .btn.eat:hover:not(:disabled) { background: #ff7020; }
+  </style>
+</head>
+<body>
+  <h1>♟ 象棋麻將</h1>
+
+  <div class="game-info">
+    <div id="turn-info">點擊「新遊戲」開始</div>
+    <div id="deck-count">牌堆：32 張</div>
+    <div style="margin-top:10px">
+      <button class="btn secondary" onclick="newGame()">新遊戲</button>
+      <button class="btn secondary" id="reveal-btn" onclick="toggleReveal()">👁 顯示全部手牌</button>
+    </div>
+  </div>
+
+  <div class="players-area" id="players-area"></div>
+
+  <div class="controls">
+    <button class="btn" id="draw-btn" disabled onclick="drawPiece()">摸牌</button>
+    <div class="eat-controls" id="eat-controls" style="display:none">
+      <button class="btn eat" onclick="eatPiece()">吃牌</button>
+      <button class="btn secondary" onclick="skipEat()">跳過</button>
+    </div>
+    <div class="status-msg" id="status-msg"></div>
+  </div>
+
+  <div class="win-overlay" id="win-overlay">
+    <div class="win-box">
+      <h2>胡牌！</h2>
+      <p id="win-msg"></p>
+      <button class="btn" onclick="newGame()">再來一局</button>
+    </div>
+  </div>
+
+  <div class="discard-area">
+    <h3>棄牌區</h3>
+    <div class="discard-rows" id="discard-rows"></div>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <script>
+    // ── 牌堆 ──────────────────────────────────────────────
+    function createDeck() {
+      const pieces = [];
+      let id = 0;
+      const redTypes   = [['帥',1],['仕',2],['相',2],['車',2],['馬',2],['炮',2],['兵',5]];
+      const blackTypes = [['將',1],['士',2],['象',2],['車',2],['馬',2],['包',2],['卒',5]];
+      for (const [type, n] of redTypes)   for (let i=0;i<n;i++) pieces.push({id:id++,type,color:'red'});
+      for (const [type, n] of blackTypes) for (let i=0;i<n;i++) pieces.push({id:id++,type,color:'black'});
+      return pieces;
+    }
+
+    function shuffle(arr) {
+      for (let i=arr.length-1;i>0;i--) {
+        const j=Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]]=[arr[j],arr[i]];
+      }
+      return arr;
+    }
+
+    // ── 胡牌判斷 ──────────────────────────────────────────
+    function combos(arr, k) {
+      if (k===0) return [[]];
+      if (arr.length<k) return [];
+      const [h,...t]=arr;
+      return [...combos(t,k-1).map(c=>[h,...c]),...combos(t,k)];
+    }
+
+    const TYPE_ORDER = { '帥':0,'將':0,'仕':1,'士':1,'相':2,'象':2,'車':3,'馬':4,'炮':5,'包':5,'兵':6,'卒':6 };
+    const COLOR_ORDER = { 'red':0, 'black':1 };
+    function sortHand(hand) {
+      hand.sort((a,b) => COLOR_ORDER[a.color]-COLOR_ORDER[b.color] || (TYPE_ORDER[a.type]??9)-(TYPE_ORDER[b.type]??9));
+    }
+
+    function pairKey(type) { return type==='帥' ? '將' : type; }
+    function isPair(two) {
+      return two.length===2 && pairKey(two[0].type)===pairKey(two[1].type);
+    }
+
+    function checkWin(hand) {
+      if (hand.length!==5) return {win:false};
+
+      // 三連組（同色）+ 對子（同名不限色）
+      const trioByColor = [
+        { color:'red',   types:['帥','仕','相'], label:'紅帥+仕+相' },
+        { color:'black', types:['將','士','象'], label:'黑將+士+象' },
+        { color:'red',   types:['車','馬','炮'], label:'紅車+馬+炮' },
+        { color:'black', types:['車','馬','包'], label:'黑車+馬+包' },
+      ];
+      for (const { color, types, label } of trioByColor) {
+        const trio = types.map(t => hand.find(p => p.type===t && p.color===color));
+        if (trio.some(p=>!p)) continue;
+        const ids  = new Set(trio.map(p=>p.id));
+        const rest = hand.filter(p=>!ids.has(p.id));
+        if (isPair(rest))
+          return {win:true, pattern:`${label} + 對子（${rest[0].type}）`};
+      }
+
+      // 卒/兵 組合
+      for (const [type, color, label] of [['卒','black','黑卒'],['兵','red','紅兵']]) {
+        const pawns = hand.filter(p=>p.type===type && p.color===color);
+
+        if (pawns.length===5)
+          return {win:true, pattern:`五${label}`};
+
+        if (pawns.length>=3) {
+          for (const trio of combos(pawns,3)) {
+            const ids  = new Set(trio.map(p=>p.id));
+            const rest = hand.filter(p=>!ids.has(p.id));
+            if (isPair(rest))
+              return {win:true, pattern:`三${label} + 對子（${rest[0].type}）`};
+          }
+        }
+      }
+
+      return {win:false};
+    }
+
+    // ── 遊戲狀態 ──────────────────────────────────────────
+    let state = { deck:[], players:[], discards:[[],[],[],[]], currentPlayer:0, phase:'idle', drawnPieceId:null, lastDiscard:null, lastDiscardPlayer:-1 };
+    let revealAll = false;
+    let dealerIndex = 0;
+
+    function newGame() {
+      const deck = shuffle(createDeck());
+      const players = [0,1,2,3].map(i=>({
+        id:i, name:`玩家 ${i+1}`, hand:[], isDealer:i===dealerIndex
+      }));
+      for (let i=0;i<4;i++) for (const p of players) p.hand.push(deck.pop());
+
+      state = { deck, players, discards:[[],[],[],[]], currentPlayer:dealerIndex, phase:'draw', drawnPieceId:null, lastDiscard:null, lastDiscardPlayer:-1 };
+      dealerIndex = (dealerIndex + 1) % 4;
+      document.getElementById('win-overlay').classList.remove('show');
+      clearLog();
+      addLog(`遊戲開始！玩家 ${state.players.find(p=>p.isDealer).id+1} 為莊家，請摸牌。`);
+      setStatus('');
+      render();
+    }
+
+    function drawPiece() {
+      if (state.phase!=='draw') return;
+      if (state.deck.length===0) {
+        addLog('牌堆已空，遊戲平局！');
+        state.phase='idle';
+        render();
+        return;
+      }
+      const piece = state.deck.pop();
+      const player = state.players[state.currentPlayer];
+      player.hand.push(piece);
+      sortHand(player.hand);
+      state.drawnPieceId = piece.id;
+      state.phase = 'discard';
+      addLog(`玩家 ${player.id+1} 摸到「${piece.color==='red'?'紅':'黑'}${piece.type}」`);
+
+      const result = checkWin(player.hand);
+      if (result.win) {
+        addLog(`玩家 ${player.id+1} 胡牌！${result.pattern}`);
+        state.phase='idle';
+        render();
+        showWin(player, result.pattern);
+      } else {
+        setStatus(`玩家 ${player.id+1}，請點擊手牌打出一張`);
+        render();
+      }
+    }
+
+    function discardPiece(playerId, pieceId) {
+      if (state.phase!=='discard' || state.currentPlayer!==playerId) return;
+      const player = state.players[playerId];
+      const idx = player.hand.findIndex(p=>p.id===pieceId);
+      if (idx===-1) return;
+      const discarded = player.hand.splice(idx,1)[0];
+      state.discards[playerId].push(discarded);
+      addLog(`玩家 ${player.id+1} 打出「${discarded.color==='red'?'紅':'黑'}${discarded.type}」`);
+      state.drawnPieceId = null;
+      state.lastDiscard = discarded;
+      state.lastDiscardPlayer = playerId;
+
+      // 檢查其他玩家能否以此牌胡牌（依順序）
+      for (let i = 1; i <= 3; i++) {
+        const checkId = (playerId + i) % 4;
+        const checkPlayer = state.players[checkId];
+        const testHand = [...checkPlayer.hand, discarded];
+        const result = checkWin(testHand);
+        if (result.win) {
+          const pile = state.discards[playerId];
+          pile.splice(pile.findIndex(p=>p.id===discarded.id), 1);
+          addLog(`玩家 ${checkId+1} 以「${result.pattern}」胡牌（放砲）！`);
+          state.phase = 'idle';
+          render();
+          showWin(checkPlayer, result.pattern);
+          return;
+        }
+      }
+
+      // 無人能胡，進入下家吃牌流程
+      state.currentPlayer = (playerId + 1) % 4;
+      state.phase = 'can-eat';
+      setStatus(`玩家 ${state.currentPlayer+1}，可以吃上家的牌`);
+      render();
+    }
+
+    function eatPiece() {
+      if (state.phase!=='can-eat' || !state.lastDiscard) return;
+      const piece = state.lastDiscard;
+      // 從棄牌堆移除
+      const pile = state.discards[state.lastDiscardPlayer];
+      const idx = pile.findIndex(p=>p.id===piece.id);
+      if (idx!==-1) pile.splice(idx,1);
+
+      const player = state.players[state.currentPlayer];
+      player.hand.push(piece);
+      sortHand(player.hand);
+      state.drawnPieceId = piece.id;
+      state.lastDiscard = null;
+      state.lastDiscardPlayer = -1;
+      state.phase = 'discard';
+
+      addLog(`玩家 ${player.id+1} 吃了「${piece.color==='red'?'紅':'黑'}${piece.type}」`);
+
+      const result = checkWin(player.hand);
+      if (result.win) {
+        addLog(`玩家 ${player.id+1} 胡牌！${result.pattern}`);
+        state.phase = 'idle';
+        render();
+        showWin(player, result.pattern);
+      } else {
+        setStatus(`玩家 ${player.id+1}，吃牌後請打出一張`);
+        render();
+      }
+    }
+
+    function skipEat() {
+      if (state.phase!=='can-eat') return;
+      state.lastDiscard = null;
+      state.lastDiscardPlayer = -1;
+      state.phase = 'draw';
+      setStatus('');
+      render();
+    }
+
+    // ── 渲染 ──────────────────────────────────────────────
+    function render() {
+      const area = document.getElementById('players-area');
+      area.innerHTML='';
+
+      for (const player of state.players) {
+        const isActive = player.id===state.currentPlayer;
+        const panel = document.createElement('div');
+        panel.className = `player-panel${isActive?' active':''}`;
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className='player-name';
+        nameDiv.innerHTML=`${player.name}${player.isDealer?' <span class="dealer-badge">莊</span>':''} <span style="color:#aaa;font-size:.85rem">(${player.hand.length}張)</span>`;
+        panel.appendChild(nameDiv);
+
+        const handDiv = document.createElement('div');
+        handDiv.className='hand';
+
+        for (const piece of player.hand) {
+          const el = document.createElement('div');
+          const canDiscard = isActive && state.phase==='discard';
+          const isNew = piece.id===state.drawnPieceId;
+
+          const showFace = isActive || state.phase==='idle' || revealAll;
+          if (showFace) {
+            el.className=`piece ${piece.color}${canDiscard?' selectable':''}${isNew?' drawn':''}`;
+            el.textContent=piece.type;
+            el.title=piece.color==='red'?`紅${piece.type}`:`黑${piece.type}`;
+            if (canDiscard) el.onclick=()=>discardPiece(player.id,piece.id);
+          } else {
+            el.className='piece hidden';
+            el.textContent='♟';
+          }
+          handDiv.appendChild(el);
+        }
+
+        panel.appendChild(handDiv);
+        area.appendChild(panel);
+      }
+
+      const phaseLabel =
+        state.phase==='idle'    ? '遊戲結束' :
+        state.phase==='draw'    ? `輪到 玩家 ${state.currentPlayer+1} 摸牌` :
+        state.phase==='can-eat' ? `玩家 ${state.currentPlayer+1}，是否吃牌？` :
+                                  `玩家 ${state.currentPlayer+1} 請打出一張牌`;
+
+      document.getElementById('turn-info').textContent=phaseLabel;
+      document.getElementById('deck-count').textContent=`牌堆剩餘：${state.deck.length} 張`;
+      document.getElementById('draw-btn').disabled = state.phase!=='draw';
+      document.getElementById('eat-controls').style.display = state.phase==='can-eat' ? 'block' : 'none';
+
+      renderDiscards();
+    }
+
+    function renderDiscards() {
+      const rows = document.getElementById('discard-rows');
+      rows.innerHTML='';
+      for (let i=0;i<4;i++) {
+        const row = document.createElement('div');
+        row.className='discard-row';
+        const label = document.createElement('span');
+        label.className='discard-label';
+        label.textContent=`玩家 ${i+1}：`;
+        row.appendChild(label);
+        if (state.discards[i].length===0) {
+          const empty = document.createElement('span');
+          empty.style.cssText='color:#555;font-size:.8rem';
+          empty.textContent='尚無棄牌';
+          row.appendChild(empty);
+        } else {
+          for (const piece of state.discards[i]) {
+            const el = document.createElement('div');
+            const isEatable = state.lastDiscard && piece.id===state.lastDiscard.id;
+            el.className=`piece small ${piece.color}${isEatable?' eatable':''}`;
+            el.textContent=piece.type;
+            el.title=`${piece.color==='red'?'紅':'黑'}${piece.type}${isEatable?' （可吃）':''}`;
+            row.appendChild(el);
+          }
+        }
+        rows.appendChild(row);
+      }
+    }
+
+    function showWin(player, pattern) {
+      document.getElementById('win-msg').textContent=`玩家 ${player.id+1} 以「${pattern}」胡牌！`;
+      document.getElementById('win-overlay').classList.add('show');
+    }
+
+    function toggleReveal() {
+      revealAll = !revealAll;
+      document.getElementById('reveal-btn').textContent = revealAll ? '👁 隱藏其他手牌' : '👁 顯示全部手牌';
+      render();
+    }
+
+    function setStatus(msg) { document.getElementById('status-msg').textContent=msg; }
+
+    function addLog(msg) {
+      const log=document.getElementById('log');
+      const p=document.createElement('p');
+      const t=new Date().toLocaleTimeString('zh-TW');
+      p.textContent=`[${t}] ${msg}`;
+      log.appendChild(p);
+      log.scrollTop=log.scrollHeight;
+    }
+
+    function clearLog() { document.getElementById('log').innerHTML=''; }
+
+    render();
+  </script>
+</body>
+</html>

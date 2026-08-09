@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>族群漲跌幅統整</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+    background: #f0f4f8;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .card {
+    background: #4dbfbf;
+    border-radius: 20px;
+    padding: 28px 24px 20px;
+    width: 520px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 格子底紋 */
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+  }
+
+  .title-box {
+    background: #e8e0c8;
+    border-radius: 12px;
+    padding: 14px 20px;
+    text-align: center;
+    margin-bottom: 18px;
+    position: relative;
+  }
+
+  .title-box h1 {
+    font-size: 30px;
+    font-weight: 900;
+    color: #2d6b5e;
+    letter-spacing: 2px;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: #5a8a7a;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 4px;
+    position: relative;
+  }
+
+  thead tr th {
+    background: #3aabaa;
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 8px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+
+  thead tr th:first-child { border-radius: 8px 0 0 8px; }
+  thead tr th:last-child  { border-radius: 0 8px 8px 0; }
+
+  tbody tr td {
+    background: white;
+    padding: 11px 8px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #2a4a44;
+  }
+
+  tbody tr:nth-child(odd) td {
+    background: #d6f0f0;
+  }
+
+  tbody tr td:first-child { border-radius: 8px 0 0 8px; }
+  tbody tr td:last-child  { border-radius: 0 8px 8px 0; }
+
+  .stock-code {
+    font-size: 18px;
+    font-weight: 900;
+    color: #1a3a34;
+  }
+
+  .stock-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: #2a4a44;
+  }
+
+  .price {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1a3a34;
+  }
+
+  .change-badge {
+    display: inline-block;
+    background: #ffd6d6;
+    color: #e03030;
+    font-size: 15px;
+    font-weight: 800;
+    padding: 5px 14px;
+    border-radius: 20px;
+    min-width: 80px;
+  }
+
+  .change-badge.down {
+    background: #d6f0d6;
+    color: #1a8a1a;
+  }
+
+  .note {
+    background: rgba(255,255,255,0.85);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    font-size: 12px;
+    color: #3a6a60;
+    line-height: 1.7;
+    position: relative;
+  }
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 12px;
+    gap: 6px;
+    position: relative;
+  }
+
+  .brand {
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: 1px;
+    opacity: 0.9;
+  }
+
+  .brand-icon {
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+    color: #4dbfbf;
+  }
+
+  /* ===== 列印 / 截圖用：隱藏瀏覽器背景，保持底色 ===== */
+  @media print {
+    body { background: transparent; padding: 0; }
+    .card { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="title-box">
+    <h1 id="chart-title">被動元件族群漲跌幅統整</h1>
+    <div class="subtitle" id="chart-subtitle">資料日期：2026/05/30　週漲跌幅統計</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>股號</th>
+        <th>股名</th>
+        <th id="price-header">5/29收盤價</th>
+        <th>週漲跌幅 (%)</th>
+      </tr>
+    </thead>
+    <tbody id="stock-tbody">
+      <!-- 由 JS 動態填入 -->
+    </tbody>
+  </table>
+
+  <div class="note" id="chart-note">
+    日廠訂單外溢MLCC，資金對AI PC與車用規格升級超級週期高度共識，買盤無視處置分盤冷卻瘋狂追價。國巨在法人重倉加碼下續創分割後歷史新天價；華新科、凱美與大毅連續數日呈現量增價揚、集體亮燈漲停。
+  </div>
+
+  <div class="footer">
+    <span class="brand-icon">S</span>
+    <span class="brand">STOCKFEEL</span>
+  </div>
+</div>
+
+<script>
+// =============================================
+//  ★ 修改這裡的資料即可自訂圖表 ★
+// =============================================
+const config = {
+  title: 'AI 伺服器族群漲跌幅統整',
+  subtitle: '資料日期：2026/05/30　週漲跌幅統計',
+  priceHeader: '5/29收盤價',
+  note: 'CSP 資本支出持續擴張，AI 伺服器訂單能見度延伸至 2026 下半年。緯穎與廣達受惠 GB200/GB300 出貨放量，週漲幅均近 10%，法人持續加碼；台積電法說確認 CoWoS 產能全數售罄，外資買超不間斷。聯發科 AI Edge 題材發酵，長線資金積極卡位。',
+  stocks: [
+    { code: '6669', name: '緯穎',   price: 5445, change: 10.00 },
+    { code: '2382', name: '廣達',   price: 339,  change: 9.89  },
+    { code: '2330', name: '台積電', price: 2355, change: 2.61  },
+    { code: '2454', name: '聯發科', price: 4310, change: 2.27  },
+    { code: '3034', name: '聯詠',   price: 477,  change: 0.31  },
+  ]
+};
+// =============================================
+
+document.getElementById('chart-title').textContent = config.title;
+document.getElementById('chart-subtitle').textContent = config.subtitle;
+document.getElementById('price-header').textContent = config.priceHeader;
+document.getElementById('chart-note').textContent = config.note;
+
+const tbody = document.getElementById('stock-tbody');
+config.stocks.forEach(s => {
+  const isUp = s.change >= 0;
+  const sign = isUp ? '+' : '';
+  const badgeClass = isUp ? 'change-badge' : 'change-badge down';
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="stock-code">${s.code}</td>
+    <td class="stock-name">${s.name}</td>
+    <td class="price">${s.price}</td>
+    <td><span class="${badgeClass}">${sign}${s.change.toFixed(2)}%</span></td>
+  `;
+  tbody.appendChild(tr);
+});
+</script>
+
+</body>
+</html>

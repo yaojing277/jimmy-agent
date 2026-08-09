@@ -1,0 +1,20 @@
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/oauth2/__init__.py:40: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/auth/__init__.py:54: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/api_core/_python_version_support.py:242: FutureWarning: You are using a non-supported Python version (3.9.6). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+分頁「股票買賣紀錄」前 8 列(只顯示有值的欄):
+
+列  1: B1=幾天前 | C1=至今均價 | D1=半年均價 | E1=一年均價 | F1=買進日 | G1=買進價格 | H1=買進股數 | I1=買進成本 | J1=賣出日 | K1=賣出價格 | L1=賣出股數 | M1=賣出成本 | N1=手續費 | O1=交易稅 | P1=應收付 | Q1=持有價格 | R1=持有股數 | S1=持有成本 | T1=價差 | U1=價差金額 | V1=實拿金額 | W1=` | X1=持有張數
+列  4: A4=0052 | F4=2026/5/12 | P4=28574
+列  5: A5=2330 | F5=2026/5/12 | P5=45638
+列  6: A6=0050 | F6=2026/5/12 | P6=48516
+列  7: A7=00878 | F7=2026/5/6 | P7=52304
+列  8: A8=穎崴 | J8=2026/5/6 | P8=212778
+
+→ 找到『標的』那一欄的字母、以及最新一筆資料在第幾列,
+  回頭把腳本上方的 START_CELL 改成正確位址(例如 G2)。
+exit=0

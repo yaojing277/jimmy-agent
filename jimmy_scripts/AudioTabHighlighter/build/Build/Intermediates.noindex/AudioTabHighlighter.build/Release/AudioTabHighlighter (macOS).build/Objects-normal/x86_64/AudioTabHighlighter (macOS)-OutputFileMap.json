@@ -1,0 +1,26 @@
+{
+  "" : {
+    "const-values" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/AudioTabHighlighter (macOS)-primary.swiftconstvalues",
+    "dependencies" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/AudioTabHighlighter (macOS)-primary.d",
+    "diagnostics" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/AudioTabHighlighter (macOS)-primary.dia",
+    "emit-module-dependencies" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/AudioTabHighlighter (macOS)-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/AudioTabHighlighter (macOS)-primary-emit-module.dia",
+    "pch" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/AudioTabHighlighter (macOS)-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/AudioTabHighlighter (macOS)-primary.swiftdeps"
+  },
+  "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/Shared (App)/ViewController.swift" : {
+    "index-unit-output-path" : "/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/ViewController.o",
+    "llvm-bc" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/ViewController.bc",
+    "object" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/ViewController.o"
+  },
+  "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/GeneratedAssetSymbols.o"
+  },
+  "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/macOS (App)/AppDelegate.swift" : {
+    "index-unit-output-path" : "/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/AppDelegate.o",
+    "llvm-bc" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/AppDelegate.bc",
+    "object" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/AudioTabHighlighter.build/Release/AudioTabHighlighter (macOS).build/Objects-normal/x86_64/AppDelegate.o"
+  }
+}

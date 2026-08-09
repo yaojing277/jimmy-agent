@@ -1,0 +1,7 @@
+*.pickle
+client_secret_*.json
+*.pyc
+__pycache__/
+.DS_Store
+stock_notify_tmp/
+jimmy_scripts/MouseSideKey/

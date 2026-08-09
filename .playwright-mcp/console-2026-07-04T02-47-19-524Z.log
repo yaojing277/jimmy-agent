@@ -1,0 +1,7 @@
+[    4003ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    4057ms] [LOG] PlayerReady @ https://s.trvdp.com/scripts/v6.65/ins.js:31
+[    4003ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    4094ms] [ERROR] Attestation check for Attribution Reporting on https://ad.doubleclick.net failed. @ https://www.wantgoo.com/stock/6515/dividend-policy/ex-dividend:0
+[    4142ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    4261ms] [LOG] Polite loading scripts @ https://s0.2mdn.net/sadbundle/1472757000932441438/js/banner.js:10
+[    5227ms] [ERROR] Attestation check for Attribution Reporting on https://ad.doubleclick.net failed. @ https://www.wantgoo.com/stock/6515/dividend-policy/ex-dividend:0

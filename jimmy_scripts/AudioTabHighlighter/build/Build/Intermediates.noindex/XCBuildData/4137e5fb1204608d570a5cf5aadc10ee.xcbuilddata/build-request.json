@@ -1,0 +1,65 @@
+{
+  "buildCommand" : {
+    "command" : "build",
+    "skipDependencies" : false,
+    "style" : "buildOnly"
+  },
+  "configuredTargets" : [
+    {
+      "guid" : "9d796b6c64ca7924282fd9edf8d7df3a825db2d8b35603fa4879d2115b33cae7"
+    }
+  ],
+  "containerPath" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/AudioTabHighlighter.xcodeproj",
+  "continueBuildingAfterErrors" : false,
+  "dependencyScope" : "workspace",
+  "enableIndexBuildArena" : false,
+  "hideShellScriptEnvironment" : false,
+  "parameters" : {
+    "action" : "build",
+    "activeArchitecture" : "x86_64",
+    "activeRunDestination" : {
+      "disableOnlyActiveArch" : false,
+      "platform" : "macosx",
+      "sdk" : "macosx26.2",
+      "sdkVariant" : "macos",
+      "supportedArchitectures" : [
+        "x86_64h",
+        "x86_64"
+      ],
+      "targetArchitecture" : "x86_64"
+    },
+    "arenaInfo" : {
+      "buildIntermediatesPath" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex",
+      "buildProductsPath" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Products",
+      "derivedDataPath" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build",
+      "indexDataStoreFolderPath" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Index.noindex/DataStore",
+      "indexEnableDataStore" : true,
+      "indexPCHPath" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Index.noindex/PrecompiledHeaders",
+      "pchPath" : "/Users/jimmy/Downloads/jimmy-agent/jimmy_scripts/AudioTabHighlighter/build/Build/Intermediates.noindex/PrecompiledHeaders"
+    },
+    "configurationName" : "Debug",
+    "overrides" : {
+      "commandLine" : {
+        "table" : {
+          "CODE_SIGN_IDENTITY" : "",
+          "CODE_SIGNING_ALLOWED" : "NO",
+          "CODE_SIGNING_REQUIRED" : "NO"
+        }
+      },
+      "synthesized" : {
+        "table" : {
+          "ACTION" : "build",
+          "ENABLE_PREVIEWS" : "NO",
+          "ENABLE_XOJIT_PREVIEWS" : "YES",
+          "ONLY_ACTIVE_ARCH" : "YES"
+        }
+      }
+    }
+  },
+  "schemeCommand" : "launch",
+  "showNonLoggedProgress" : true,
+  "useDryRun" : false,
+  "useImplicitDependencies" : true,
+  "useLegacyBuildLocations" : false,
+  "useParallelTargets" : true
+}

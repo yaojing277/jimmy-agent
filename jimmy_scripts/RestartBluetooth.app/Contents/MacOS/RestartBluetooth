@@ -1,0 +1,5 @@
+#!/bin/bash
+sleep 5
+/usr/local/bin/blueutil --power 0
+sleep 2
+/usr/local/bin/blueutil --power 1

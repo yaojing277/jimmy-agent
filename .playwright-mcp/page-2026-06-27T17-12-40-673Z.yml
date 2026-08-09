@@ -1,0 +1,306 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - heading "Jimmy 專案總覽" [level=1] [ref=e4]
+      - paragraph [ref=e5]: 個人開發專案、工具程式與自動化腳本
+    - generic [ref=e6]: 最後更新：2026-06-28
+  - generic [ref=e7]:
+    - generic [ref=e8]: 主要專案
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e12]: ♟️
+          - generic [ref=e13]:
+            - generic [ref=e14]: 象棋麻將遊戲
+            - generic [ref=e15]: 自創桌遊 · 三版並行
+        - generic [ref=e17]:
+          - generic [ref=e18]: HTML / JS
+          - generic [ref=e19]: Firebase
+          - generic [ref=e20]: GitHub Pages
+        - generic [ref=e21]: 結合象棋棋子與麻將玩法的自創桌遊。32 隻棋子、4 人輪流、胡牌判定、計分積分。 三版並行：熱座版、Firebase 多人版、AI 對戰版。
+        - table [ref=e22]:
+          - rowgroup [ref=e23]:
+            - row "版本 狀態" [ref=e24]:
+              - columnheader "版本" [ref=e25]
+              - columnheader "狀態" [ref=e26]
+          - rowgroup [ref=e27]:
+            - row "單機熱座版 已部署" [ref=e28]:
+              - cell "單機熱座版" [ref=e29]
+              - cell "已部署" [ref=e30]
+            - row "Firebase 多人版 已部署" [ref=e31]:
+              - cell "Firebase 多人版" [ref=e32]
+              - cell "已部署" [ref=e33]
+            - row "AI 對戰版 開發中" [ref=e34]:
+              - cell "AI 對戰版" [ref=e35]
+              - cell "開發中" [ref=e36]
+        - list [ref=e37]:
+          - listitem [ref=e38]: ○ 打牌時手牌持續脈衝提示
+          - listitem [ref=e39]: ○ 聽牌徽章（橘色閃爍）
+          - listitem [ref=e40]: ○ 勝利後牌型高亮
+          - listitem [ref=e41]: ○ AI 回合操作區鎖定
+          - listitem [ref=e42]: ○ 牌堆剩餘低警示
+          - listitem [ref=e43]: ○ Web Audio 音效
+        - generic [ref=e44]:
+          - link "🎮 熱座版" [ref=e45] [cursor=pointer]:
+            - /url: https://yaojing277.github.io/chess-mahjong/
+          - link "🌐 多人版" [ref=e46] [cursor=pointer]:
+            - /url: https://yaojing277.github.io/chess-mahjong/multi.html
+          - link "🤖 AI 版" [ref=e47] [cursor=pointer]:
+            - /url: https://yaojing277.github.io/chess-mahjong/ai.html
+          - link "⑂ GitHub" [ref=e48] [cursor=pointer]:
+            - /url: https://github.com/yaojing277/chess-mahjong
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - generic [ref=e51]: 📊
+          - generic [ref=e52]:
+            - generic [ref=e53]: 族群漲跌幅圖表產生器
+            - generic [ref=e54]: 仿 Stockfeel 風格 · 自動截圖 PNG
+        - generic [ref=e56]:
+          - generic [ref=e57]: HTML / JS
+          - generic [ref=e58]: Firecrawl
+          - generic [ref=e59]: Playwright
+        - generic [ref=e60]: 輸入股號清單，自動從 Yahoo 股市抓取週漲跌幅，產出仿 Stockfeel 風格圖卡並截圖輸出 PNG。 支援自訂標題、說明文字與任意族群切換。
+        - list [ref=e61]:
+          - listitem [ref=e62]: ✓ HTML 圖表模板（薄荷綠底、粉紅徽章）
+          - listitem [ref=e63]: ✓ Firecrawl 抓取 Yahoo 股市週漲跌幅
+          - listitem [ref=e64]: ✓ Playwright 自動截圖輸出 PNG
+          - listitem [ref=e65]: ○ 整合成一鍵 Python script
+          - listitem [ref=e66]: ○ 支援多族群切換
+        - link "🖼️ 圖表預覽" [ref=e68] [cursor=pointer]:
+          - /url: stock_sector_chart.html
+      - generic [ref=e69]:
+        - generic [ref=e70]:
+          - generic [ref=e71]: 📈
+          - generic [ref=e72]:
+            - generic [ref=e73]: 股價通知系統
+            - generic [ref=e74]: LINE + Gmail 雙軌 · TWSE 官方取價
+        - generic [ref=e76]:
+          - generic [ref=e77]: Python
+          - generic [ref=e78]: GitHub Actions
+          - generic [ref=e79]: cron-job.org
+          - generic [ref=e80]: LINE Push
+          - generic [ref=e81]: Gmail API
+        - generic [ref=e82]: 監控台股並推播：LINE 版（現價通知 + 跌幅警示）與 Gmail 版並行。取價以 TWSE 官方即時 API 為主、Yahoo 備援；股票清單由 Google Sheet 管理，現價自動回寫試算表。
+        - table [ref=e83]:
+          - rowgroup [ref=e84]:
+            - row "程式 頻率 功能" [ref=e85]:
+              - columnheader "程式" [ref=e86]
+              - columnheader "頻率" [ref=e87]
+              - columnheader "功能" [ref=e88]
+          - rowgroup [ref=e89]:
+            - row "stock_notify.py 每 30 分 現價 + 漲跌幅" [ref=e90]:
+              - cell "stock_notify.py" [ref=e91]
+              - cell "每 30 分" [ref=e92]
+              - cell "現價 + 漲跌幅" [ref=e93]
+            - row "stock_alert.py 每 10 分 跌幅警示（≥2%）" [ref=e94]:
+              - cell "stock_alert.py" [ref=e95]
+              - cell "每 10 分" [ref=e96]
+              - cell "跌幅警示（≥2%）" [ref=e97]
+        - generic [ref=e98]:
+          - text: 通知時間：09:00～14:00 週一至週五
+          - text: 🔒 LINE 金鑰改存 GitHub Secrets（環境變數），程式碼已無明文 token
+        - generic [ref=e99]:
+          - link "⑂ GitHub" [ref=e100] [cursor=pointer]:
+            - /url: https://github.com/yaojing277/stock-notify
+          - link "▶ Actions" [ref=e101] [cursor=pointer]:
+            - /url: https://github.com/yaojing277/stock-notify/actions
+          - link "📊 股票清單" [ref=e102] [cursor=pointer]:
+            - /url: https://docs.google.com/spreadsheets/d/1iZ1cVWpY5HXWUNh8smwirFQQHWUAOO16Wh13hP0F5ME
+      - generic [ref=e103]:
+        - generic [ref=e104]:
+          - generic [ref=e105]: 🎱
+          - generic [ref=e106]:
+            - generic [ref=e107]: 今彩539 開獎分析
+            - generic [ref=e108]: 歷史開獎 · 熱度分析 · GitHub Pages · v1.0
+        - generic [ref=e110]:
+          - generic [ref=e111]: Python
+          - generic [ref=e112]: HTML / JS
+          - generic [ref=e113]: GitHub Pages
+        - generic [ref=e114]: 爬取 pilio.idv.tw 共 5,875 期今彩539歷史開獎資料，提供雙 Tab 網頁： 最近10期開獎號碼（彩球視覺化）+ 下期熱度分析（近50期熱號、遺漏值冷號、加權綜合分 TOP 10）。 RWD 支援 iPhone SE3，一鍵腳本自動爬取並部署。
+        - table [ref=e115]:
+          - rowgroup [ref=e116]:
+            - row "功能 說明" [ref=e117]:
+              - columnheader "功能" [ref=e118]
+              - columnheader "說明" [ref=e119]
+          - rowgroup [ref=e120]:
+            - row "歷史資料 5,875 筆每日明細 + 1,013 週彙整 CSV" [ref=e121]:
+              - cell "歷史資料" [ref=e122]
+              - cell "5,875 筆每日明細 + 1,013 週彙整 CSV" [ref=e123]
+            - row "熱號分析 近50期出現頻率 vs 統計期望值" [ref=e124]:
+              - cell "熱號分析" [ref=e125]
+              - cell "近50期出現頻率 vs 統計期望值" [ref=e126]
+            - row "冷號分析 遺漏期數（距上次開出）" [ref=e127]:
+              - cell "冷號分析" [ref=e128]
+              - cell "遺漏期數（距上次開出）" [ref=e129]
+            - row "綜合分析 50%×近50期 + 30%×近200期 + 20%×全史" [ref=e130]:
+              - cell "綜合分析" [ref=e131]
+              - cell "50%×近50期 + 30%×近200期 + 20%×全史" [ref=e132]
+        - list [ref=e133]:
+          - listitem [ref=e134]: ○ GitHub Actions 自動排程每日爬取更新
+          - listitem [ref=e135]: ○ 號碼出現走勢折線圖
+          - listitem [ref=e136]: ○ 自選號碼對獎功能
+        - generic [ref=e137]:
+          - link "🌐 開啟網頁" [ref=e138] [cursor=pointer]:
+            - /url: https://yaojing277.github.io/lotto539/
+          - link "⑂ GitHub" [ref=e139] [cursor=pointer]:
+            - /url: https://github.com/yaojing277/lotto539
+      - generic [ref=e140]:
+        - generic [ref=e141]:
+          - generic [ref=e142]: 💹
+          - generic [ref=e143]:
+            - generic [ref=e144]: 股價試算 Dashboard
+            - generic [ref=e145]: 攤平均價試算 · v1.1
+        - generic [ref=e147]:
+          - generic [ref=e148]: HTML / JS
+          - generic [ref=e149]: Google Drive API
+          - generic [ref=e150]: GitHub Pages
+        - generic [ref=e151]: 從 Google Drive「股價試算」試算表讀取持股資料，計算攤平均價與損益。 即時股價三層 fallback：TWSE → TPEx → Yahoo Finance。
+        - table [ref=e152]:
+          - rowgroup [ref=e153]:
+            - row "功能 說明" [ref=e154]:
+              - columnheader "功能" [ref=e155]
+              - columnheader "說明" [ref=e156]
+          - rowgroup [ref=e157]:
+            - row "選股 自動讀取最新 Jimmy_YYMMDD 工作表" [ref=e158]:
+              - cell "選股" [ref=e159]
+              - cell "自動讀取最新 Jimmy_YYMMDD 工作表" [ref=e160]
+            - row "試算 輸入買進股數 → 攤平均價 + 損益" [ref=e161]:
+              - cell "試算" [ref=e162]
+              - cell "輸入買進股數 → 攤平均價 + 損益" [ref=e163]
+            - row "即時價 TWSE / TPEx / Yahoo 三層備援" [ref=e164]:
+              - cell "即時價" [ref=e165]
+              - cell "TWSE / TPEx / Yahoo 三層備援" [ref=e166]
+        - generic [ref=e167]:
+          - link "🌐 開啟網頁" [ref=e168] [cursor=pointer]:
+            - /url: https://yaojing277.github.io/Stock878/avg_price_calc.html
+          - link "⑂ GitHub" [ref=e169] [cursor=pointer]:
+            - /url: https://github.com/yaojing277/Stock878
+      - generic [ref=e170]:
+        - generic [ref=e171]:
+          - generic [ref=e172]: 📈
+          - generic [ref=e173]:
+            - generic [ref=e174]: ETF 報酬比較圖卡
+            - generic [ref=e175]: 五大ETF vs 大盤報酬指數 · 深淺雙色
+        - generic [ref=e177]:
+          - generic [ref=e178]: HTML / Chart.js
+          - generic [ref=e179]: Python
+          - generic [ref=e180]: Playwright
+          - generic [ref=e181]: TWSE 官方
+        - generic [ref=e182]: 台股 5 檔 ETF 歷年「年度報酬率（曆年、含息）」比較，疊加大盤 發行量加權股價報酬指數虛線基準。資料用 Yahoo 還原股價＋TWSE 官方校正 （00631L 2015 跨年斷點修正），統計值由 JS 即時計算。
+        - table [ref=e183]:
+          - rowgroup [ref=e184]:
+            - row "標的 2016–25 年化" [ref=e185]:
+              - columnheader "標的" [ref=e186]
+              - columnheader "2016–25 年化" [ref=e187]
+          - rowgroup [ref=e188]:
+            - row "00631L 槓桿2倍 ≈ +35.1%" [ref=e189]:
+              - cell "00631L 槓桿2倍" [ref=e190]
+              - cell "≈ +35.1%" [ref=e191]
+            - row "0050 市值型 ≈ +19.3%" [ref=e192]:
+              - cell "0050 市值型" [ref=e193]
+              - cell "≈ +19.3%" [ref=e194]
+            - row "大盤報酬指數 ≈ +17.4%" [ref=e195]:
+              - cell "大盤報酬指數" [ref=e196]
+              - cell "≈ +17.4%" [ref=e197]
+            - row "0056 / 00878 高股息 ≈ +13~14%" [ref=e198]:
+              - cell "0056 / 00878 高股息" [ref=e199]
+              - cell "≈ +13~14%" [ref=e200]
+            - row "00662 NASDAQ ≈ +18.8%（17起）" [ref=e201]:
+              - cell "00662 NASDAQ" [ref=e202]
+              - cell "≈ +18.8%（17起）" [ref=e203]
+        - list [ref=e204]:
+          - listitem [ref=e205]: ✓ 五檔 ETF + 大盤基準長條/折線圖
+          - listitem [ref=e206]: ✓ 深色 / 淺色雙版本 HTML + PNG
+          - listitem [ref=e207]: ✓ 逐年明細 + 綜合績效 CSV 匯出
+          - listitem [ref=e208]: ○ 包成一鍵 Python script（抓資料＋更新＋截圖）
+          - listitem [ref=e209]: ○ 可自訂任意 ETF 清單與年度區間
+        - generic [ref=e210]:
+          - link "🌙 深色版" [ref=e211] [cursor=pointer]:
+            - /url: 00631L_vs_0050_returns.html
+          - link "☀️ 淺色版" [ref=e212] [cursor=pointer]:
+            - /url: 00631L_vs_0050_returns_light.html
+  - generic [ref=e213]:
+    - generic [ref=e214]: 工具程式與腳本
+    - generic [ref=e215]:
+      - generic [ref=e216]:
+        - generic [ref=e217]: 🔔
+        - generic [ref=e218]:
+          - generic [ref=e219]: 日期提醒通知
+          - generic [ref=e220]: date_reminder.html
+      - generic [ref=e221]:
+        - generic [ref=e222]: 📺
+        - generic [ref=e223]:
+          - generic [ref=e224]: YouTube 頻道通知
+          - generic [ref=e225]: youtube_notify.py
+      - generic [ref=e226]:
+        - generic [ref=e227]: 📊
+        - generic [ref=e228]:
+          - generic [ref=e229]: Excel 檢視器
+          - generic [ref=e230]: excel_viewer_local.html
+      - generic [ref=e231]:
+        - generic [ref=e232]: ☁️
+        - generic [ref=e233]:
+          - generic [ref=e234]: Google Drive Excel 檢視器
+          - generic [ref=e235]: google_drive_excel_viewer.html
+      - generic [ref=e236]:
+        - generic [ref=e237]: 🔊
+        - generic [ref=e238]:
+          - generic [ref=e239]: 音訊分頁高亮
+          - generic [ref=e240]: AudioTabHighlighter
+      - generic [ref=e241]:
+        - generic [ref=e242]: 🔵
+        - generic [ref=e243]:
+          - generic [ref=e244]: 藍牙重啟
+          - generic [ref=e245]: restart-bluetooth.sh
+      - generic [ref=e246]:
+        - generic [ref=e247]: 🖱️
+        - generic [ref=e248]:
+          - generic [ref=e249]: 滑鼠側鍵設定
+          - generic [ref=e250]: hammerspoon_side_button.lua
+      - generic [ref=e251]:
+        - generic [ref=e252]: 🔊
+        - generic [ref=e253]:
+          - generic [ref=e254]: 朗讀剪貼簿
+          - generic [ref=e255]: speak.sh / 朗讀剪貼簿.shortcut
+      - generic [ref=e256]:
+        - generic [ref=e257]: 🔄
+        - generic [ref=e258]:
+          - generic [ref=e259]: Mac 重啟
+          - generic [ref=e260]: restart_mac.command
+      - generic [ref=e261]:
+        - generic [ref=e262]: 🔌
+        - generic [ref=e263]:
+          - generic [ref=e264]: Mac 關機
+          - generic [ref=e265]: shutdown_now.command
+  - generic [ref=e266]:
+    - generic [ref=e267]: 版本紀錄
+    - table [ref=e269]:
+      - rowgroup [ref=e270]:
+        - row "日期 異動說明" [ref=e271]:
+          - columnheader "日期" [ref=e272]
+          - columnheader "異動說明" [ref=e273]
+      - rowgroup [ref=e274]:
+        - row "2026-06-28 📈 新增 ETF 報酬比較圖卡：5 檔 ETF（00631L/0050/0056/00878/00662）vs 大盤報酬指數歷年年度報酬率，深淺雙色 HTML + PNG + CSV（資料源 Yahoo 還原股價＋TWSE 官方校正）" [ref=e275]:
+          - cell "2026-06-28" [ref=e276]
+          - cell "📈 新增 ETF 報酬比較圖卡：5 檔 ETF（00631L/0050/0056/00878/00662）vs 大盤報酬指數歷年年度報酬率，深淺雙色 HTML + PNG + CSV（資料源 Yahoo 還原股價＋TWSE 官方校正）" [ref=e277]
+        - row "2026-06-26 🔒 安全強化：股價通知 / 跌幅警示 / 日期提醒的 LINE 金鑰改讀環境變數（GitHub Secrets），移除程式碼明文 token；已線上實測推播成功" [ref=e278]:
+          - cell "2026-06-26" [ref=e279]
+          - cell "🔒 安全強化：股價通知 / 跌幅警示 / 日期提醒的 LINE 金鑰改讀環境變數（GitHub Secrets），移除程式碼明文 token；已線上實測推播成功" [ref=e280]
+        - row "2026-06-26 持股試算工具（update_close_price / trade_entry / fetch_612）與新模組 twse_hist.py：歷史收盤價與配息改用 TWSE / TPEx 官方資料，移除 Yahoo（美股不再支援）" [ref=e281]:
+          - cell "2026-06-26" [ref=e282]
+          - cell "持股試算工具（update_close_price / trade_entry / fetch_612）與新模組 twse_hist.py：歷史收盤價與配息改用 TWSE / TPEx 官方資料，移除 Yahoo（美股不再支援）" [ref=e283]
+        - row "2026-06-18 股價通知取價改為 TWSE 官方即時 API 為主、Yahoo 備援（共用模組 price_source.py），解決 Yahoo 限速問題" [ref=e284]:
+          - cell "2026-06-18" [ref=e285]
+          - cell "股價通知取價改為 TWSE 官方即時 API 為主、Yahoo 備援（共用模組 price_source.py），解決 Yahoo 限速問題" [ref=e286]
+        - row "2026-05-30 新增今彩539開獎分析（5875期歷史資料爬蟲、熱度分析、RWD 網頁部署至 GitHub Pages）" [ref=e287]:
+          - cell "2026-05-30" [ref=e288]
+          - cell "新增今彩539開獎分析（5875期歷史資料爬蟲、熱度分析、RWD 網頁部署至 GitHub Pages）" [ref=e289]
+        - row "2026-05-30 新增族群漲跌幅圖表產生器（仿 Stockfeel 風格、Firecrawl 抓資料、Playwright 截圖）" [ref=e290]:
+          - cell "2026-05-30" [ref=e291]
+          - cell "新增族群漲跌幅圖表產生器（仿 Stockfeel 風格、Firecrawl 抓資料、Playwright 截圖）" [ref=e292]
+        - row "2026-05-27 股價通知系統：推播方式由 LINE API 改為 Gmail 通知" [ref=e293]:
+          - cell "2026-05-27" [ref=e294]
+          - cell "股價通知系統：推播方式由 LINE API 改為 Gmail 通知" [ref=e295]
+        - row "2026-05-24 建立專案總覽頁面；收錄象棋麻將、股價通知、股價試算 Dashboard 及工具程式" [ref=e296]:
+          - cell "2026-05-24" [ref=e297]
+          - cell "建立專案總覽頁面；收錄象棋麻將、股價通知、股價試算 Dashboard 及工具程式" [ref=e298]

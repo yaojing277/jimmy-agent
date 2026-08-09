@@ -1,0 +1,7 @@
+- generic [active] [ref=f517e1]:
+  - generic [ref=f517e3]: 頁面載入中...
+  - generic [ref=f517e6]:
+    - link "2026 OPMAN活動宣告A(6/29~7/8)" [ref=f517e7] [cursor=pointer]:
+      - /url: https://www.wantgoo.com/club/50/promotion
+      - img "2026 OPMAN活動宣告A(6/29~7/8)" [ref=f517e8]
+    - button [ref=f517e9] [cursor=pointer]

@@ -1,0 +1,27 @@
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/oauth2/__init__.py:40: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/auth/__init__.py:54: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/api_core/_python_version_support.py:242: FutureWarning: You are using a non-supported Python version (3.9.6). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+即將在分頁「股票買賣紀錄」第 4 列上方插入 13 個空列,
+再把資料寫入 股票買賣紀錄!A4:P16。預覽(只列有值的欄):
+
+  第4列: A股票='00662 | F買進日=2026/6/1 | P應收付=24050
+  第5列: A股票='0050 | F買進日=2026/6/1 | P應收付=34379
+  第6列: A股票='0050 | F買進日=2026/6/1 | P應收付=20177
+  第7列: A股票='2327 | F買進日=2026/5/27 | P應收付=202072
+  第8列: A股票='2327 | F買進日=2026/5/26 | P應收付=62053
+  第9列: A股票='00919 | F買進日=2026/5/22 | P應收付=234450
+  第10列: A股票='2308 | F買進日=2026/5/21 | P應收付=20017
+  第11列: A股票=00981A | F買進日=2026/5/21 | P應收付=55227
+  第12列: A股票='00662 | F買進日=2026/5/21 | P應收付=47060
+  第13列: A股票='0050 | F買進日=2026/5/21 | P應收付=30275
+  第14列: A股票='2454 | F買進日=2026/5/20 | P應收付=64054
+  第15列: A股票='2308 | F買進日=2026/5/20 | P應收付=40334
+  第16列: A股票='00662 | F買進日=2026/5/20 | P應收付=11755
+
+確認插入並寫入?(yes/no): 完成。已插入 13 列並更新 208 個儲存格,範圍 '股票買賣紀錄'!A4:P16
+exit=0

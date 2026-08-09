@@ -1,0 +1,30 @@
+name: YouTube 頻道新影片通知
+
+on:
+  schedule:
+    # 台灣時間 早上 09:00 = UTC 01:00
+    - cron: '0 1 * * *'
+    # 台灣時間 晚上 21:00 = UTC 13:00
+    - cron: '0 13 * * *'
+  workflow_dispatch:  # 允許手動觸發測試
+
+jobs:
+  check-youtube:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: 檢查新影片並推播
+        env:
+          LINE_TOKEN:   ${{ secrets.LINE_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: python youtube_notify.py

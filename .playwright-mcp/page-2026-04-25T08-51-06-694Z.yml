@@ -1,0 +1,11 @@
+- generic [active] [ref=e1]:
+  - heading "♟ 象棋麻將" [level=1] [ref=e2]
+  - generic [ref=e4]:
+    - heading "進入遊戲" [level=2] [ref=e5]
+    - text: 你的名字
+    - textbox "輸入名字" [ref=e6]
+    - button "建立新房間" [ref=e7] [cursor=pointer]
+    - separator [ref=e8]
+    - text: 加入現有房間
+    - textbox "輸入 4 碼房間代碼" [ref=e9]
+    - button "加入房間" [ref=e10] [cursor=pointer]

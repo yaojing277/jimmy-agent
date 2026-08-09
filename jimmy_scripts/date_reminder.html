@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⏰ 日期提醒設定</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f4f8;
+      color: #2d3748;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 24px; color: #1a202c; }
+    h2 { font-size: 1rem; font-weight: 600; margin-bottom: 12px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.05em; }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .form-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    label { font-size: 0.85rem; font-weight: 500; color: #718096; }
+    input[type="date"], input[type="number"], input[type="text"], input[type="password"] {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #f7fafc;
+    }
+    input:focus { border-color: #667eea; background: #fff; }
+    input[type="number"] { width: 90px; }
+    input[type="text"] { width: 200px; }
+    input[type="date"] { width: 160px; }
+    .remind-preview {
+      font-size: 0.85rem;
+      color: #667eea;
+      font-weight: 600;
+      padding: 8px 0;
+      min-height: 28px;
+    }
+    btn, .btn {
+      display: inline-block;
+      padding: 9px 20px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: #667eea;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #5a67d8; }
+    .btn-primary:disabled { background: #a0aec0; cursor: not-allowed; }
+    .btn-sm {
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .btn-danger { background: #fed7d7; color: #c53030; }
+    .btn-danger:hover { background: #fc8181; color: #fff; }
+    .btn-gray { background: #edf2f7; color: #4a5568; }
+    .btn-gray:hover { background: #e2e8f0; }
+    .reminder-list { display: flex; flex-direction: column; gap: 10px; }
+    .reminder-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: #f7fafc;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    .reminder-item.past { border-left-color: #fc8181; opacity: 0.6; }
+    .reminder-item.today { border-left-color: #48bb78; background: #f0fff4; }
+    .reminder-note { font-weight: 600; flex: 1; }
+    .reminder-meta { font-size: 0.82rem; color: #718096; }
+    .reminder-date {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4a5568;
+      white-space: nowrap;
+    }
+    .badge {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .badge-green { background: #c6f6d5; color: #276749; }
+    .badge-orange { background: #feebc8; color: #c05621; }
+    .badge-red { background: #fed7d7; color: #c53030; }
+    .empty-state { color: #a0aec0; font-size: 0.9rem; padding: 12px 0; }
+    .status-bar {
+      font-size: 0.85rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+    .status-ok { background: #c6f6d5; color: #276749; }
+    .status-err { background: #fed7d7; color: #c53030; }
+    .token-row { display: flex; gap: 8px; align-items: flex-end; }
+    .token-saved { font-size: 0.82rem; color: #48bb78; font-weight: 500; }
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <h1>⏰ 日期提醒設定</h1>
+
+  <!-- GitHub Token 設定 -->
+  <div class="card" id="token-card">
+    <h2>GitHub 設定</h2>
+    <div class="token-row">
+      <div class="form-group">
+        <label>Personal Access Token（有 repo 寫入權限）</label>
+        <input type="password" id="github-token" placeholder="ghp_..." style="width:320px">
+      </div>
+      <button class="btn btn-gray btn-sm" onclick="saveToken()">儲存 Token</button>
+      <span class="token-saved" id="token-status" style="display:none">✓ 已儲存</span>
+    </div>
+  </div>
+
+  <!-- 新增提醒 -->
+  <div class="card">
+    <h2>新增提醒</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>起始日期</label>
+        <input type="date" id="start-date">
+      </div>
+      <div class="form-group">
+        <label>幾天後提醒</label>
+        <input type="number" id="days" min="1" max="3650" placeholder="3">
+      </div>
+      <div class="form-group">
+        <label>備註（選填）</label>
+        <input type="text" id="note" placeholder="例：合約到期、還款日">
+      </div>
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary" id="add-btn" onclick="addReminder()">新增提醒</button>
+      </div>
+    </div>
+    <div class="remind-preview" id="remind-preview"></div>
+    <div id="add-status"></div>
+  </div>
+
+  <!-- 提醒列表 -->
+  <div class="card">
+    <div class="section-header">
+      <h2>目前所有提醒</h2>
+      <button class="btn btn-gray btn-sm" onclick="loadReminders()">重新整理</button>
+    </div>
+    <div class="reminder-list" id="reminder-list">
+      <div class="empty-state">載入中...</div>
+    </div>
+  </div>
+
+  <script>
+    const REPO  = 'yaojing277/stock-notify';
+    const FILE  = 'reminders.json';
+    const API   = `https://api.github.com/repos/${REPO}/contents/${FILE}`;
+
+    // ── Token ──────────────────────────────────────────────
+    function getToken() { return localStorage.getItem('gh_reminder_token') || ''; }
+
+    function saveToken() {
+      const v = document.getElementById('github-token').value.trim();
+      if (!v) return;
+      localStorage.setItem('gh_reminder_token', v);
+      document.getElementById('token-status').style.display = 'inline';
+      loadReminders();
+    }
+
+    // ── 日期計算 ──────────────────────────────────────────
+    function addDays(dateStr, n) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dt = new Date(y, m - 1, d + n);
+      const yy = dt.getFullYear();
+      const mm = String(dt.getMonth() + 1).padStart(2, '0');
+      const dd = String(dt.getDate()).padStart(2, '0');
+      return `${yy}-${mm}-${dd}`;
+    }
+
+    function todayStr() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    // 預覽提醒日期
+    function updatePreview() {
+      const date = document.getElementById('start-date').value;
+      const days = parseInt(document.getElementById('days').value);
+      const el   = document.getElementById('remind-preview');
+      if (date && days > 0) {
+        el.textContent = `→ LINE 提醒日：${addDays(date, days)}`;
+      } else {
+        el.textContent = '';
+      }
+    }
+    document.getElementById('start-date').addEventListener('input', updatePreview);
+    document.getElementById('days').addEventListener('input', updatePreview);
+
+    // ── GitHub API ────────────────────────────────────────
+    function b64Decode(str) {
+      return decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
+    }
+    function b64Encode(str) {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
+
+    async function fetchReminders() {
+      const res = await fetch(API, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (res.status === 404) return { data: [], sha: null };
+      if (!res.ok) throw new Error(`GitHub API ${res.status}: ${await res.text()}`);
+      const json = await res.json();
+      return {
+        data: JSON.parse(b64Decode(json.content)),
+        sha:  json.sha
+      };
+    }
+
+    async function saveReminders(list, sha) {
+      const body = {
+        message: 'chore: update reminders',
+        content: b64Encode(JSON.stringify(list, null, 2)),
+      };
+      if (sha) body.sha = sha;
+      const res = await fetch(API, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error(`GitHub API ${res.status}: ${await res.text()}`);
+    }
+
+    // ── 新增提醒 ──────────────────────────────────────────
+    async function addReminder() {
+      const startDate = document.getElementById('start-date').value;
+      const days      = parseInt(document.getElementById('days').value);
+      const note      = document.getElementById('note').value.trim();
+      const statusEl  = document.getElementById('add-status');
+      const btn       = document.getElementById('add-btn');
+
+      if (!startDate || !(days > 0)) {
+        showStatus(statusEl, '請填寫起始日期和天數', 'err');
+        return;
+      }
+      if (!getToken()) {
+        showStatus(statusEl, '請先設定 GitHub Token', 'err');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '儲存中...';
+      try {
+        const remindOn = addDays(startDate, days);
+        const { data, sha } = await fetchReminders();
+        data.push({
+          id:           Date.now().toString(),
+          created_date: startDate,
+          days:         days,
+          remind_on:    remindOn,
+          note:         note || '（無備註）'
+        });
+        await saveReminders(data, sha);
+        showStatus(statusEl, `✓ 已新增！將於 ${remindOn} 推播 LINE`, 'ok');
+        document.getElementById('note').value = '';
+        document.getElementById('days').value = '';
+        document.getElementById('remind-preview').textContent = '';
+        loadReminders();
+      } catch (e) {
+        showStatus(statusEl, `✗ 失敗：${e.message}`, 'err');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '新增提醒';
+      }
+    }
+
+    // ── 刪除提醒 ──────────────────────────────────────────
+    async function deleteReminder(id) {
+      if (!confirm('確定要刪除這筆提醒？')) return;
+      try {
+        const { data, sha } = await fetchReminders();
+        await saveReminders(data.filter(r => r.id !== id), sha);
+        loadReminders();
+      } catch (e) {
+        alert(`刪除失敗：${e.message}`);
+      }
+    }
+
+    // ── 載入列表 ──────────────────────────────────────────
+    async function loadReminders() {
+      const container = document.getElementById('reminder-list');
+      container.innerHTML = '<div class="empty-state">載入中...</div>';
+      if (!getToken()) {
+        container.innerHTML = '<div class="empty-state">請先設定 GitHub Token</div>';
+        return;
+      }
+      try {
+        const { data } = await fetchReminders();
+        if (!data.length) {
+          container.innerHTML = '<div class="empty-state">目前沒有任何提醒</div>';
+          return;
+        }
+        const today = todayStr();
+        data.sort((a, b) => a.remind_on.localeCompare(b.remind_on));
+        container.innerHTML = data.map(r => {
+          const isPast  = r.remind_on < today;
+          const isToday = r.remind_on === today;
+          let cls = isPast ? 'past' : isToday ? 'today' : '';
+          let badge = isToday
+            ? '<span class="badge badge-green">今天到期</span>'
+            : isPast
+            ? '<span class="badge badge-red">已過期</span>'
+            : daysLeft(today, r.remind_on);
+          return `
+            <div class="reminder-item ${cls}">
+              <span class="reminder-note">${escHtml(r.note)}</span>
+              <span class="reminder-meta">設定：${r.created_date} + ${r.days} 天</span>
+              <span class="reminder-date">📅 ${r.remind_on}</span>
+              ${badge}
+              <button class="btn-sm btn-danger" onclick="deleteReminder('${r.id}')">刪除</button>
+            </div>`;
+        }).join('');
+      } catch (e) {
+        container.innerHTML = `<div class="empty-state" style="color:#e53e3e">載入失敗：${e.message}</div>`;
+      }
+    }
+
+    function daysLeft(today, remindOn) {
+      const diff = Math.round((new Date(remindOn) - new Date(today)) / 86400000);
+      if (diff === 1) return '<span class="badge badge-orange">明天到期</span>';
+      if (diff <= 7) return `<span class="badge badge-orange">還有 ${diff} 天</span>`;
+      return `<span class="badge" style="background:#ebf8ff;color:#2b6cb0">還有 ${diff} 天</span>`;
+    }
+
+    function showStatus(el, msg, type) {
+      el.className = `status-bar status-${type}`;
+      el.textContent = msg;
+      if (type === 'ok') setTimeout(() => el.textContent = '', 5000);
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── 初始化 ────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      const t = getToken();
+      if (t) {
+        document.getElementById('github-token').value = '●'.repeat(12);
+        document.getElementById('token-status').style.display = 'inline';
+        loadReminders();
+      }
+      // 預設今天日期
+      document.getElementById('start-date').value = todayStr();
+      updatePreview();
+    });
+  </script>
+</body>
+</html>

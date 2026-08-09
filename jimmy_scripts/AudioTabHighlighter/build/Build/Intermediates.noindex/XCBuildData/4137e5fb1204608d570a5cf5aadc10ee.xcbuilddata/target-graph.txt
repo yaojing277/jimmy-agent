@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target 'AudioTabHighlighter (macOS)' in project 'AudioTabHighlighter'
+➜ Explicit dependency on target 'AudioTabHighlighter Extension (macOS)' in project 'AudioTabHighlighter'
+Target 'AudioTabHighlighter Extension (macOS)' in project 'AudioTabHighlighter' (no dependencies)

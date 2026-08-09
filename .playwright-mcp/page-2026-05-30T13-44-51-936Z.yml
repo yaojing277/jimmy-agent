@@ -1,0 +1,160 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]: 今彩 539
+    - heading "開獎號碼 & 熱度分析" [level=1] [ref=e4]
+    - paragraph [ref=e5]: 資料涵蓋 5,875 期｜最新 2026年5月30日
+  - generic [ref=e6]:
+    - button "🎱 最近10期開獎" [ref=e7] [cursor=pointer]
+    - button "📊 下期熱度分析" [ref=e8] [cursor=pointer]
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e11]: 01–13
+      - generic [ref=e13]: 14–26
+      - generic [ref=e15]: 27–39
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]: 週六
+          - generic [ref=e21]:
+            - text: "5"
+            - emphasis [ref=e22]: 月
+            - text: "30"
+          - generic [ref=e23]: "2026"
+          - generic [ref=e24]: 最新
+        - generic [ref=e26]:
+          - generic [ref=e27]: "02"
+          - generic [ref=e28]: "03"
+          - generic [ref=e29]: "04"
+          - generic [ref=e30]: "13"
+          - generic [ref=e31]: "39"
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - generic [ref=e34]: 週五
+          - generic [ref=e35]:
+            - text: "5"
+            - emphasis [ref=e36]: 月
+            - text: "29"
+          - generic [ref=e37]: "2026"
+        - generic [ref=e39]:
+          - generic [ref=e40]: "12"
+          - generic [ref=e41]: "15"
+          - generic [ref=e42]: "20"
+          - generic [ref=e43]: "34"
+          - generic [ref=e44]: "35"
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - generic [ref=e47]: 週四
+          - generic [ref=e48]:
+            - text: "5"
+            - emphasis [ref=e49]: 月
+            - text: "28"
+          - generic [ref=e50]: "2026"
+        - generic [ref=e52]:
+          - generic [ref=e53]: "06"
+          - generic [ref=e54]: "09"
+          - generic [ref=e55]: "12"
+          - generic [ref=e56]: "19"
+          - generic [ref=e57]: "31"
+      - generic [ref=e58]:
+        - generic [ref=e59]:
+          - generic [ref=e60]: 週三
+          - generic [ref=e61]:
+            - text: "5"
+            - emphasis [ref=e62]: 月
+            - text: "27"
+          - generic [ref=e63]: "2026"
+        - generic [ref=e65]:
+          - generic [ref=e66]: "02"
+          - generic [ref=e67]: "03"
+          - generic [ref=e68]: "18"
+          - generic [ref=e69]: "19"
+          - generic [ref=e70]: "21"
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - generic [ref=e73]: 週二
+          - generic [ref=e74]:
+            - text: "5"
+            - emphasis [ref=e75]: 月
+            - text: "26"
+          - generic [ref=e76]: "2026"
+        - generic [ref=e78]:
+          - generic [ref=e79]: "02"
+          - generic [ref=e80]: "07"
+          - generic [ref=e81]: "11"
+          - generic [ref=e82]: "14"
+          - generic [ref=e83]: "37"
+      - generic [ref=e84]:
+        - generic [ref=e85]:
+          - generic [ref=e86]: 週一
+          - generic [ref=e87]:
+            - text: "5"
+            - emphasis [ref=e88]: 月
+            - text: "25"
+          - generic [ref=e89]: "2026"
+        - generic [ref=e91]:
+          - generic [ref=e92]: "05"
+          - generic [ref=e93]: "06"
+          - generic [ref=e94]: "12"
+          - generic [ref=e95]: "36"
+          - generic [ref=e96]: "37"
+      - generic [ref=e97]:
+        - generic [ref=e98]:
+          - generic [ref=e99]: 週六
+          - generic [ref=e100]:
+            - text: "5"
+            - emphasis [ref=e101]: 月
+            - text: "23"
+          - generic [ref=e102]: "2026"
+        - generic [ref=e104]:
+          - generic [ref=e105]: "06"
+          - generic [ref=e106]: "15"
+          - generic [ref=e107]: "16"
+          - generic [ref=e108]: "24"
+          - generic [ref=e109]: "38"
+      - generic [ref=e110]:
+        - generic [ref=e111]:
+          - generic [ref=e112]: 週五
+          - generic [ref=e113]:
+            - text: "5"
+            - emphasis [ref=e114]: 月
+            - text: "22"
+          - generic [ref=e115]: "2026"
+        - generic [ref=e117]:
+          - generic [ref=e118]: "04"
+          - generic [ref=e119]: "08"
+          - generic [ref=e120]: "15"
+          - generic [ref=e121]: "16"
+          - generic [ref=e122]: "37"
+      - generic [ref=e123]:
+        - generic [ref=e124]:
+          - generic [ref=e125]: 週四
+          - generic [ref=e126]:
+            - text: "5"
+            - emphasis [ref=e127]: 月
+            - text: "21"
+          - generic [ref=e128]: "2026"
+        - generic [ref=e130]:
+          - generic [ref=e131]: "09"
+          - generic [ref=e132]: "25"
+          - generic [ref=e133]: "28"
+          - generic [ref=e134]: "34"
+          - generic [ref=e135]: "36"
+      - generic [ref=e136]:
+        - generic [ref=e137]:
+          - generic [ref=e138]: 週三
+          - generic [ref=e139]:
+            - text: "5"
+            - emphasis [ref=e140]: 月
+            - text: "20"
+          - generic [ref=e141]: "2026"
+        - generic [ref=e143]:
+          - generic [ref=e144]: "01"
+          - generic [ref=e145]: "20"
+          - generic [ref=e146]: "21"
+          - generic [ref=e147]: "23"
+          - generic [ref=e148]: "35"
+  - contentinfo [ref=e149]:
+    - text: 資料來源：
+    - link "pilio.idv.tw" [ref=e150] [cursor=pointer]:
+      - /url: https://www.pilio.idv.tw/lto539/list.asp
+    - text: ｜ 本頁僅供統計參考，樂透為隨機事件，無法預測

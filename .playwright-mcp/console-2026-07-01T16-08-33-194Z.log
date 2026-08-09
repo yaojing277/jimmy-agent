@@ -1,0 +1,7 @@
+[    5147ms] [INFO] Powered by AMP ⚡ HTML – Version 2605071401000 https://www.wantgoo.com/stock/2327/dividend-policy/ex-dividend @ https://cdn.ampproject.org/rtv/012605071401000/amp4ads-v0.mjs:1
+[    5981ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    6304ms] [ERROR] Attestation check for Attribution Reporting on https://ad.doubleclick.net failed. @ https://www.wantgoo.com/stock/2327/dividend-policy/ex-dividend:0
+[    5981ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    6784ms] [ERROR] Attestation check for Attribution Reporting on https://ad.doubleclick.net failed. @ https://www.wantgoo.com/stock/2327/dividend-policy/ex-dividend:0
+[    6791ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    8531ms] [LOG] PlayerReady @ https://s.trvdp.com/scripts/v6.65/ins.js:31

@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth *)",
+      "Bash(git -C /Users/jimmy/Downloads/jimmy-agent/stock_notify_tmp remote -v)",
+      "Bash(git config *)",
+      "Bash(git -C /Users/jimmy/Downloads/jimmy-agent/stock_notify_tmp config credential.helper)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d.get\\('full_name'\\) or d.get\\('message'\\), d.get\\('private'\\)\\)\")",
+      "mcp__fa781549-1c6d-491e-8cb9-223625104c99__create_file",
+      "Bash(brew install *)",
+      "Bash(pip3 install *)",
+      "Bash(python3 yt_summary.py \"https://www.youtube.com/watch?v=8Y2ICatp4Mc\" --no-open)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 *)",
+      "Bash(cd \"/Users/jimmy/Library/Mobile Documents/com~apple~CloudDocs/CSV\" && wc -l CSV_2026_07_26_CHT.CSV && echo \"---FILE INFO---\" && file CSV_2026_07_26_CHT.CSV)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"systemMessage\":\"💹 股價工作流提醒:記得先「更新股價」(股價試算快照滾動),再「同步股價」(同步到雲端 Wealth OS xlsm)。\"}'"
+          }
+        ]
+      }
+    ]
+  },
+  "remoteControlAtStartup": true
+}

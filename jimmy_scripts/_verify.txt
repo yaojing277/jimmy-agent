@@ -1,0 +1,28 @@
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/oauth2/__init__.py:40: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/auth/__init__.py:54: FutureWarning: You are using a Python version 3.9 past its end of life. Google will update google-auth with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade your Python version, and then update google-auth.
+  warnings.warn(eol_message.format("3.9"), FutureWarning)
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/jimmy/Library/Python/3.9/lib/python/site-packages/google/api_core/_python_version_support.py:242: FutureWarning: You are using a non-supported Python version (3.9.6). Google will not post any further updates to google.api_core supporting this Python version. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+分頁「股票買賣紀錄」前 16 列(只顯示有值的欄):
+
+列  1: B1=幾天前 | C1=至今均價 | D1=半年均價 | E1=一年均價 | F1=買進日 | G1=買進價格 | H1=買進股數 | I1=買進成本 | J1=賣出日 | K1=賣出價格 | L1=賣出股數 | M1=賣出成本 | N1=手續費 | O1=交易稅 | P1=應收付 | Q1=持有價格 | R1=持有股數 | S1=持有成本 | T1=價差 | U1=價差金額 | V1=實拿金額 | W1=` | X1=持有張數
+列  4: A4=穎崴 | J4=2026/4/24 | P4=329028
+列  5: A5=56 | F5=2026/4/22 | P5=83070
+列  6: A6=穎崴 | J6=2026/4/22 | P6=212279
+列  7: A7=穎崴 | J7=2026/4/21 | P7=314086
+列  8: A8=穎崴 | J8=2026/4/20 | P8=198632
+列  9: A9=穎崴 | J9=2026/4/20 | P9=286890
+列 10: A10=穎崴 | J10=2026/4/17 | K10=10510 | L10=30 | M10=315300 | N10=269 | O10=945
+列 11: A11=穎崴 | J11=2026/4/16 | K11=9970 | L11=20 | M11=199400 | N11=170 | O11=598
+列 12: A12=穎崴 | J12=2026/4/16 | K12=9600 | L12=30 | M12=288000 | N12=246 | O12=864
+列 13: A13=穎崴 | J13=2026/4/15 | K13=8885 | L13=20 | M13=177700 | N13=151 | O13=533
+列 14: A14=穎崴 | J14=2026/4/15 | K14=9000 | L14=30 | M14=270000 | N14=230 | O14=810
+列 15: A15=穎崴 | J15=2026/4/14 | K15=8600 | L15=50 | M15=430000 | N15=367 | O15=1290
+列 16: A16=穎崴 | J16=2026/4/13 | K16=8400 | L16=60 | M16=504000 | N16=430 | O16=1512
+
+→ 找到『標的』那一欄的字母、以及最新一筆資料在第幾列,
+  回頭把腳本上方的 START_CELL 改成正確位址(例如 G2)。
+exit=0

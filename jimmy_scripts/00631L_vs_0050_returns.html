@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台股五大ETF vs 大盤報酬指數 歷年年度報酬率</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --line:#262b35;
+    --txt:#e6e8ec; --sub:#9aa3b2;
+    --c1:#ff6b4a;  /* 00631L 橘 */
+    --c2:#4aa3ff;  /* 0050 藍 */
+    --c3:#2ec27e;  /* 0056 綠 */
+    --c4:#c792ea;  /* 00878 紫 */
+    --c5:#ffd24a;  /* 00919 黃 */
+    --idx:#ffffff; /* 大盤基準 白 */
+    --up:#2ec27e; --down:#ff5d5d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    padding:32px 16px;line-height:1.5}
+  .wrap{max-width:1100px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px;margin-bottom:20px}
+  .legend{display:flex;gap:16px;align-items:center;margin-bottom:12px;font-size:14px;flex-wrap:wrap}
+  .dot{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:middle}
+  .dash{display:inline-block;width:18px;height:0;border-top:3px dashed var(--idx);margin-right:6px;vertical-align:middle}
+  .chart-box{position:relative;height:460px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:8px 8px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--sub);font-weight:600;border-bottom:2px solid var(--line)}
+  .pos{color:var(--up)} .neg{color:var(--down)} .na{color:#555}
+  .sec-title{font-size:16px;font-weight:700;margin:0 0 14px}
+  .note{font-size:12px;color:var(--sub);margin-top:14px}
+  .note b{color:var(--txt)}
+  .c1{color:var(--c1)} .c2{color:var(--c2)} .c3{color:var(--c3)}
+  .c4{color:var(--c4)} .c5{color:var(--c5)} .idxc{color:var(--idx)}
+  .idxcol{background:#1d2129}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>台股五大 ETF　vs　大盤加權報酬指數</h1>
+  <div class="meta">曆年報酬（1/1–12/31，皆含息）｜白色虛線＝大盤「發行量加權股價報酬指數」基準｜資料：TWSE 官方 + Yahoo 還原股價</div>
+
+  <div class="card">
+    <div class="legend">
+      <span><span class="dot" style="background:var(--c1)"></span>00631L 槓桿2倍</span>
+      <span><span class="dot" style="background:var(--c2)"></span>0050 市值型</span>
+      <span><span class="dot" style="background:var(--c3)"></span>0056 高股息</span>
+      <span><span class="dot" style="background:var(--c4)"></span>00878 高股息</span>
+      <span><span class="dot" style="background:var(--c5)"></span>00662 NASDAQ</span>
+      <span><span class="dash"></span>大盤報酬指數</span>
+    </div>
+    <div class="chart-box"><canvas id="bar"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title">逐年報酬率明細</div>
+    <table>
+      <thead><tr><th>年度</th><th class="c1">00631L</th><th class="c2">0050</th><th class="c3">0056</th><th class="c4">00878</th><th class="c5">00662</th><th class="idxc idxcol">大盤報酬</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="sec-title">綜合績效</div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>指標</th><th class="c1">00631L</th><th class="c2">0050</th><th class="c3">0056</th><th class="c4">00878</th><th class="c5">00662</th><th class="idxc idxcol">大盤報酬</th></tr></thead>
+      <tbody id="statbody"></tbody>
+    </table>
+    </div>
+    <div class="note">
+      * 統計期間依各標的最早完整曆年：00631L／0050／0056／大盤＝<b>2016–2025</b>；00662＝<b>2017–2025</b>；00878＝<b>2021–2025</b>。CAGR=年化報酬。<br>
+      ⚠️ 為<b>曆年報酬</b>，與財經網站「近N年<b>年化</b>」不同（後者以查詢當下為基準、含 2026 反彈，數字偏高）。<br>
+      ⚠️ 00631L 為<b>單日</b>兩倍槓桿，長期累積<b>不等於</b>大盤兩倍（複利耗損）；多頭放大、空頭（如 2022）也加倍受傷。<br>
+      ⚠️ ETF 採還原股價（含息）；00631L 槓桿型不配息，價格報酬≈總報酬；大盤採 TWSE 發行量加權股價<b>報酬</b>指數（已含息）。過去績效不代表未來。
+    </div>
+  </div>
+</div>
+
+<script>
+const years=[2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025];
+// 各 ETF（長條）
+const etf={
+  '00631L':{c:'#ff6b4a', v:[-16.5,39.2,39.8,-10.4,70.9,68.1,62.2,-36.4,62.9,59.0,51.0], from:2016},
+  '0050'  :{c:'#4aa3ff', v:[-6.28,19.65,18.14,-4.94,33.52,31.14,21.92,-21.22,27.52,48.64,36.86], from:2016},
+  '0056'  :{c:'#2ec27e', v:[-5.38,11.29,12.41,1.46,29.01,9.27,18.72,-17.67,56.85,7.67,11.97], from:2016},
+  '00878' :{c:'#c792ea', v:[null,null,null,null,null,null,25.45,-9.85,43.80,11.15,6.31], from:2021},
+  '00662' :{c:'#ffd24a', v:[null,null,20.63,0.72,26.83,38.14,26.64,-26.33,54.20,33.83,14.82], from:2017},
+};
+// 大盤報酬指數（折線基準）
+const idx={c:'#ffffff', v:[-6.87,15.59,19.52,-4.83,28.92,27.12,27.06,-18.68,31.48,31.73,29.47], from:2016};
+const etfNames=Object.keys(etf);
+const cols=[...etfNames,'大盤報酬'];
+
+const fmt=v=>v==null?'—':((v>=0?'+':'')+v.toFixed(2)+'%');
+const cls=v=>v==null?'na':(v>=0?'pos':'neg');
+
+// ---- 逐年表 ----
+const tb=document.getElementById('tbody');
+years.forEach((y,i)=>{
+  let row=`<tr><td>${y}</td>`;
+  etfNames.forEach(n=>{const v=etf[n].v[i];row+=`<td class="${cls(v)}">${fmt(v)}</td>`;});
+  const iv=idx.v[i]; row+=`<td class="${cls(iv)} idxcol">${fmt(iv)}</td>`;
+  tb.insertAdjacentHTML('beforeend',row+'</tr>');
+});
+
+// ---- 綜合績效 ----
+function calc(o){
+  const idxStart=years.indexOf(o.from);
+  const r=o.v.slice(idxStart).filter(x=>x!=null);
+  let cum=1; r.forEach(v=>cum*=(1+v/100));
+  return {from:o.from, cagr:(Math.pow(cum,1/r.length)-1)*100,
+    cum:(cum-1)*100, avg:r.reduce((a,b)=>a+b,0)/r.length,
+    best:Math.max(...r), worst:Math.min(...r)};
+}
+const all=[...etfNames.map(n=>calc(etf[n])), calc(idx)];
+const rows=[
+  ['統計期間', all.map(s=>`${s.from}–2025`)],
+  ['年化 CAGR', all.map(s=>fmt(s.cagr))],
+  ['累積報酬', all.map(s=>fmt(s.cum))],
+  ['平均年報酬', all.map(s=>fmt(s.avg))],
+  ['最佳年', all.map(s=>fmt(s.best))],
+  ['最差年', all.map(s=>fmt(s.worst))],
+];
+const sb=document.getElementById('statbody');
+rows.forEach(([k,vals])=>{
+  let row=`<td>${k}</td>`;
+  vals.forEach((v,ci)=>{
+    const isPct=/%/.test(v);
+    const c=(isPct?cls(parseFloat(v)):'')+(ci===vals.length-1?' idxcol':'');
+    row+=`<td class="${c.trim()}">${v}</td>`;
+  });
+  sb.insertAdjacentHTML('beforeend','<tr>'+row+'</tr>');
+});
+
+// ---- 圖表（長條 + 折線基準）----
+const datasets=etfNames.map(n=>({
+  type:'bar',label:n,data:etf[n].v,backgroundColor:etf[n].c,borderRadius:3,order:2
+}));
+datasets.push({
+  type:'line',label:'大盤報酬指數',data:idx.v,
+  borderColor:idx.c,borderWidth:2,borderDash:[6,4],
+  pointBackgroundColor:idx.c,pointRadius:3,tension:.2,order:1
+});
+new Chart(document.getElementById('bar'),{
+  data:{labels:years,datasets},
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.parsed.y)}`}}},
+    scales:{
+      x:{grid:{color:'#222730'},ticks:{color:'#9aa3b2'}},
+      y:{grid:{color:'#222730'},ticks:{color:'#9aa3b2',callback:v=>v+'%'},
+         title:{display:true,text:'年度報酬率',color:'#9aa3b2'}}
+    }
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+[    4405ms] [INFO] Powered by AMP ⚡ HTML – Version 2605071401000 https://www.wantgoo.com/stock/etf/00713/dividend-policy/ex-dividend @ https://cdn.ampproject.org/rtv/012605071401000/amp4ads-v0.mjs:1
+[    4979ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    4979ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    5129ms] [LOG] PlayerReady @ https://s.trvdp.com/scripts/v6.65/ins.js:31
+[    5670ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    4979ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    5670ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    5955ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    5994ms] [WARNING] Origin not specified in model, cannot post loaded message to parent @ https://s0.2mdn.net/sadbundle/4233972032337887529/main.js:0
+[    6151ms] [ERROR] Refused to apply style from 'https://s0.2mdn.net/sadbundle/4233972032337887529/videoInterface.css' because its MIME type ('image/gif') is not a supported stylesheet MIME type, and strict MIME checking is enabled. @ https://s0.2mdn.net/sadbundle/4233972032337887529/index.html?ev=01_262:0
+[    6158ms] Object
+[    4979ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    5670ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    5955ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    6234ms] [ERROR] Attestation check for Shared Storage on https://www.googleadservices.com failed. @ https://www.googleadservices.com/pagead/managed/js/activeview/current/reach_worklet.html:0
+[    6386ms] [TIMEEND] a: 0.0009765625 ms @ https://static.adsafeprotected.com/sca.17.6.4.js:31

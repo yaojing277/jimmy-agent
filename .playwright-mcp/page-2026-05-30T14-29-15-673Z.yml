@@ -1,0 +1,149 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - heading "開獎號碼 & 熱度分析" [level=1] [ref=e3]
+    - paragraph [ref=e4]: 資料涵蓋 5,875 期｜最新 2026年5月30日
+  - generic [ref=e5]:
+    - button "🎱 最近10期開獎" [ref=e6] [cursor=pointer]
+    - button "📊 下期熱度分析" [ref=e7] [cursor=pointer]
+  - generic [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]: 01–13
+      - generic [ref=e12]: 14–26
+      - generic [ref=e14]: 27–39
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - generic [ref=e19]: 週六
+          - generic [ref=e20]:
+            - text: "5"
+            - emphasis [ref=e21]: 月
+            - text: "30"
+          - generic [ref=e22]: 最新
+        - generic [ref=e24]:
+          - generic [ref=e25]: "02"
+          - generic [ref=e26]: "03"
+          - generic [ref=e27]: "04"
+          - generic [ref=e28]: "13"
+          - generic [ref=e29]: "39"
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - generic [ref=e32]: 週五
+          - generic [ref=e33]:
+            - text: "5"
+            - emphasis [ref=e34]: 月
+            - text: "29"
+        - generic [ref=e36]:
+          - generic [ref=e37]: "12"
+          - generic [ref=e38]: "15"
+          - generic [ref=e39]: "20"
+          - generic [ref=e40]: "34"
+          - generic [ref=e41]: "35"
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e44]: 週四
+          - generic [ref=e45]:
+            - text: "5"
+            - emphasis [ref=e46]: 月
+            - text: "28"
+        - generic [ref=e48]:
+          - generic [ref=e49]: "06"
+          - generic [ref=e50]: "09"
+          - generic [ref=e51]: "12"
+          - generic [ref=e52]: "19"
+          - generic [ref=e53]: "31"
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - generic [ref=e56]: 週三
+          - generic [ref=e57]:
+            - text: "5"
+            - emphasis [ref=e58]: 月
+            - text: "27"
+        - generic [ref=e60]:
+          - generic [ref=e61]: "02"
+          - generic [ref=e62]: "03"
+          - generic [ref=e63]: "18"
+          - generic [ref=e64]: "19"
+          - generic [ref=e65]: "21"
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - generic [ref=e68]: 週二
+          - generic [ref=e69]:
+            - text: "5"
+            - emphasis [ref=e70]: 月
+            - text: "26"
+        - generic [ref=e72]:
+          - generic [ref=e73]: "02"
+          - generic [ref=e74]: "07"
+          - generic [ref=e75]: "11"
+          - generic [ref=e76]: "14"
+          - generic [ref=e77]: "37"
+      - generic [ref=e78]:
+        - generic [ref=e79]:
+          - generic [ref=e80]: 週一
+          - generic [ref=e81]:
+            - text: "5"
+            - emphasis [ref=e82]: 月
+            - text: "25"
+        - generic [ref=e84]:
+          - generic [ref=e85]: "05"
+          - generic [ref=e86]: "06"
+          - generic [ref=e87]: "12"
+          - generic [ref=e88]: "36"
+          - generic [ref=e89]: "37"
+      - generic [ref=e90]:
+        - generic [ref=e91]:
+          - generic [ref=e92]: 週六
+          - generic [ref=e93]:
+            - text: "5"
+            - emphasis [ref=e94]: 月
+            - text: "23"
+        - generic [ref=e96]:
+          - generic [ref=e97]: "06"
+          - generic [ref=e98]: "15"
+          - generic [ref=e99]: "16"
+          - generic [ref=e100]: "24"
+          - generic [ref=e101]: "38"
+      - generic [ref=e102]:
+        - generic [ref=e103]:
+          - generic [ref=e104]: 週五
+          - generic [ref=e105]:
+            - text: "5"
+            - emphasis [ref=e106]: 月
+            - text: "22"
+        - generic [ref=e108]:
+          - generic [ref=e109]: "04"
+          - generic [ref=e110]: "08"
+          - generic [ref=e111]: "15"
+          - generic [ref=e112]: "16"
+          - generic [ref=e113]: "37"
+      - generic [ref=e114]:
+        - generic [ref=e115]:
+          - generic [ref=e116]: 週四
+          - generic [ref=e117]:
+            - text: "5"
+            - emphasis [ref=e118]: 月
+            - text: "21"
+        - generic [ref=e120]:
+          - generic [ref=e121]: "09"
+          - generic [ref=e122]: "25"
+          - generic [ref=e123]: "28"
+          - generic [ref=e124]: "34"
+          - generic [ref=e125]: "36"
+      - generic [ref=e126]:
+        - generic [ref=e127]:
+          - generic [ref=e128]: 週三
+          - generic [ref=e129]:
+            - text: "5"
+            - emphasis [ref=e130]: 月
+            - text: "20"
+        - generic [ref=e132]:
+          - generic [ref=e133]: "01"
+          - generic [ref=e134]: "20"
+          - generic [ref=e135]: "21"
+          - generic [ref=e136]: "23"
+          - generic [ref=e137]: "35"
+  - contentinfo [ref=e138]:
+    - text: 資料來源：
+    - link "pilio.idv.tw" [ref=e139] [cursor=pointer]:
+      - /url: https://www.pilio.idv.tw/lto539/list.asp
+    - text: ｜ 本頁僅供統計參考，樂透為隨機事件，無法預測
