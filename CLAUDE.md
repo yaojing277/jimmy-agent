@@ -53,15 +53,24 @@
     自動化真正執行的地方在那邊；本機 `jimmy_scripts/` 改完對應腳本後，要同步過去並 push 才會生效。
   - 同步時注意路徑：workflows 執行的是 `stock_notify_tmp/jimmy_scripts/` **子目錄**下的腳本
     （`stock_notify.py`、`stock_alert.py`、`stock_alert_v2.py`、`stock_notify_gmail.py`、`price_source.py`、`auth_sheets.py`、
-    `update_stock_price.py`、`update_wealth_os.py`、`twse_hist.py`），
+    `update_stock_price.py`、`update_wealth_os.py`、`twse_hist.py`、`etf_ex_dividend_calendar.py`），
     但 `check_reminders.py`、`youtube_notify.py`、`reminders.json` 放在 `stock_notify_tmp/` **根目錄**。
   - **雲端執行**：`wealth_sync.yml` workflow，認證走 Service Account（Secret `GOOGLE_SA_JSON`，永不過期），跑完 LINE 通知。
     - **每日自動排程**（2026-07-25 起）：每天台北 14:30（cron `30 6 * * *`）觸發，跑「更新股價＋同步＋全分頁」；
       有「交易日守衛」步驟——當日無 TWSE 收盤資料（週末/國定假日）自動跳過，週六補班盤仍會執行。
     - **手動觸發**：手機瀏覽器開 `github.com/yaojing277/stock-notify/actions/workflows/wealth_sync.yml` →
       Run workflow 選模式（手機 GitHub App 無 Run 按鈕）；或 API `workflow_dispatch`。
-    - 本機改完 `update_stock_price.py`/`update_wealth_os.py`/`twse_hist.py` 記得同步到 `stock_notify_tmp/jimmy_scripts/` 並 push。
+    - 本機改完 `update_stock_price.py`/`update_wealth_os.py`/`twse_hist.py`/`etf_ex_dividend_calendar.py` 記得同步到 `stock_notify_tmp/jimmy_scripts/` 並 push。
     - 注意：GitHub 排程在 repo 連續 60 天無活動會自動停用；PAT 內嵌於 remote（與到期日綁定）。
+    - **ETF 除息日／發放日同步日曆**（`etf_ex_dividend_calendar.py sync`，2026-08-24 起隨每日排程跑）：
+      抓 TWSE 官方「ETF 收益分配彙整表」（`etfDiv` API，已公告的除息交易日／發放日／金額，
+      涵蓋未來已公告但尚未發生的），對「股價試算」持股中 ETF（代號 `00` 開頭）各建兩筆全天事件
+      寫入 `yaojing277@gmail.com` 日曆（「代號 除息 金額」＋「代號 發放 金額」，當天 09:00 提醒）；
+      查重靠 Calendar API 當天既有事件比對（無狀態、可安全重跑）。用同一組 `GOOGLE_SA_JSON`
+      Service Account 直接寫日曆，前提是**該日曆已分享給 SA 的 client_email**（權限「對活動進行變更」）
+      且 **GCP 專案已啟用 Google Calendar API**（兩者已設定完成）。本機沒有 `GOOGLE_SA_JSON` 時
+      改用 `check`/`mark` 搭配 Claude 對話裡的 Calendar MCP 手動建事件（state 存
+      `etf_dividend_calendar_state.json`）。
 
 ### 股票／試算表自動化
 
@@ -82,6 +91,7 @@
 | `sheets_writer.py` | 「股票買賣紀錄」分頁匯入（交割明細擷圖 → 寫入） |
 | `sheet_value_guard.py` | 改公式前後的安全網：`snapshot`/`diff` 比對計算值 |
 | `trade_entry_server.py` / `trade_entry_appscript.gs` | 買進紀錄輸入網頁（localhost:8765）與 Apps Script 後端橋接 |
+| `etf_ex_dividend_calendar.py` | ETF 除息日／發放日同步 Google 日曆：`sync`（Service Account 全自動，排程用）／`check`+`mark`（本機無 SA 時，搭配 Calendar MCP 手動建） |
 | `check_reminders.py` | 日期到期提醒（讀 `reminders.json`，需環境變數 `LINE_TOKEN`/`LINE_USER_ID`） |
 | `auth_sheets.py` / `reauth_sheets.py` | Google Sheets OAuth 授權／重授權（token 約 7 天過期）；`reauth_sheets.py --drive` 可加授 Google Drive 權限 |
 
@@ -135,6 +145,32 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 
 ## 進行中專案與背景
 
+- [2026-08-24] **ETF 除息日／發放日自動同步 Google 日曆**（v1.0 完成）
+  - 「股價試算」持股中 11 檔 ETF（0050/0052/0056/00631L/00662/00663L/00685L/00878/00919/00934/00981A）
+    的已公告除息交易日＋發放日，自動建全天事件到 `yaojing277@gmail.com` 日曆（當天 09:00 提醒）
+  - 資料源改用 TWSE 官方「ETF 收益分配彙整表」`etfDiv` API（非 `twse_hist.dividends`/`TWT49U`），
+    好處是投信一公告就查得到，**含未來已公告但尚未發生**的除息日，不必等真的除息才出現
+  - 全自動路徑：`etf_ex_dividend_calendar.py sync`，用 `GOOGLE_SA_JSON` 這組 Service Account
+    （`wealth-os-sync@stock-sheet-498817.iam.gserviceaccount.com`）直接寫日曆，已排進
+    `wealth_sync.yml` 每日排程；前提（已設定完成）：日曆已分享給該 SA（權限「對活動進行變更」）、
+    GCP 專案 `stock-sheet-498817` 已啟用 Google Calendar API
+  - 查重靠 Calendar API 當天既有事件比對（比對 summary 前綴「代號 除息」/「代號 發放」），無狀態、
+    GitHub Actions 每次全新環境也能安全重跑不會重複建立
+  - 今年以來（2026）已補齊 21 筆除息 + 21 筆發放，共 42 筆事件
+  - 本機沒有 `GOOGLE_SA_JSON` 時的輔助路徑：`check`（印出還沒同步的紀錄 JSON）+ `mark`（標記已同步），
+    搭配 Claude 對話裡已連線的 Calendar MCP 手動建事件；state 存 `etf_dividend_calendar_state.json`
+  - 說「除息日同步」或「檢查除息日」即可接手，細節記錄於 memory（[[project-etf-dividend-calendar]]）
+
+- [2026-08-19] **正二 ETF 每日漲跌分析**（v1.0 完成）
+  - 兩檔台股 2 倍槓桿 ETF（**00631L** 元大台灣50正2 vs **00663L** 國泰臺灣加權正2）的日漲跌統計分析
+  - 核心引擎 `lev2_analysis.py`：TWSE 官方日收盤 → 逐日漲跌 % → 相關係數、追蹤差異、同向比例、Beta 等統計
+  - **產出**（均於 `jimmy_scripts/`）：
+    - CLI 工具 `lev2_analysis.py --days 60` 直接終端列印 / `--html` 產出單一自足 HTML
+    - HTML 圖卡：累積報酬走勢 + 每日差異柱狀 + 統計摘要 + 60 日明細表（Chart.js 深色主題）
+    - 已部署 GitHub Pages：https://yaojing277.github.io/leverage-etf/
+  - **xlsm 同步**：`update_wealth_os.py --full` 自動更新 `00_正二分析` 分頁（60 筆日資料 + 統計區塊）
+  - 最新 60 日分析結果：相關 0.9966、累積差 +0.87 pp（631L 領先）、同向 96.7%、追蹤差 0.34 pp
+  - 說「續做正二分析」或「更新正二分析」即可接手
 - [2026-07-12] **YouTube 影片 AI 摘要工具**（v1.0 完成，已實測可用）
   - `jimmy_scripts/yt_summary.py`：貼網址 → 抓字幕 → claude CLI 摘要 → HTML 摘要頁＋摘要庫 index；已加入 projects.html 主要專案卡片
   - 已驗證：網址解析（watch/youtu.be/shorts/live）、字幕抓取與語言優先序、時間戳章節跳轉連結、無字幕優雅跳過（卡哇KAWA 頻道全片關閉字幕，無法摘要該頻道）
