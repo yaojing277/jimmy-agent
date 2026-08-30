@@ -118,6 +118,12 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 
 ### 靜態網頁小工具（產出後部署 GitHub Pages）
 
+> **GitHub PAT（2026-08-30 起）**：`deploy_*.sh`（539／lev2／translate／yt_summaries）不再寫死 token，
+> 改由 `jimmy_scripts/_load_pat.sh` 解析——優先讀環境變數 `GH_PAT`，其次 `~/.config/gh_pat`（單行、`chmod 600`）。
+> 舊的內嵌 PAT（`ghp_AAn4…`）因明文進公開 repo `jimmy-agent` 的 `deploy_539.sh` 而被 GitHub secret scanning 自動撤銷；
+> 三個本機 repo（`jimmy-agent`／`stock-notify`／`mouse-side-key`）的 `.git/config` remote 仍內嵌同組舊 PAT，
+> **換新 PAT 時要一併 `git remote set-url` 更新**。新 token 絕不寫進任何被追蹤的檔案。
+
 | 專案 | 產出流程 |
 |---|---|
 | 今彩539分析 | `lottery_539_scraper.py` → `analyze_539.py` → `generate_539_html.py` → `deploy_539.sh`；部署於 `yaojing277.github.io/lotto539` |

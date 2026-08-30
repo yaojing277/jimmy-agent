@@ -5,7 +5,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PAT=$(grep -o 'ghp_[A-Za-z0-9]*' "$SCRIPT_DIR/deploy_539.sh" | head -1)
+source "$SCRIPT_DIR/_load_pat.sh"
 DEPLOY_DIR="/tmp/zh_vi_translate_deploy"
 REPO="yaojing277/zh-vi-translate"
 REMOTE="https://${PAT}@github.com/${REPO}.git"

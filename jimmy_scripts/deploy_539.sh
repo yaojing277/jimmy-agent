@@ -4,7 +4,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PAT="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"
+source "$SCRIPT_DIR/_load_pat.sh"
 DEPLOY_DIR="/tmp/lotto539_deploy"
 REMOTE="https://${PAT}@github.com/yaojing277/lotto539.git"
 

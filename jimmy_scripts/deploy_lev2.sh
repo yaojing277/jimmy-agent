@@ -1,19 +1,30 @@
 #!/bin/bash
-# 影片摘要庫 一鍵部署到 GitHub Pages
-# 用法: bash deploy_yt_summaries.sh
+# 正二 ETF 每日漲跌分析 一鍵部署到 GitHub Pages
+# 用法: bash deploy_lev2.sh            # 用現有 lev2_site/index.html 部署
+#       bash deploy_lev2.sh --refresh  # 先重抓資料重產 HTML 再部署
 # repo 不存在會自動建立（public）；Pages 未啟用會自動啟用
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/_load_pat.sh"
-SRC_DIR="$SCRIPT_DIR/yt_summaries"
-DEPLOY_DIR="/tmp/yt_summaries_deploy"
-REPO="yaojing277/yt-summaries"
+SRC_DIR="$SCRIPT_DIR/lev2_site"
+DEPLOY_DIR="/tmp/lev2_deploy"
+REPO="yaojing277/leverage-etf"
 REMOTE="https://${PAT}@github.com/${REPO}.git"
 
-echo "=== 影片摘要庫 部署 ==="
+echo "=== 正二 ETF 分析 部署 ==="
 
-[ -f "$SRC_DIR/index.html" ] || { echo "✗ 找不到 $SRC_DIR/index.html，請先跑過 yt_summary.py"; exit 1; }
+# 0. --refresh：重抓 TWSE 資料重產 HTML
+if [ "$1" = "--refresh" ]; then
+  echo "⓪ 重抓資料並重產 HTML..."
+  python3 "$SCRIPT_DIR/lev2_analysis.py" --html >/dev/null
+fi
+
+[ -f "$SRC_DIR/index.html" ] || {
+  echo "✗ 找不到 $SRC_DIR/index.html"
+  echo "  請先執行: python3 lev2_analysis.py --html"
+  exit 1
+}
 
 # 1. repo 不存在就自動建立
 STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $PAT" \
@@ -22,7 +33,7 @@ if [ "$STATUS" != "200" ]; then
   echo "① repo 不存在，自動建立 ${REPO}..."
   curl -s -o /dev/null -X POST "https://api.github.com/user/repos" \
     -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
-    -d '{"name":"yt-summaries","description":"YouTube 影片 AI 摘要庫（yt_summary.py 產生）","auto_init":true}'
+    -d '{"name":"leverage-etf","description":"00631L vs 00663L 正二 ETF 每日漲跌分析（lev2_analysis.py 產生）","auto_init":true}'
   sleep 3
 else
   echo "① repo 已存在"
@@ -39,15 +50,15 @@ else
   git -C "$DEPLOY_DIR" pull "$REMOTE" main 2>&1 | grep -v "token" || true
 fi
 
-# 3. 同步摘要庫（含刪除遠端已不存在的舊摘要頁）
-echo "③ 複製摘要庫..."
+# 3. 同步網頁
+echo "③ 複製網頁..."
 rsync -a --delete --exclude='.git' "$SRC_DIR/" "$DEPLOY_DIR/"
 
 # 4. 推送
 echo "④ 推送到 GitHub..."
 cd "$DEPLOY_DIR"
 git add -A
-git commit -m "更新摘要庫：$(date '+%Y-%m-%d %H:%M')" 2>/dev/null || echo "  (無變更，跳過)"
+git commit -m "更新正二分析：$(date '+%Y-%m-%d %H:%M')" 2>/dev/null || echo "  (無變更，跳過)"
 git push "$REMOTE" HEAD:main 2>&1 | grep -v "token" || true
 
 # 5. 確保 GitHub Pages 已啟用（main 分支根目錄）
@@ -62,5 +73,5 @@ if [ "$STATUS" != "200" ]; then
 fi
 
 echo ""
-echo "✓ 完成！摘要庫網址："
-echo "  https://yaojing277.github.io/yt-summaries/"
+echo "✓ 完成！網址："
+echo "  https://yaojing277.github.io/leverage-etf/"
