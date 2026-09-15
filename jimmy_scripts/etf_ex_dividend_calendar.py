@@ -103,14 +103,18 @@ def get_calendar_service():
     return build("calendar", "v3", credentials=creds)
 
 
-def event_exists(cal, code, kind, date_str):
+def find_event(cal, code, kind, date_str):
+    """回傳當天已存在、標題前綴符合「代號 除息/發放」的事件(找不到回 None)。"""
     day = datetime.date.fromisoformat(date_str)
     time_min = f"{day.isoformat()}T00:00:00Z"
     time_max = f"{(day + datetime.timedelta(days=1)).isoformat()}T00:00:00Z"
     resp = cal.events().list(calendarId=CALENDAR_ID, timeMin=time_min, timeMax=time_max,
                               singleEvents=True).execute()
     prefix = f"{code} {KIND_LABEL[kind]}"
-    return any(ev.get("summary", "").startswith(prefix) for ev in resp.get("items", []))
+    for ev in resp.get("items", []):
+        if ev.get("summary", "").startswith(prefix):
+            return ev
+    return None
 
 
 def create_dividend_event(cal, code, kind, date_str, amt_str):
@@ -125,16 +129,27 @@ def create_dividend_event(cal, code, kind, date_str, amt_str):
     cal.events().insert(calendarId=CALENDAR_ID, body=body).execute()
 
 
+def update_event_summary(cal, event_id, summary):
+    cal.events().patch(calendarId=CALENDAR_ID, eventId=event_id, body={"summary": summary}).execute()
+
+
 def cmd_sync():
     cal = get_calendar_service()
     created = 0
+    updated = 0
     for code, kind, date_str, amt_str in _events_for(distributions(etf_codes())):
-        if event_exists(cal, code, kind, date_str):
-            continue
-        create_dividend_event(cal, code, kind, date_str, amt_str)
-        created += 1
-        print(f"已建立:{code} {KIND_LABEL[kind]} {amt_str}（{date_str}）")
-    print(f"共新增 {created} 筆")
+        new_summary = f"{code} {KIND_LABEL[kind]} {amt_str}"
+        ev = find_event(cal, code, kind, date_str)
+        if ev is None:
+            create_dividend_event(cal, code, kind, date_str, amt_str)
+            created += 1
+            print(f"已建立:{new_summary}（{date_str}）")
+        elif ev.get("summary") == f"{code} {KIND_LABEL[kind]} 待公告" and amt_str != "待公告":
+            # 之前金額還沒公告時建的佔位事件，現在補上正式金額
+            update_event_summary(cal, ev["id"], new_summary)
+            updated += 1
+            print(f"已更新:{ev.get('summary')} → {new_summary}（{date_str}）")
+    print(f"共新增 {created} 筆、更新 {updated} 筆")
 
 
 # ========================= check / mark：本機 state 檔輔助路徑 =========================
