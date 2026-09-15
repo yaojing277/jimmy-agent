@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wealth OS（報酬日曆／每日漲跌／持股維護）開發紀錄</title>
+
+<style>
+:root{
+  --ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;
+  --brand:#0f4c81;--brand-soft:#e8f1f8;
+  --ok:#15803d;--ok-soft:#ecfdf5;
+  --warn:#b45309;--warn-soft:#fffbeb;
+  --danger:#b91c1c;--danger-soft:#fef2f2;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:#f8fafc;color:var(--ink);font-family:"Microsoft JhengHei","Segoe UI",sans-serif;line-height:1.75;}
+main{max-width:1040px;margin:0 auto;background:#fff;min-height:100vh;padding:36px 40px 100px;}
+h1{color:var(--brand);border-bottom:3px solid var(--brand);padding-bottom:12px;}
+h1 small{display:block;color:var(--muted);font-size:14px;font-weight:400;margin-top:6px;}
+h2{color:var(--brand);font-size:20px;margin-top:34px;border-left:5px solid var(--brand);padding-left:10px;}
+h3{color:#0b3a63;font-size:16px;margin-top:22px;}
+code{background:#f3f4f6;padding:1px 6px;border-radius:4px;font-family:Consolas,monospace;}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:12px 0;}
+th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top;}
+th{background:var(--brand-soft);color:#0b3a63;}
+.note,.must,.warn,.danger{padding:9px 14px;border-radius:6px;margin:10px 0;}
+.note{background:var(--brand-soft);border-left:4px solid var(--brand);}
+.must{background:var(--ok-soft);border-left:4px solid var(--ok);}
+.warn{background:var(--warn-soft);border-left:4px solid var(--warn);}
+.danger{background:var(--danger-soft);border-left:4px solid var(--danger);}
+.item{border:1px solid var(--line);border-radius:10px;margin:16px 0;overflow:hidden;}
+.item>header{background:#f8fafc;padding:10px 16px;font-weight:700;}
+.item>.body{padding:10px 16px;}
+ul,ol{padding-left:24px;}
+pre{background:#0f172a;color:#e2e8f0;padding:12px 16px;border-radius:8px;overflow:auto;}
+</style>
+
+</head>
+<body>
+<main>
+<h1>Wealth OS 開發紀錄<small>報酬日曆／每日漲跌／持股維護 相關開發歷程｜倒序排列，最新在最上面</small></h1>
+
+<div class="note"><b>範圍：</b>本紀錄涵蓋 <code>update_wealth_os.py</code>、<code>update_cathay_daily.py</code> 與
+<code>wealth_sync.yml</code> 排程在這段期間的開發、修 bug 與持股維護操作。維護的雲端檔案是
+<code>Jimmy_Wealth_OS_Master_V4.4_Google.xlsm</code>（Google Drive，就地覆蓋、檔案 ID 不變）。</div>
+
+<h2>2026-09-16（晚）　06_阿良資產負債表 價格／股數全面改引用 03_持股總表</h2>
+<p><b>需求：</b>範本仍有多處寫死或抓錯的數值：D6 的 00663L 市值誤乘 00675L 價格（F2）；D2:H2 是 Google 試算表
+<code>googlefinance</code> 轉 Excel 後凍結的 <code>__xludf.DUMMYFUNCTION</code> 殘留值；H12/H14/H16「正二跌」基準價寫死 41.32；
+D4～D7 股數寫死（5／92／3／62 千股）。目標是讓 06 分頁跟著 <code>03_持股總表</code> 每日排程更新。</p>
+<p><b>實作：</b>四次 zip 手術，每次只改 06 分頁（<code>sheet8.xml</code>），並同步重寫所有下游公式格的快取值，讓 Drive 預覽也正確：</p>
+<ul>
+<li><b>D6</b>：<code>=3*F2</code> → <code>=3*'03_持股總表'!L8</code>（00663L 現價）</li>
+<li><b>D2／E2／G2</b>（00662／00631L／00685L）：改為 <code>='03_持股總表'!L7／L6／L9</code>；F2（00675L）、H2（00865B）03 無持股，維持靜態值
+（F2 已無公式引用，H2 只被股數 0 的 D8 引用）</li>
+<li><b>H12／H14／H16</b>：41.32 → <code>='03_持股總表'!L6</code>，I:M 加碼價位（×0.9～×0.5）快取一併重算</li>
+<li><b>D4～D7</b>：股數改為 <code>'03_持股總表'!D{列}/1000</code> 乘原價格參照；D8（00865B）維持 <code>=0*H2</code></li>
+</ul>
+<p>各次均以代號動態找 03 的列號（不寫死），改寫前先比對原公式／XML 原文，不符即中止。</p>
+<p><b>踩坑與解法：</b></p>
+<ul>
+<li><b>共用公式子格比對不到</b>：B9 是 <code>&lt;f t="shared" si="1"/&gt;</code> 子格，寫死 <code>&lt;f&gt;sum(D9:H9)&lt;/f&gt;</code> 的正則抓不到，
+快取沒更新。改用同時涵蓋 <code>&lt;f .../&gt;</code> 與 <code>&lt;f&gt;…&lt;/f&gt;</code> 的通用樣式，並把整條下游（B/D/E/F/G/I/J 欄）一次重算。</li>
+<li><b>Drive 版本號會自己跳</b>：上傳後版本號從 1969 跳到 1972，防呆擋下上傳。逐元件比對確認內容與自己上傳的完全相同（修改者為 Service Account、
+modifiedTime 一致），是 Drive 背景遞增。之後防呆改比對 <code>modifiedTime</code>（下載時 vs 上傳前）而非版本號。</li>
+<li><b>B6 顯示 -197</b>：該列同時放 00663L 市值（D6=303）與質押（H6=-500），<code>B6=SUM(D6:H6)</code> 為範本原版面，非錯誤。</li>
+</ul>
+<p><b>驗證結果：</b></p>
+<ul>
+<li>D6 修正後 00663L 市值 918.9 → 303 千元；正二合計 F11 = 4,247.38 千元，與 <code>lev2_balance.py</code> 由 03 算出的正二市值 4,247,380 元一致</li>
+<li>D2:G2、D4～D7 改引用後數值與原凍結值相同（價格、股數當下剛好一致），下游快取無變動，確認公式正確</li>
+<li>H12:H16 基準價 41.32 → 35.09，-10%～-50% 加碼價位 37.19／33.06／28.92／24.79／20.66 → 31.58／28.07／24.56／21.05／17.55</li>
+<li>每次上傳均通過自檢：元件清單一致、只變動 06 分頁、XML 合法、openpyxl 可開檔；沒有其他分頁引用 06；雲端最終版本 1994</li>
+</ul>
+
+<h2>2026-09-16（稍晚）　06_阿良資產負債表 改回手動範本、停用自動重建</h2>
+<p><b>需求：</b>Jimmy 決定保留範本原版面手動維護，只把 D9 寫死的股票總市值 16292 改為引用 <code>03_持股總表</code> 合計（千元）。</p>
+<p><b>實作：</b>D9 改為 <code>='03_持股總表'!F24/1000-SUM(D4:D7)</code>（zip 手術只改 06 分頁）；<code>update_wealth_os.py</code>
+新增 <code>LEV2BAL_ENABLED = False</code>，<code>--full</code> 不再重建 06，<code>lev2_balance.py</code> 與 12_設定 參數保留。</p>
+<p><b>踩坑與解法：</b>整張重建與手動公式互斥，二選一；開關保留程式碼，日後要恢復改回 True 即可。</p>
+<p><b>驗證結果：</b>D9 由 <code>16292-SUM(D4:D7)</code> 改為 <code>'03_持股總表'!F24/1000-SUM(D4:D7)</code>，
+值 10,835.97 → 10,839.4125 千元（03 合計 16,295,442.5 元）；D10 = 16,295.4425；下游 B9～B17、D11～J11、E12/F12、J7/J8 快取一併重算
+（首次寫入時共用公式子格 B9 未更新，於下一筆修正）。停用開關已 push <code>stock-notify</code>（<code>ab13caa</code>）。</p>
+
+<h2>2026-09-16　06_阿良資產負債表 自動化（lev2_balance.py）</h2>
+<p><b>需求：</b>把阿良「正二人生資產負債表」範本邏輯自動化。原 <code>06_阿良資產負債表</code> 是 2026-08-21 複製的靜態快照，
+股數寫死、「其他」寫死 <code>16292-SUM(...)</code>、663L 誤用 675L 價格、本金槓桿公式正負號錯、年花費寫死 1000。</p>
+<p><b>實作：</b>新增純計算模組 <code>lev2_balance.py</code>（三桶 原型β1／正二β2／防守β0、本金槓桿只計信貸、總曝險、
+生活費倍數查表得建議配置代號、5 年預期報酬、00631L 跌幅加碼梯）；<code>update_wealth_os.py --full</code> 新增
+<code>_refresh_lev2bal()</code>，比照 <code>00_正二分析</code> 以 inlineStr 整張重建 sheetData（保留原 drawing）。
+參數全部讀 <code>12_設定</code> B22~B32 與 D2:G10 對照表，維持「唯一事實來源」慣例。</p>
+<p><b>踩坑與解法：</b>重新解讀範本後發現「703／333／073」是 662：685L：865B 的<b>配置成數</b>，不是現金月數；
+<code>read_settings</code> 會把公式格當字串，故新參數必須填純數值；參數缺格時改為只警告跳過，避免每日排程整批失敗。</p>
+<p><b>驗證結果：</b>scratchpad 副本離線跑 <code>full_refresh</code>：缺參數→⚠ 跳過、06 未變動；套預設參數→06 重建、zip 自檢通過，
+股票市值 16,295,442 與 <code>09_壓力測試</code> F4 一致，對照表 703→5Y 96.4%、073→398.8%／年化 37.9% 與範本一致。</p>
+
+<h2>2026-09-02　群益台灣加權正2（00685L）加碼記帳 ＋ 累計列改「歷史新高」</h2>
+<p><b>需求：</b>①貼交易截圖記帳「群益臺灣加權正2」買進 2,000 股；②把 <code>02_每日漲跌</code> 累計列（B24/C24）
+從「單純鏡射最新一天總市值/未實現損益」改成「顯示歷史逐日最高總市值/最高未實現損益」。</p>
+<p><b>實作：</b>先查 TWSE 開放資料確認「群益臺灣加權正2」＝既有持股 <code>00685L</code>（非新股票），用既有加權平均公式
+併入均價（10.70→10.74，股數 60,000→62,000）。累計列公式改成
+<code>=MAX(B{data_start}:B{data_end})</code>／<code>=MAX(C{data_start}:C{data_end})</code>，範圍用函式內動態算出的
+起訖列，不寫死列號，表格每天新增一列時自動涵蓋。</p>
+<p><b>踩坑與解法：</b>無（本次順利，沿用既有加碼流程與既有函式變數）。</p>
+<p><b>驗證結果：</b>投資日誌自動偵測補登「00685L 買進 2,000 股」；B24/C24 公式與快取值皆與手動核算一致，
+冪等性測試（同一天重跑兩次）位元組完全相同；已同步進雲端排程。</p>
+
+<h2>2026-09-01　緯創（3231）全出清 ＋ 00631L 加碼記帳</h2>
+<p><b>需求：</b>貼截圖記帳緯創普通賣出 2,000 股（兩筆，180.50 元，損益分別 -11,358／+13,565）；另一日則是
+00631L 加碼買進 2,000 股。</p>
+<p><b>實作：</b>比對持股數（緯創現持 2,000 股＝賣出股數）判定為全出清，套用 2026-08-26 建立的通用列位移程序
+（見下方），從 <code>03_持股總表</code>／<code>05_個股分析</code>／<code>13_加碼分析</code> 整列刪除並修正所有跨表引用；
+投資日誌合併兩筆為一筆「賣出 2,000 股全出清，已實現損益 +2,207」。00631L 加碼則用加權平均公式併入均價
+（28.70→28.84，股數 88,000→90,000）。</p>
+<p><b>踩坑與解法：</b>無新坑，通用位移程序在第二次套用時一次到位（結構檢查、公式文字檢查、逐股資料比對皆通過）。</p>
+<p><b>驗證結果：</b>成本精準減少 357,400（緯創原始成本，逐股比對其餘 21 檔資料完全未受影響）；全檔掃描無任何
+<code>#REF!</code>/<code>#DIV/0!</code> 錯誤；已上傳雲端。</p>
+
+<h2>2026-08-28／29　排程「交易日守衛」時區 bug 徹底根治</h2>
+<p><b>需求：</b>連續兩天發現排程「好像沒有自動更新股價」，需查明原因並修正，同時把 8/28 當天被誤標成 8/29
+的資料修正回來，並確認 <code>03_國泰漲跌</code> 是否也受影響。</p>
+<p><b>實作：</b>追查發現手動觸發補跑時，Runner 的 <code>TZ=Asia/Taipei</code> 系統時鐘已跨過午夜、落在非交易日
+（週六），但舊邏輯「手動觸發一律強制執行」直接拿系統 <code>today()</code> 去抓價，導致整條鏈（股價試算分頁名、
+K欄標頭、<code>16_資產歷史</code>）都被貼上錯誤日期「8/29」。因為抓到的收盤價其實吻合 TWSE 真正的 8/28 收盤，
+只需要把標籤（分頁名／表頭／日期欄）改回 8/28，不必重抓資料。順勢把「交易日守衛」步驟改成：一律算出
+「不晚於系統日期的最近一個有效交易日」當目標日，手動與排程共用同一套判斷，並讓
+<code>update_stock_price.py</code>／<code>update_wealth_os.py</code>／<code>update_cathay_daily.py</code> 三支腳本統一吃
+這個算出來的日期（<code>update_wealth_os.py</code> 原本沒有 <code>--date</code> 參數，這次一併補上）。另外用同一套
+<code>--date</code> 明確補跑了 <code>03_國泰漲跌</code>／<code>21_國泰資產歷史</code> 的 8/28 資料。</p>
+<p><b>踩坑與解法：</b>①<code>update_cathay_daily.py</code> 的 <code>_upsert_hist_row</code> 把日期欄樣式寫死成
+<code>75</code>（實際已漂移成 <code>62</code>），導致寫入的日期不是日期格式，<code>openpyxl</code> 讀回裸數字字串，
+連鎖讓整支腳本在下次執行時於 <code>datetime.strptime</code> 崩潰——改成動態讀 row2 既有樣式，並在
+<code>_read_hist_rows</code> 加防呆（讀到純數字自動當 Excel 序號換算）。②GitHub Actions 排程本身這兩天出現
+罕見的嚴重延遲（10+ 小時），經查官方狀態頁無已知事故，判斷是平台端偶發問題，非設定或程式碼問題。</p>
+<p><b>驗證結果：</b>手動在真實 GitHub Actions 環境觸發驗證，系統時鐘跨夜到 8/29 時，新邏輯正確算出「目標交易日
+=2026-08-28」並用該日期正確同步；全檔掃描無殘留錯誤日期或公式錯誤。</p>
+
+<h2>2026-08-27　「買進金額」正名為「淨投入資金」＋ 成本誤差診斷</h2>
+<p><b>需求：</b>①<code>02_每日漲跌</code> 的「買進金額」欄位（E欄）出現負值會讓人誤解，需要更精確的命名；
+②使用者發現 <code>03_持股總表</code> 合計持有成本跟元大 App 顯示有約 150 元的微小落差，需要診斷原因。</p>
+<p><b>實作：</b>E欄標題改成「淨投入資金」（公式與語意不變，＝當日成本欄相對前一日的差，負值代表當天淨賣出），
+同步套用到共用同一組建表函式的 <code>03_國泰漲跌</code>。成本誤差則診斷出根源：均價欄位只存 2 位小數，
+多筆加碼時「每次都四捨五入到2位再往下算」會讓精度逐次流失，股數愈大（如 00878 十萬股）誤差愈明顯；
+討論多個修正方案（均價存 4 位小數／改成本為主要追蹤值／維持現狀）後，使用者選擇暫不處理。</p>
+<p><b>踩坑與解法：</b>無程式 bug，純屬既有 2 位小數精度設計下的正常誤差（0.0013% 等級，不影響任何損益判斷）。</p>
+<p><b>驗證結果：</b>標題正名已部署並同步兩個分頁；成本誤差確認為精度問題而非算式錯誤，經使用者確認「先不管
+它」，暫不調整精度。</p>
+
+<h2>2026-08-26　聯電（2303）全出清首例：建立通用列位移演算法</h2>
+<p><b>需求：</b>貼截圖記帳聯電盤中零股全數賣出 250 股，需要從股價試算與 Wealth OS 各分頁完整移除該股，
+並正確處理所有跨表公式引用。</p>
+<p><b>實作：</b>股價試算用 Sheets API <code>deleteDimension</code> 整列刪除（公式自動調整）。Wealth OS xlsm 端由於
+沒有等效 API，寫了一套通用的 zip 手術式列位移函式群（<code>shift_structure</code>／<code>mask_sheet_prefixes</code>／
+<code>shift_formula_text</code>／<code>shift_cross_sheet_refs</code>），分別處理「同分頁結構位移」與「跨分頁公式引用
+位移」兩種情境，套用到 <code>03_持股總表</code>／<code>05_個股分析</code>／<code>13_加碼分析</code> 及所有引用合計列/
+固定範圍的分頁（<code>01_Dashboard</code>／<code>04_ETF分析</code>／<code>09_壓力測試</code>／<code>14_買點排行榜</code>／
+<code>15_安全指數</code>／<code>17_重複曝險</code>／<code>18_投資規則檢查</code>）。</p>
+<p><b>踩坑與解法：</b>①第一版「只遮罩分頁前綴」導致裸露的儲存格參照（如 <code>F25</code>）被同分頁列位移邏輯誤觸，
+重複位移兩次（off-by-one），改成「連同參照本身一起遮罩」才解決。②跨分頁範圍參照（如
+<code>$B$3:$B$25</code>）只處理了範圍開頭、漏掉結尾儲存格，因為 Excel 語法只在範圍開頭寫一次分頁前綴——改用
+正則同時捕捉頭尾兩端。③<code>full_refresh()</code> 用 openpyxl 直接讀 <code>03_持股總表</code> 現況重算所有衍生分頁
+（不依賴公式快取），所以只要結構刪對，衍生分頁不需要額外手動修正。</p>
+<p><b>驗證結果：</b>合計市值精準減少 30,875（聯電原市值）；逐股比對其餘 22 檔資料完全未受影響；全檔掃描無公式
+錯誤；此套流程與教訓已寫入 memory，供之後全出清案例重複使用。</p>
+
+<h2>2026-08-22（稍晚）　報酬日曆長條圖改用真實儲存格參照：修 Excel 開檔圖表消失 bug</h2>
+<p><b>需求：</b>把 7 月月曆格線也改成黑色時，發現雲端檔案的兩張報酬日曆長條圖（本月／上月）不見了，需查明
+原因並修正，避免之後每次開檔都重演。</p>
+<p><b>實作：</b>比對發現長條圖原本用 <code>&lt;c:numLit&gt;</code>／<code>&lt;c:strLit&gt;</code>（純字面資料，不接儲存格）
+建構，Jimmy 用真正 Excel 開檔後這種構造被判定不完整、整張圖直接被拿掉（既有折線圖因為接的是真實
+<code>&lt;c:numRef&gt;</code>／<code>&lt;c:strRef&gt;</code> 儲存格範圍，同一次開檔完全沒事，可佐證問題出在
+numLit/strLit 本身）。改用多區域儲存格參照（<code>c:f</code> 用括號逗號連接 6 週的日期/金額列範圍）直接指向
+月曆表格自己的儲存格，不再依賴任何字面資料。</p>
+<p><b>踩坑與解法：</b>即上述 numLit/strLit 構造本身就是坑；解法即改用真實儲存格參照。</p>
+<p><b>驗證結果：</b>重新建立兩張長條圖並驗證公式改用真實範圍；此教訓（圖表資料絕不可用純字面值）已記錄進
+memory，作為往後任何新圖表的硬性規範。</p>
+
+<h2>2026-08-21～22　報酬日曆（月曆熱力圖＋長條圖）首次實作</h2>
+<p><b>需求：</b>仿券商 App「報酬日曆」畫面，在 <code>02_每日漲跌</code> 新增月曆熱力圖＋逐日損益長條圖，並比照要求
+逐步加上雙月顯示、格線、每日排程自動更新等功能。</p>
+<p><b>實作：</b>新增 <code>_month_calendar_grid()</code> 算月曆結構、<code>_build_calendar_rows()</code> 組儲存格
+（顏色直接複用既有 dxfId 4/0，正值紅底負值綠底，不新增樣式）、<code>_build_calendar_bar_chart_xml()</code> 組長條圖。
+「本月」「上月」設計成固定欄位（依 <code>16_資產歷史</code>最新資料年月動態判定，非寫死月份），月份輪替時自動
+覆寫，不需要人工介入。確認「更新所有分頁」(<code>--full</code>) 是既有標準行為，雲端排程本來就會每天觸發，
+不需額外設定。</p>
+<p><b>踩坑與解法：</b>①折線圖圖表檔名原本寫死 <code>chart5.xml</code>，但 Excel 重新存檔會把 chart part 重新編號
+（實測漂移成 <code>chart2.xml</code>），導致快取刷新判斷式恆假——改用 <code>_locate_chart_parts()</code> +
+<code>_find_chart_by_marker()</code>，靠圖表內容指紋（如系列名稱文字）動態定位，不再依賴檔名。②橘色折線原本繪
+F欄（單日市值漲跌），依 Jimmy 要求改繪 D欄（單日損益漲跌真實，排除買賣影響）。</p>
+<p><b>驗證結果：</b>bootstrap（首次新增 chart part）與 steady-state（後續覆寫）皆驗證通過且冪等；月曆數值與
+Python 端獨立試算完全吻合；已同步進雲端排程。</p>
+
+<div class="warn" style="margin-top:30px"><b>以下為早期紀錄（2026-07-11 ～ 08-20）：</b>
+本段依前次對話的壓縮摘要與 memory 重建，<b>詳細度低於上方逐字紀錄</b>——「做了什麼、踩了什麼坑」可信，
+但部分日期為區間推估、個別驗證細節可能已佚失。</div>
+
+<h2>2026-08-20～21　02_每日漲跌 分頁建立 ＋ 重複記帳事件善後</h2>
+<p><b>需求：</b>建立「每日漲跌」分頁追蹤逐日總市值與損益變化；並處理一次記帳重複計算事故。</p>
+<p><b>實作：</b>新增 <code>_build_daily_sheetdata()</code>，依 <code>16_資產歷史</code> 逐列算出單日市值Δ／損益Δ／
+報酬率，公式參照歷史、快取一併寫入，列數隨歷史成長。欄位順序與內容依需求多次調整（加入買進金額欄、
+G3 累計報酬率、開放式 SUM 範圍）。</p>
+<p><b>踩坑與解法：</b>①開放式範圍 <code>D4:D</code> 在此環境會產生 <code>#REF!</code>，改用明確上界
+<code>D4:D1048576</code> 才兩邊通用。②G欄百分比格式一度改錯（自寫正則數 cellXfs 差一位，變成
+<code>#,##0</code>）——確立「驗證儲存格格式一律用 openpyxl 的 <code>number_format</code>，樣式索引動態取得
+不可寫死」。③使用者自行手動改了持股「又」貼截圖，導致同一筆買進被重複計算——善後方式為更正持股、
+刪除投資日誌重複列、重跑全分頁，並確立「記帳二擇一，勿雙軌」原則寫入 memory。</p>
+<p><b>驗證結果：</b>持股更正回 00631L 88張／00685L 60張；重複日誌列已刪除；補登真實 8/19 買進紀錄。</p>
+
+<h2>2026-08-10～20　金鑰失效與排程失敗排錯</h2>
+<p><b>需求：</b>雲端排程接連出現失敗，需逐一查明並恢復。</p>
+<p><b>實作／踩坑與解法：</b>①8/10 Service Account 金鑰突然 <code>Invalid JWT Signature</code>（GCP 端被刪／停用），
+重新產生金鑰、更新本機備份與 GitHub Secret（REST API sealed box 加密上傳）。②8/18 遇到 Google Sheets API
+503 暫時性錯誤，評估後選擇維持現狀不加重試邏輯。③8/20「更新股價」漏抓 00631L/00663L 收盤價（K欄留空且
+不報錯），導致後續 <code>full_refresh</code> 讀取時 <code>TypeError: float() ... NoneType</code> 崩潰——
+確立排錯 SOP：找出 K/N 欄為空的列 → 用 <code>twse_hist.month_closes()</code> 補抓 → 回寫後重跑。</p>
+<p><b>驗證結果：</b>三項問題均恢復正常；SOP 與金鑰換發流程已寫入 memory。</p>
+
+<h2>2026-07-28　寶雅全出清：整列刪除程序首例</h2>
+<p><b>需求：</b>寶雅（5904）全數賣出，需從所有分頁完整移除。</p>
+<p><b>實作：</b>股價試算用 <code>deleteDimension</code> 整列刪除；Wealth OS 端手動 zip 手術從
+<code>03_持股總表</code>／<code>05_個股分析</code>／<code>13_加碼分析</code>／<code>14_買點排行榜</code> 整列刪除，
+並修正合計列上移、共用公式主格 ref、CF 範圍、跨表引用合計列（約 20 處）。</p>
+<p><b>踩坑與解法：</b>牽動範圍極廣，當時為純手動逐項修正、逐項自檢；此經驗後來在 2026-08-26 聯電案例才被
+抽象成可重複套用的通用位移函式群。</p>
+<p><b>驗證結果：</b>完成移除並確認各分頁數值正確；「賣出處理慣例」寫入 memory。</p>
+
+<h2>2026-07-24～25　11_設定 成為全檔唯一事實來源 ＋ 分頁重新編號</h2>
+<p><b>需求：</b>各分頁的門檻參數（現金、房貸、正二上限、目標股數等）散落各處且早已與設定表不一致，需要
+收斂為單一事實來源；分頁編號也需重新整理。</p>
+<p><b>實作：</b>把 Dashboard／ETF分析／個股分析／投資路線圖／規則檢查／安全指數 等分頁的寫死門檻，全部改為
+跨表引用 <code>11_設定</code>；腳本新增 <code>read_settings()</code> 統一讀取，不再從 Dashboard 讀（因其已改為
+引用公式）。分頁依顯示順序重新編號為 01～20（說明／版本紀錄移到最後）。</p>
+<p><b>踩坑與解法：</b>①同時發現 <code>08_壓力測試</code> 的 F/G/H 三欄公式全部指向錯誤欄位（拿買進價欄當類別
+篩選、報酬率欄當市值加總、讀錯設定列號），輸出的是垃圾數字，一併修正。②重新編號後
+<b><code>sheetN.xml</code> 與分頁順序完全錯位</b>，成為之後反覆踩到的大坑——確立「動任何分頁前必須用
+<code>_locate_sheet_part()</code> 動態定位」的鐵律。</p>
+<p><b>驗證結果：</b>壓力測試每月缺口由錯誤的 -65,167 修正為約 -39,667、現金可撐月數由 0.15 修正為合理值；
+腳本在新結構下重跑冪等。</p>
+
+<h2>2026-07-17　雲端自動化：GitHub Actions ＋ Service Account</h2>
+<p><b>需求：</b>希望「更新股價」「同步股價」不必限定在本機執行，手機也能觸發。</p>
+<p><b>實作：</b>在 <code>stock-notify</code> repo 建立 <code>wealth_sync.yml</code>，認證改走 Service Account
+（<code>GOOGLE_SA_JSON</code> Secret，永不過期），兩個雲端檔案分享 writer 權限給該帳號；腳本認證順序改為
+「環境變數 SA → 本機 token.json」。後續再加上每日排程（台北 14:30 ＝ UTC 06:30）與「交易日守衛」
+（週末／國定假日自動跳過、補班日仍執行），跑完發 LINE 通知。</p>
+<p><b>踩坑與解法：</b>手機 GitHub App 沒有 Run workflow 按鈕，需改用手機瀏覽器開 Actions 頁面觸發。</p>
+<p><b>驗證結果：</b>手動觸發與排程觸發皆實測成功；排程時間幾經調整後定為 14:30 較保險。</p>
+
+<h2>2026-07-13～16　交易截圖記帳流程確立</h2>
+<p><b>需求：</b>希望貼券商成交截圖後，能自動併入持股、更新成本與均價，並留下投資日誌。</p>
+<p><b>實作：</b>確立固定流程：先跑「更新股價」建當日快照 → 把買進併入新分頁的買進價/持有股數
+（新均價 =（舊均價×舊股數＋新增成本）÷新股數）→ 跑「同步股價」。成本口徑採「含手續費」
+（截圖有應收付就用精確金額，否則用價金×1.000855）。<code>10_投資日誌</code> 改為同步時自動偵測股數變動、
+以成本差回推含費均價自動補登。</p>
+<p><b>踩坑與解法：</b>新股票（寶雅）加列時牽動 ALIAS 補代號與多個分頁，確立完整加列案例；對帳單是交割日
+（T+2）、分頁記的是成交日，勿混淆。</p>
+<p><b>驗證結果：</b>成本口徑由使用者的寶雅列數字（673.00→673.57）反推確認正確；自動補登實測成功。</p>
+
+<h2>2026-07-11　Wealth OS 同步機制誕生（update_wealth_os.py 第一版）</h2>
+<p><b>需求：</b>把 Google 試算表「股價試算」的最新 <code>Jimmy_YYMMDD</code> 分頁，同步到雲端
+<code>Jimmy_Wealth_OS_Master_V4.4_Google.xlsm</code> 的持股總表，並就地覆蓋（檔案 ID 不變）。</p>
+<p><b>實作：</b>Sheets API 讀來源、Drive API 下載 xlsm（先留本機備份）、寫入後 <code>files().update()</code>
+就地覆蓋。三項決策：就地覆蓋同一檔案（靠 Drive 版本歷史防呆）、成本基準用買進價×持有股數、清單以股價
+試算為準（兩邊不一致只警告不自動增刪列）。同期也完成 <code>03_ETF分析</code> 新增 00663L 獨立列與個股列、
+<code>02_持股總表</code> 配色與欄寬美化。</p>
+<p><b>踩坑與解法：</b><b>本專案最重要的一條鐵律就在這天確立</b>——用 openpyxl 的 <code>wb.save()</code> 重存 xlsm
+會遺失 drawings（巨集按鈕）等 19 個元件，Excel 判定檔案損毀打不開（當天實際發生）。解法：改為
+<b>zip 手術式寫入</b>，只重寫該分頁 XML／sharedStrings／workbook.xml（設 <code>fullCalcOnLoad</code>），
+其餘元件位元組原封不動，上傳前自檢「變動元件 ⊆ 預期清單」；openpyxl 從此僅用於「讀」。另外也踩到
+載入 token 時硬指定窄 scope，會在 refresh 時把 <code>token.json</code> 覆寫回窄權限、吃掉 Drive 授權
+（已修正 7 支既有腳本）。</p>
+<p><b>驗證結果：</b>損毀檔案已修復並確認可正常開啟；zip 手術式寫入成為之後所有 xlsm 操作的標準做法。</p>
+
+<hr>
+<p style="color:#6b7280;font-size:13px">↑ 新紀錄一律加在上方，最新在最上面。</p>
+
+</main>
+</body>
+</html>

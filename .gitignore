@@ -1,5 +1,13 @@
 *.pickle
 client_secret_*.json
+# 金鑰／OAuth token(公開 repo,絕不提交)
+jimmy_scripts/token.json
+jimmy_scripts/token.json.*
+jimmy_scripts/credentials.json
+jimmy_scripts/stock-sheet-*.json
+jimmy_scripts/line_secrets.json
+# 字幕／轉錄快取
+jimmy_scripts/.yt_transcript_cache/
 *.pyc
 __pycache__/
 .DS_Store

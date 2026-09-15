@@ -38,6 +38,8 @@ WHISPER_MODEL_SIZE = "small"
 
 BASE_DIR = Path(__file__).resolve().parent
 OUT_DIR = BASE_DIR / "yt_summaries"
+# 字幕／轉錄快取（放在摘要庫外，避免被 deploy 一起推上 GitHub）
+TRANSCRIPT_CACHE_DIR = BASE_DIR / ".yt_transcript_cache"
 INDEX_JSON = OUT_DIR / "summaries.json"
 
 # 字幕語言優先序（人工字幕優先於自動字幕）
@@ -184,6 +186,30 @@ def build_transcript_text(snippets) -> str:
     return "\n".join(blocks)
 
 
+# ---------------------------------------------------------------- 字幕快取
+
+def load_cached_transcript(video_id: str):
+    """回傳 (snippets, lang, auto, source) 或 None。"""
+    f = TRANSCRIPT_CACHE_DIR / f"{video_id}.json"
+    if f.exists():
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+            return d["snippets"], d["lang"], d["auto"], d.get("source", "caption")
+        except (json.JSONDecodeError, KeyError):
+            print("⚠️  字幕快取損毀，重新抓取。")
+    return None
+
+
+def save_cached_transcript(video_id: str, snippets, lang: str, auto: bool, source: str):
+    """存下字幕／Whisper 轉錄結果，之後重跑（例如摘要失敗重試）免再跑一次轉錄。"""
+    TRANSCRIPT_CACHE_DIR.mkdir(exist_ok=True)
+    (TRANSCRIPT_CACHE_DIR / f"{video_id}.json").write_text(
+        json.dumps({"snippets": snippets, "lang": lang, "auto": auto, "source": source},
+                   ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
 # ---------------------------------------------------------------- Whisper fallback（無字幕影片）
 
 def transcribe_with_whisper(video_id: str, model_size: str = WHISPER_MODEL_SIZE):
@@ -302,11 +328,14 @@ def run_claude_summary(transcript_text: str, meta: dict, model: str) -> str:
     )
     if res.returncode != 0:
         detail = (res.stderr.strip() or res.stdout.strip())[:500]
-        if "Not logged in" in detail or "/login" in detail:
+        if ("Not logged in" in detail or "/login" in detail
+                or "OAuth" in detail or "authenticate" in detail.lower()):
             raise RuntimeError(
-                "claude CLI 尚未登入。請在終端機執行一次以下指令完成登入（瀏覽器 OAuth）：\n"
+                "claude CLI 未登入或登入已過期。請在終端機執行一次以下指令重新登入"
+                "（瀏覽器 OAuth）：\n"
                 f'   "{cli}"\n'
-                "   進入後輸入 /login，登入完成後即可重跑本腳本。"
+                "   進入後輸入 /login，登入完成後即可重跑本腳本。\n"
+                f"   （原始訊息：{detail}）"
             )
         raise RuntimeError(f"claude CLI 執行失敗：{detail}")
     return res.stdout.strip()
@@ -520,13 +549,19 @@ def summarize_video(url: str, model: str = "sonnet", whisper_model: str = WHISPE
             meta["channel"] = fallback_meta["channel"]
     print(f"🎬 {meta['title']}（{meta['channel'] or '未知頻道'}）")
 
-    print("📥 抓取字幕中...")
-    source = "caption"
-    try:
-        snippets, lang, auto = fetch_transcript(video_id)
-    except NoCaptionsError:
-        snippets, lang, auto = transcribe_with_whisper(video_id, model_size=whisper_model)
-        source = "whisper"
+    cached = load_cached_transcript(video_id)
+    if cached:
+        snippets, lang, auto, source = cached
+        print(f"📥 使用快取字幕（{source}，{len(snippets):,} 段）")
+    else:
+        print("📥 抓取字幕中...")
+        source = "caption"
+        try:
+            snippets, lang, auto = fetch_transcript(video_id)
+        except NoCaptionsError:
+            snippets, lang, auto = transcribe_with_whisper(video_id, model_size=whisper_model)
+            source = "whisper"
+        save_cached_transcript(video_id, snippets, lang, auto, source)
 
     transcript_text = build_transcript_text(snippets)
     truncated = len(transcript_text) > MAX_TRANSCRIPT_CHARS

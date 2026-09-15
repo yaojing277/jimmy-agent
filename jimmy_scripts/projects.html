@@ -288,7 +288,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-07-19</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-09-02</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -513,6 +513,55 @@
       </div>
     </div>
 
+    <!-- Wealth OS 資產管理自動化 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🏦</div>
+        <div class="card-meta">
+          <div class="card-name">Wealth OS 資產管理自動化</div>
+          <div class="card-sub">股票自動化家族 · 每個交易日自動跑</div>
+        </div>
+        <span class="dot"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">Python</span>
+        <span class="badge badge-green">Sheets / Drive API</span>
+        <span class="badge badge-green">Service Account</span>
+        <span class="badge badge-purple">GitHub Actions</span>
+        <span class="badge badge-gray">zip 手術式 xlsm 寫入</span>
+      </div>
+      <div class="card-desc">
+        整套台股持股管理自動化：TWSE 官方取價 → Google 試算表「股價試算」每日快照滾動 →
+        同步進雲端 <code>Jimmy_Wealth_OS_Master_V4.4</code>（23 個分頁：持股總表／資產歷史／每日漲跌／
+        報酬日曆／壓力測試／安全指數等）→ LINE 通知。主帳戶與國泰帳戶各一套，
+        每個交易日台北 14:30 由 GitHub Actions 自動執行（含交易日守衛擋假日）。
+      </div>
+      <table class="sub-table">
+        <thead>
+          <tr><th>分層</th><th>主要腳本</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>取價核心</td><td>twse_hist.py · price_source.py</td></tr>
+          <tr><td>試算表維護</td><td>update_stock_price.py ·「更新股價」快照滾動</td></tr>
+          <tr><td>Wealth OS</td><td>update_wealth_os.py ·「更新所有分頁」<br>update_cathay_daily.py · 國泰帳戶</td></tr>
+          <tr><td>衍生分析</td><td>lev2_analysis.py · etf_ex_dividend_calendar.py</td></tr>
+        </tbody>
+      </table>
+      <ul class="todo-list">
+        <li class="done">貼交易截圖自動記帳（含費均價併入＋投資日誌自動補登）</li>
+        <li class="done">報酬日曆（月曆熱力圖＋逐日損益長條圖，本月／上月雙月）</li>
+        <li class="done">全出清通用列位移程序（跨 7 個分頁自動修正公式引用）</li>
+        <li class="done">交易日守衛：時區跨夜也能算出正確目標交易日</li>
+        <li>均價精度提升（4 位小數，待評估）</li>
+      </ul>
+      <div class="link-row">
+        <a class="link-btn" href="stock_automation_devlog.html" target="_blank">📚 家族總表（2026-04 起）</a>
+        <a class="link-btn" href="wealth_os_devlog.html" target="_blank">📘 Wealth OS 開發紀錄</a>
+        <a class="link-btn" href="schedule_runlog.html" target="_blank">🗓️ 排程執行紀錄</a>
+        <a class="link-btn secondary" href="https://github.com/yaojing277/stock-notify" target="_blank">⑂ GitHub</a>
+      </div>
+    </div>
+
     <!-- 股價試算 Dashboard -->
     <div class="card">
       <div class="card-header">
@@ -591,6 +640,47 @@
       <div class="link-row">
         <a class="link-btn" href="00631L_vs_0050_returns.html" target="_blank">🌙 深色版</a>
         <a class="link-btn" href="00631L_vs_0050_returns_light.html" target="_blank">☀️ 淺色版</a>
+      </div>
+    </div>
+
+    <!-- 正二 ETF 每日漲跌分析 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📊</div>
+        <div class="card-meta">
+          <div class="card-name">正二 ETF 每日漲跌分析</div>
+          <div class="card-sub">00631L vs 00663L · 60日相關/追蹤統計</div>
+        </div>
+        <span class="dot active"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">HTML / Chart.js</span>
+        <span class="badge badge-gray">Python</span>
+        <span class="badge badge-green">TWSE 官方</span>
+      </div>
+      <div class="card-desc">
+        兩檔台股 2 倍槓桿 ETF 追蹤不同指數（台灣50 vs 加權指數），本工具每日抓 TWSE 收盤價並計算
+        <b>日報酬相關係數、追蹤差異、同向比例</b>等統計，反映兩檔指數分歧與槓桿再平衡耗損。
+      </div>
+      <table class="sub-table">
+        <thead>
+          <tr><th>指標</th><th>最新 60 日</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>日報酬相關係數</td><td>0.9966（高度連動）</td></tr>
+          <tr><td>累積報酬差</td><td>+0.87 pp（631L 領先）</td></tr>
+          <tr><td>平均絕對追蹤差</td><td>0.3416 pp</td></tr>
+          <tr><td>同向天數比例</td><td>96.7%</td></tr>
+        </tbody>
+      </table>
+      <ul class="todo-list">
+        <li class="done">近 60 交易日每日漲跌明細 + 統計</li>
+        <li class="done">雙線累積報酬走勢圖 + 差異柱狀圖</li>
+        <li class="done">全表響應式設計（深色主題）</li>
+        <li class="done">Wealth OS xlsm 同步（00_正二分析 分頁自動更新）</li>
+      </ul>
+      <div class="link-row">
+        <a class="link-btn" href="https://yaojing277.github.io/leverage-etf/" target="_blank">📈 實時分析頁面</a>
       </div>
     </div>
 
@@ -806,6 +896,14 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-09-02</td>
+          <td>📚 補上開發紀錄文件兩份：<b>股票自動化家族開發總表</b>（stock_automation_devlog.html，涵蓋 2026-04-12 起全系列 18 個項目，含架構總覽與三條踩坑鐵律）與 <b>Wealth OS 開發紀錄</b>（wealth_os_devlog.html，2026-07-11 起 14 個項目）；同時把「Wealth OS 資產管理自動化」補為主要專案卡片（先前只有零散工具條目）</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-08-26 ~ 09-02</td>
+          <td>🏦 Wealth OS 多項強化：報酬日曆（月曆熱力圖＋長條圖，本月／上月雙月）、國泰帳戶每日漲跌獨立追蹤（03_國泰漲跌／21_國泰資產歷史）、全出清通用列位移程序（聯電／緯創兩例驗證）、排程交易日守衛修正時區跨夜誤判、E 欄「買進金額」正名為「淨投入資金」</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-07-19</td>
           <td>🤖 頻道新片自動摘要 v2.0：新增 yt_auto_summary.py 監控三頻道（阿良的正二人生／槓桿人生／卡哇KAWA）RSS，新片自動摘要（無字幕走 Whisper 轉錄）→ 部署 Pages → LINE 推短版；首輪實測 3 部全數成功</td>

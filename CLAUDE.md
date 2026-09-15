@@ -60,6 +60,12 @@
       有「交易日守衛」步驟——當日無 TWSE 收盤資料（週末/國定假日）自動跳過，週六補班盤仍會執行。
     - **手動觸發**：手機瀏覽器開 `github.com/yaojing277/stock-notify/actions/workflows/wealth_sync.yml` →
       Run workflow 選模式（手機 GitHub App 無 Run 按鈕）；或 API `workflow_dispatch`。
+    - **排程執行紀錄＋專案總覽自動發佈**（2026-09-03 起）：每次跑完（含失敗，`always()`）由
+      `publish_projects.py` 寫一筆到 `yaojing277/projects` 的 `runlog.json`，並把 `projects.html`
+      與兩份 devlog 同步上線 —— **只同步不改寫 devlog 內容**（人工撰寫的開發紀錄，機器不介入）。
+      線上頁：https://yaojing277.github.io/projects/schedule_runlog.html 。
+      需 secret `PAGES_PAT`（可寫 `projects` 與 `leverage-etf` 的 PAT）；缺了整步安靜跳過不算失敗。
+      本機改完 `projects.html`／devlog 想立刻上線，仍可直接跑 `deploy_projects.sh`。
     - 本機改完 `update_stock_price.py`/`update_wealth_os.py`/`twse_hist.py`/`etf_ex_dividend_calendar.py` 記得同步到 `stock_notify_tmp/jimmy_scripts/` 並 push。
     - 注意：GitHub 排程在 repo 連續 60 天無活動會自動停用；PAT 內嵌於 remote（與到期日綁定）。
     - **ETF 除息日／發放日同步日曆**（`etf_ex_dividend_calendar.py sync`，2026-08-24 起隨每日排程跑）：
@@ -87,11 +93,13 @@
 | `update_close_price.py` | 「Jimmy_YYMMDD」持股月結分頁維護：`inspect`/`fill`/`fill-row`/`audit`；「更新 K欄」觸發語見 memory |
 | `update_stock_price.py` | 「**更新股價**」月度快照滾動：複製最新分頁為當天新分頁後 H~K 左移、K 欄重抓收盤；`update`/`--yes`/`--dry-run`/`--in-place` |
 | `update_wealth_os.py` | 「**同步股價**」（＝更新 Wealth OS；注意與「更新股價」不同）：把最新 `Jimmy_YYMMDD` 分頁同步到雲端 `Jimmy_Wealth_OS_Master_V4.4_Google.xlsm` 的「02_持股總表」，並自動在「15_資產歷史」附加當日凍結快照（同日重跑覆寫不重複）、偵測持股變動自動補登「10_投資日誌」（均價由成本差回推）；加 `--full` 連同 Dashboard/03/04/13/14/安全指數/規則檢查等分頁的公式快取與模板文字一起刷新（「**更新所有分頁**」＝ `update --yes --full`）；Drive API 就地覆蓋、檔案 ID 不變；`update`/`--yes`/`--dry-run`/`--full`；需 token 含 Drive 權限，細節見 memory |
+| `lev2_balance.py` | 阿良「正二人生資產負債表」計算引擎（純計算）：三桶（原型β1／正二β2／防守β0＝現金＋債券）、本金槓桿（只計信貸）、總曝險、生活費倍數→建議配置代號（703…073）、5 年預期報酬、00631L 跌幅加碼梯；原本 `--full` 時由 `update_wealth_os.py` 整張重建「06_阿良資產負債表」，**2026-09-16 起以 `LEV2BAL_ENABLED = False` 停用**（06 改回手動範本，D9 引用 `03_持股總表` 合計），計算引擎保留可 `--xlsm` 離線試算。參數讀 `12_設定` B22~B32＋D2:G10 對照表，缺格只警告跳過；`--xlsm <本機檔>` 可離線印報表 |
 | `stock_notify.py` / `stock_alert.py` / `stock_alert_v2.py` / `stock_notify_gmail.py` / `youtube_notify.py` | LINE/Gmail 通知類，實際跑在 `stock-notify` repo 的 GitHub Actions（見上方同步規則），金鑰走環境變數 |
 | `sheets_writer.py` | 「股票買賣紀錄」分頁匯入（交割明細擷圖 → 寫入） |
 | `sheet_value_guard.py` | 改公式前後的安全網：`snapshot`/`diff` 比對計算值 |
 | `trade_entry_server.py` / `trade_entry_appscript.gs` | 買進紀錄輸入網頁（localhost:8765）與 Apps Script 後端橋接 |
 | `etf_ex_dividend_calendar.py` | ETF 除息日／發放日同步 Google 日曆：`sync`（Service Account 全自動，排程用）／`check`+`mark`（本機無 SA 時，搭配 Calendar MCP 手動建） |
+| `publish_projects.py` | 排程跑完把執行結果寫進 `yaojing277/projects` 的 `runlog.json`（同交易日重跑覆蓋、留 90 天），並同步 `projects.html`/`index.html`/兩份 devlog/`schedule_runlog.html`；需 secret `PAGES_PAT` |
 | `check_reminders.py` | 日期到期提醒（讀 `reminders.json`，需環境變數 `LINE_TOKEN`/`LINE_USER_ID`） |
 | `auth_sheets.py` / `reauth_sheets.py` | Google Sheets OAuth 授權／重授權（token 約 7 天過期）；`reauth_sheets.py --drive` 可加授 Google Drive 權限 |
 
@@ -131,8 +139,8 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 | 象棋麻將 | `chess_mahjong.html`（單機）／`chess_mahjong_firebase.html`（多人，Firebase）／`chess_mahjong_ai.html`；`chess_mahjong_server/`（Node + Express + Socket.io，`npm start`）為另一組多人連線嘗試 |
 | 族群漲跌幅圖表 | `stock_sector_chart.html` 模板，抓資料後用 Playwright 截圖成 PNG |
 | ETF 報酬比較圖卡 | `00631L_vs_0050_returns.html` / `_light.html` + PNG + `ETF_annual_returns.csv` |
-| `projects.html` | 專案總覽頁；說「更新專案總覽」時需同步更新這裡＋本檔案（見 memory） |
-| YouTube 影片 AI 摘要 | `yt_summary.py <網址>`：字幕（youtube-transcript-api，zh-TW 優先）→ claude CLI `-p`（自動尋找桌面版 App 內建執行檔）→ 深色 HTML 摘要頁＋`yt_summaries/index.html` 摘要庫；無字幕自動 fallback **yt-dlp＋faster-whisper 本地轉錄**（`--whisper-model` 可調）；**首次使用需先讓 claude CLI /login 一次**。`yt_auto_summary.py`：三頻道（阿良的正二人生／槓桿人生／卡哇KAWA）RSS 新片自動摘要→部署→LINE 推短版（狀態記 `yt_auto_state.json`，首次執行只登記、`--backfill N` 回補；LINE 金鑰讀環境變數或 `line_secrets.json`）。`deploy_yt_summaries.sh` 一鍵部署摘要庫至 `yaojing277.github.io/yt-summaries`（repo 不存在自動建立） |
+| `projects.html` | 專案總覽頁；說「更新專案總覽」時需同步更新這裡＋本檔案（見 memory）。`deploy_projects.sh` 一鍵部署至 `yaojing277.github.io/projects`（repo `yaojing277/projects`，2026-09-03 建立）：另存一份 `index.html` 當首頁，並一併帶上頁內相對連結的檔案（兩份 devlog、ETF 報酬圖卡、族群圖表、`yt_summaries/`）；**改完 `projects.html` 或兩份 devlog 後要跑這支才會反映到線上**（2026-09-03 起每個交易日排程也會自動同步這幾份，本機跑只是想立刻生效時用） |
+| YouTube 影片 AI 摘要 | `yt_summary.py <網址>`：字幕（youtube-transcript-api，zh-TW 優先）→ claude CLI `-p`（自動尋找桌面版 App 內建執行檔）→ 深色 HTML 摘要頁＋`yt_summaries/index.html` 摘要庫；無字幕自動 fallback **yt-dlp＋faster-whisper 本地轉錄**（`--whisper-model` 可調）；字幕／轉錄結果快取於 `.yt_transcript_cache/`（摘要失敗重跑免再轉錄一次，該目錄不會被 deploy 推上 GitHub）；**首次使用需先讓 claude CLI /login 一次**。`yt_auto_summary.py`：三頻道（阿良的正二人生／槓桿人生／卡哇KAWA）RSS 新片自動摘要→部署→LINE 推短版（狀態記 `yt_auto_state.json`，首次執行只登記、`--backfill N` 回補；LINE 金鑰讀環境變數或 `line_secrets.json`）。`deploy_yt_summaries.sh` 一鍵部署摘要庫至 `yaojing277.github.io/yt-summaries`（repo 不存在自動建立） |
 
 ### 其他獨立小專案
 
@@ -148,6 +156,11 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 - 純數字股票代號（0050／0056／00878…）寫入 Sheets 前要加 `'` 前綴，避免被當數字吃掉前導零。
 - 對帳單是「交割日（T+2）」、分頁記的是「成交日」，匯入買賣紀錄時勿混淆（見 `README_股票買賣紀錄匯入.md`）。
 - 深入文件都在 `jimmy_scripts/`：`README_sheet_tools.md`（Sheets 工具細節）、`SHEETS_API_SETUP.md`（API 初始設定）、`換電腦環境還原指南.md`（環境重建）。
+- **開發紀錄（HTML，倒序排列，新紀錄加在最上面）**：`stock_automation_devlog.html`（股票自動化家族總表，
+  涵蓋 2026-04-12 起全系列六層架構、18 個項目，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`
+  （Wealth OS 專屬，2026-07-11 起 14 個項目）。格式沿用 `~/Downloads/docs/devlog.html` 模板
+  （需求／實作／踩坑與解法／驗證結果 四段式）。兩份都已掛在 `projects.html` 的
+  「Wealth OS 資產管理自動化」卡片上；日後有重要開發或踩坑，記得回頭補一筆。
 
 ## 進行中專案與背景
 
