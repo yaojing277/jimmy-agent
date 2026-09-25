@@ -288,7 +288,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-09-02</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-09-26</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -640,6 +640,50 @@
       <div class="link-row">
         <a class="link-btn" href="00631L_vs_0050_returns.html" target="_blank">🌙 深色版</a>
         <a class="link-btn" href="00631L_vs_0050_returns_light.html" target="_blank">☀️ 淺色版</a>
+      </div>
+    </div>
+
+    <!-- 每日跌幅分布查詢 -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📉</div>
+        <div class="card-meta">
+          <div class="card-name">每日跌幅分布查詢</div>
+          <div class="card-sub">輸入代號即時計算 · 仿「跌到多少%進場」圖卡 · v1.0</div>
+        </div>
+        <span class="dot active"></span>
+      </div>
+      <div class="badge-strip">
+        <span class="badge badge-blue">HTML</span>
+        <span class="badge badge-gray">Python</span>
+        <span class="badge badge-green">TWSE 官方</span>
+        <span class="badge badge-yellow">本機伺服器</span>
+      </div>
+      <div class="card-desc">
+        輸入台股代號（上市／上櫃），即時算出期間每日漲跌幅的<b>跌幅區間分布</b>
+        （天數、占下跌天數比例、集中月份）、最大單日漲跌幅與期間漲幅（可對照 0050）。
+        除息日以「前收−股利」為參考價，分割日改用證交所官方參考價，避免誤判暴跌。
+      </div>
+      <table class="sub-table">
+        <thead>
+          <tr><th>檔案</th><th>用途</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>drop_stats_server.py</td><td>查詢頁（localhost:8766，<code>--lan</code> 開放手機）</td></tr>
+          <tr><td>drop_stats_card.py</td><td>計算＋圖卡引擎，CLI 可批次產 HTML／PNG</td></tr>
+        </tbody>
+      </table>
+      <ul class="todo-list">
+        <li class="done">跌幅分桶統計＋自動走勢觀察文字</li>
+        <li class="done">除息／分割還原（00631L 1 拆 22 已驗證）</li>
+        <li class="done">正二自動多切一桶（1,2,4,7）</li>
+        <li class="done">輸入代號即時查詢網頁</li>
+        <li>雲端化（CORS 限制，需後端代理才能上 GitHub Pages）</li>
+      </ul>
+      <div class="link-row">
+        <a class="link-btn" href="http://localhost:8766/" target="_blank">🔍 開啟查詢頁（需先啟動）</a>
+        <a class="link-btn secondary" href="drop_stats_00878.html" target="_blank">00878 範例</a>
+        <a class="link-btn secondary" href="drop_stats_00631L.html" target="_blank">00631L 範例</a>
       </div>
     </div>
 

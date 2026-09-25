@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<title>00878 跌幅分布</title>
+<style>
+:root{--navy:#1b3a6b;--red:#d62828;--green:#2a9d4b;--bg:#f4f7fb;}
+*{box-sizing:border-box;margin:0}
+body{min-width:1130px;background:var(--bg);font-family:"PingFang TC","Noto Sans TC",sans-serif;color:var(--navy);padding:24px}
+.card{width:1080px;margin:auto;background:#fff;border-radius:24px;padding:36px;box-shadow:0 8px 30px #0002}
+h1{font-size:64px;font-weight:900;line-height:1.15} h1 b{color:var(--red)}
+.banner{margin:18px 0;background:#fff4c2;border-radius:40px;text-align:center;font-size:34px;font-weight:800;padding:12px}
+.period{background:#f3c6cc;color:#7a1d2a;border-radius:12px;text-align:center;font-size:28px;font-weight:800;padding:10px}
+.kpis{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:16px;margin:18px 0}
+.kpi{border:2px solid #dde4ee;border-radius:16px;padding:16px;text-align:center}
+.kpi .t{font-size:24px;font-weight:800} .kpi .v{font-size:64px;font-weight:900;color:var(--red)}
+.kpi .sub{font-size:22px;font-weight:700}
+.ud{display:flex;flex-direction:column;gap:12px}
+.ud div{border-radius:14px;padding:10px 14px;font-weight:800;font-size:22px}
+.ud .up{background:#fdecec;color:var(--red);border:2px solid var(--red)}
+.ud .dn{background:#e9f7ee;color:var(--green);border:2px solid var(--green)}
+.ud span{font-size:42px;font-weight:900;display:block}
+table{width:100%;border-collapse:separate;border-spacing:0 8px}
+th{background:var(--navy);color:#fff;font-size:26px;padding:12px}
+td{padding:14px;font-size:24px;font-weight:700}
+.lab{font-size:26px;font-weight:900;border-radius:12px 0 0 12px;white-space:nowrap;width:230px}
+.num{font-size:48px;font-weight:900;text-align:center;white-space:nowrap;width:150px} .num small{font-size:22px}
+.pct{font-size:44px;font-weight:900;color:var(--red);text-align:center}
+.note{border-radius:0 12px 12px 0}
+tr.green td{background:#eaf6ea} tr.blue td{background:#e8f0fb}
+tr.amber td{background:#fdf1dc} tr.red td{background:#fbe6ea}
+.foot{text-align:center;font-size:18px;margin-top:14px;color:#556}
+</style></head><body><div class="card">
+<h1>00878 當日跌到<b>多少%</b><br>你會選擇進場？</h1>
+<div class="banner">今年以來績效落後 0050</div>
+<div class="period">1/1~8/31 每日跌幅統計　總交易日 159 天（下跌 60 天）</div>
+<div class="kpis">
+ <div class="kpi"><div class="t">8/31 股價</div><div class="v">33.18</div></div>
+ <div class="kpi"><div class="t">期間漲幅</div><div class="v">52.83%</div><div class="sub">（0050 為 61.97%）</div></div>
+ <div class="ud">
+  <div class="up">最大單日漲幅<span>+5.46%</span>(07/31)</div>
+  <div class="dn">最大單日跌幅<span>-4.06%</span>(08/18)</div>
+ </div>
+</div>
+<table><tr><th>跌幅區間</th><th>天數</th><th>占總下跌天數比例</th><th>說明與走勢觀察</th></tr><tr class="green"><td class="lab">跌幅不到 1%</td><td class="num">33<small> 天</small></td><td class="pct">55.0%</td><td class="note">日常最常見的微幅震盪整理，集中於 7 月、5 月、8 月</td></tr><tr class="blue"><td class="lab">跌幅 1%~2%</td><td class="num">17<small> 天</small></td><td class="pct">28.3%</td><td class="note">大盤回檔時的溫和拉回，集中於 3 月、7 月、2 月</td></tr><tr class="amber"><td class="lab">跌幅 2%~4%</td><td class="num">9<small> 天</small></td><td class="pct">15.0%</td><td class="note">較明顯的修正，集中於 6 月、3 月、7 月</td></tr><tr class="red"><td class="lab">跌幅 4% 以上</td><td class="num">1<small> 天</small></td><td class="pct">1.7%</td><td class="note">極端急跌（僅 08/18 出現 1 次）</td></tr></table>
+<div class="foot">資料來源：證交所（未調整除息）　產出：drop_stats_card.py　2026-09-26</div>
+</div></body></html>

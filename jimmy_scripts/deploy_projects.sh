@@ -21,6 +21,8 @@ FILES=(
   00631L_vs_0050_returns.html
   00631L_vs_0050_returns_light.html
   stock_sector_chart.html
+  drop_stats_00878.html
+  drop_stats_00631L.html
 )
 DIRS=(
   yt_summaries
