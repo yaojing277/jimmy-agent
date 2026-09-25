@@ -53,7 +53,7 @@
     自動化真正執行的地方在那邊；本機 `jimmy_scripts/` 改完對應腳本後，要同步過去並 push 才會生效。
   - 同步時注意路徑：workflows 執行的是 `stock_notify_tmp/jimmy_scripts/` **子目錄**下的腳本
     （`stock_notify.py`、`stock_alert.py`、`stock_alert_v2.py`、`stock_notify_gmail.py`、`price_source.py`、`auth_sheets.py`、
-    `update_stock_price.py`、`update_wealth_os.py`、`twse_hist.py`、`etf_ex_dividend_calendar.py`），
+    `update_stock_price.py`、`update_wealth_os.py`、`twse_hist.py`、`etf_ex_dividend_calendar.py`、`drop_stats_publish.py`、`drop_stats_web.html`），
     但 `check_reminders.py`、`youtube_notify.py`、`reminders.json` 放在 `stock_notify_tmp/` **根目錄**。
   - **雲端執行**：`wealth_sync.yml` workflow，認證走 Service Account（Secret `GOOGLE_SA_JSON`，永不過期），跑完 LINE 通知。
     - **每日自動排程**（2026-07-25 起）：每天台北 14:30（cron `30 6 * * *`）觸發，跑「更新股價＋同步＋全分頁」；
@@ -139,7 +139,7 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 | 象棋麻將 | `chess_mahjong.html`（單機）／`chess_mahjong_firebase.html`（多人，Firebase）／`chess_mahjong_ai.html`；`chess_mahjong_server/`（Node + Express + Socket.io，`npm start`）為另一組多人連線嘗試 |
 | 族群漲跌幅圖表 | `stock_sector_chart.html` 模板，抓資料後用 Playwright 截圖成 PNG |
 | ETF 報酬比較圖卡 | `00631L_vs_0050_returns.html` / `_light.html` + PNG + `ETF_annual_returns.csv` |
-| 每日跌幅分布圖卡 | `drop_stats_card.py <代號>`（CLI 產 `drop_stats_<代號>.html`，`--edges`/`--raw`/`--png`）；`drop_stats_server.py` 即時查詢頁 `localhost:8766`（`--lan` 開放手機）。除息日以前收−股利、分割日以 STOCK_DAY 漲跌價差回推官方參考價。因證交所 CORS 限制只能本機跑；`projects.html` 卡片附 00878／00631L 靜態範例（已列入 `deploy_projects.sh`） |
+| 每日跌幅分布查詢 | **手機版（主）**：https://yaojing277.github.io/projects/drop/ ——`drop_stats_publish.py daily` 隨 `wealth_sync.yml` 每個交易日抓證交所全市場收盤行情（MI_INDEX，一次＝全市場一天）重建當月月檔 `drop/data/YYYY-MM.json`＋`meta.json`，`drop_stats_web.html` 在瀏覽器端計算（電腦不必開）；漲跌幅用官方參考價（一般日＝漲跌價差、除息日 X＝TWT49U 除權息參考價），分割自動正確；目前只收上市。回補：`build --from YYYY-MM` 後 `publish`。**本機版**：`drop_stats_card.py <代號>`（CLI 產 HTML/PNG）、`drop_stats_server.py`（localhost:8766） |
 | `projects.html` | 專案總覽頁；說「更新專案總覽」時需同步更新這裡＋本檔案（見 memory）。`deploy_projects.sh` 一鍵部署至 `yaojing277.github.io/projects`（repo `yaojing277/projects`，2026-09-03 建立）：另存一份 `index.html` 當首頁，並一併帶上頁內相對連結的檔案（兩份 devlog、ETF 報酬圖卡、族群圖表、`yt_summaries/`）；**改完 `projects.html` 或兩份 devlog 後要跑這支才會反映到線上**（2026-09-03 起每個交易日排程也會自動同步這幾份，本機跑只是想立刻生效時用） |
 | YouTube 影片 AI 摘要 | `yt_summary.py <網址>`：字幕（youtube-transcript-api，zh-TW 優先）→ claude CLI `-p`（自動尋找桌面版 App 內建執行檔）→ 深色 HTML 摘要頁＋`yt_summaries/index.html` 摘要庫；無字幕自動 fallback **yt-dlp＋faster-whisper 本地轉錄**（`--whisper-model` 可調）；字幕／轉錄結果快取於 `.yt_transcript_cache/`（摘要失敗重跑免再轉錄一次，該目錄不會被 deploy 推上 GitHub）；**首次使用需先讓 claude CLI /login 一次**。`yt_auto_summary.py`：三頻道（阿良的正二人生／槓桿人生／卡哇KAWA）RSS 新片自動摘要→部署→LINE 推短版（狀態記 `yt_auto_state.json`，首次執行只登記、`--backfill N` 回補；LINE 金鑰讀環境變數或 `line_secrets.json`）。`deploy_yt_summaries.sh` 一鍵部署摘要庫至 `yaojing277.github.io/yt-summaries`（repo 不存在自動建立） |
 
@@ -165,11 +165,12 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 
 ## 進行中專案與背景
 
-- [2026-09-26] **每日跌幅分布圖卡＋即時查詢頁**（v1.0 完成）
-  - 仿網路「00878 當日跌到多少% 你會選擇進場？」圖卡：跌幅分桶天數／占比、最大單日漲跌幅、期間漲幅對照 0050
-  - `--raw` 模式與原圖逐格一致（原圖把 00878 08/18 除息缺口誤算為 −4.06% 暴跌，預設模式已修正）
-  - 00631L 2026-03-31 恢復買賣 1 拆 22，已自動偵測還原；正二代號（L 結尾）查詢頁自動用 1,2,4,7 分桶
-  - 已加入 `projects.html` 主要專案卡片；下一步可考慮雲端化（需後端代理）或排進每日排程批次產圖
+- [2026-09-26] **每日跌幅分布查詢（手機版上線）**（v2.0 完成）
+  - 仿網路「00878 當日跌到多少% 你會選擇進場？」圖卡：跌幅分桶天數／占比、最大單日漲跌幅、期間含息報酬對照 0050
+  - 手機查詢頁 https://yaojing277.github.io/projects/drop/ ，可輸入代號或名稱；資料 2025-12 起，每個交易日 14:30 排程更新
+  - `raw=1`（不調整除息）與原圖逐格一致；預設用官方參考價（原圖把 00878 08/18 除息缺口誤算為 −4.06% 暴跌）
+  - 月檔約 350 KB（gzip 後約 125 KB），當月檔每日覆寫；`stock-notify` 的 `projects.html` 需與本機同步，否則排程會把線上總覽蓋回舊版
+  - 下一步：加入上櫃（櫃買中心全市場行情）
 
 - [2026-08-24] **ETF 除息日／發放日自動同步 Google 日曆**（v1.0 完成）
   - 「股價試算」持股中 11 檔 ETF（0050/0052/0056/00631L/00662/00663L/00685L/00878/00919/00934/00981A）

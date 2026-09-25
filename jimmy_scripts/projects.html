@@ -649,39 +649,40 @@
         <div class="card-icon">📉</div>
         <div class="card-meta">
           <div class="card-name">每日跌幅分布查詢</div>
-          <div class="card-sub">輸入代號即時計算 · 仿「跌到多少%進場」圖卡 · v1.0</div>
+          <div class="card-sub">手機輸入代號即時計算 · 仿「跌到多少%進場」圖卡 · v2.0</div>
         </div>
         <span class="dot active"></span>
       </div>
       <div class="badge-strip">
-        <span class="badge badge-blue">HTML</span>
+        <span class="badge badge-blue">HTML / JS</span>
         <span class="badge badge-gray">Python</span>
         <span class="badge badge-green">TWSE 官方</span>
-        <span class="badge badge-yellow">本機伺服器</span>
+        <span class="badge badge-purple">GitHub Pages</span>
       </div>
       <div class="card-desc">
-        輸入台股代號（上市／上櫃），即時算出期間每日漲跌幅的<b>跌幅區間分布</b>
-        （天數、占下跌天數比例、集中月份）、最大單日漲跌幅與期間漲幅（可對照 0050）。
-        除息日以「前收−股利」為參考價，分割日改用證交所官方參考價，避免誤判暴跌。
+        輸入台股代號或名稱，手機上即時算出期間每日漲跌幅的<b>跌幅區間分布</b>
+        （天數、占下跌天數比例、集中月份）、最大單日漲跌幅與含息報酬（可對照 0050）。
+        每個交易日排程抓證交所全市場收盤行情存成月檔，網頁在瀏覽器端計算，<b>電腦不必開機</b>。
+        漲跌幅採官方參考價，除息與分割皆已還原。
       </div>
       <table class="sub-table">
         <thead>
           <tr><th>檔案</th><th>用途</th></tr>
         </thead>
         <tbody>
-          <tr><td>drop_stats_server.py</td><td>查詢頁（localhost:8766，<code>--lan</code> 開放手機）</td></tr>
-          <tr><td>drop_stats_card.py</td><td>計算＋圖卡引擎，CLI 可批次產 HTML／PNG</td></tr>
+          <tr><td>drop_stats_web.html</td><td>手機查詢頁（純前端計算）</td></tr>
+          <tr><td>drop_stats_publish.py</td><td>建月檔＋發佈，排程 <code>daily</code> 每日更新</td></tr>
+          <tr><td>drop_stats_card.py</td><td>本機 CLI 版，可批次產 HTML／PNG</td></tr>
         </tbody>
       </table>
       <ul class="todo-list">
         <li class="done">跌幅分桶統計＋自動走勢觀察文字</li>
-        <li class="done">除息／分割還原（00631L 1 拆 22 已驗證）</li>
-        <li class="done">正二自動多切一桶（1,2,4,7）</li>
-        <li class="done">輸入代號即時查詢網頁</li>
-        <li>雲端化（CORS 限制，需後端代理才能上 GitHub Pages）</li>
+        <li class="done">官方參考價：除息／分割還原（00631L 1 拆 22 已驗證）</li>
+        <li class="done">手機版查詢頁上 GitHub Pages，隨每日排程更新</li>
+        <li>加入上櫃股票（櫃買中心全市場行情）</li>
       </ul>
       <div class="link-row">
-        <a class="link-btn" href="http://localhost:8766/" target="_blank">🔍 開啟查詢頁（需先啟動）</a>
+        <a class="link-btn" href="https://yaojing277.github.io/projects/drop/" target="_blank">📱 開啟查詢頁</a>
         <a class="link-btn secondary" href="drop_stats_00878.html" target="_blank">00878 範例</a>
         <a class="link-btn secondary" href="drop_stats_00631L.html" target="_blank">00631L 範例</a>
       </div>

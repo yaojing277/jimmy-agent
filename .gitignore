@@ -13,3 +13,5 @@ __pycache__/
 .DS_Store
 stock_notify_tmp/
 jimmy_scripts/MouseSideKey/
+# 跌幅查詢頁本機建置輸出（可隨時重建）
+jimmy_scripts/drop_site/
