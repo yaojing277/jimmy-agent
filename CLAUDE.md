@@ -91,8 +91,8 @@
 | `twse_hist.py` | 共用歷史股價＋除權息模組（TWSE 為主、TPEx 補，無 Yahoo），供多支腳本 import |
 | `price_source.py` | 共用即時報價模組（TWSE 官方為主、yfinance 備援） |
 | `update_close_price.py` | 「Jimmy_YYMMDD」持股月結分頁維護：`inspect`/`fill`/`fill-row`/`audit`；「更新 K欄」觸發語見 memory |
-| `update_stock_price.py` | 「**更新股價**」月度快照滾動：複製最新分頁為當天新分頁後 H~K 左移、K 欄重抓收盤；`update`/`--yes`/`--dry-run`/`--in-place` |
-| `update_wealth_os.py` | 「**同步股價**」（＝更新 Wealth OS；注意與「更新股價」不同）：把最新 `Jimmy_YYMMDD` 分頁同步到雲端 `Jimmy_Wealth_OS_Master_V4.4_Google.xlsm` 的「02_持股總表」，並自動在「15_資產歷史」附加當日凍結快照（同日重跑覆寫不重複）、偵測持股變動自動補登「10_投資日誌」（均價由成本差回推）；加 `--full` 連同 Dashboard/03/04/13/14/安全指數/規則檢查等分頁的公式快取與模板文字一起刷新（「**更新所有分頁**」＝ `update --yes --full`）；Drive API 就地覆蓋、檔案 ID 不變；`update`/`--yes`/`--dry-run`/`--full`；需 token 含 Drive 權限，細節見 memory |
+| `update_stock_price.py` | 「**更新股價**」月度快照滾動：複製最新分頁為當天新分頁後 H~K 左移、K 欄重抓收盤；`update`/`--yes`/`--dry-run`/`--in-place`/`--skip-if-exists`（當天快照已存在時 exit 0 而非中止，**排程專用**；手動執行不帶此參數仍會大聲中止） |
+| `update_wealth_os.py` | 「**同步股價**」（＝更新 Wealth OS；注意與「更新股價」不同）：把最新 `Jimmy_YYMMDD` 分頁同步到雲端 `Jimmy_Wealth_OS_Master_V4.4_Google.xlsm` 的「02_持股總表」，並自動在「15_資產歷史」附加當日凍結快照（同日重跑覆寫不重複）、偵測持股變動自動補登「10_投資日誌」（均價由成本差回推）；加 `--full` 連同 Dashboard/03/04/13/14/安全指數/規則檢查等分頁的公式快取與模板文字一起刷新（「**更新所有分頁**」＝ `update --yes --full`）；Drive API 就地覆蓋、檔案 ID 不變；`update`/`--yes`/`--dry-run`/`--full`；另提供 `delete_stock_rows()` 供**全出清**整列刪除（自動位移全檔跨表引用，2026-10-01 抽成正式函式）；需 token 含 Drive 權限，細節見 memory |
 | `lev2_balance.py` | 阿良「正二人生資產負債表」計算引擎（純計算）：三桶（原型β1／正二β2／防守β0＝現金＋債券）、本金槓桿（只計信貸）、總曝險、生活費倍數→建議配置代號（703…073）、5 年預期報酬、00631L 跌幅加碼梯；原本 `--full` 時由 `update_wealth_os.py` 整張重建「06_阿良資產負債表」，**2026-09-16 起以 `LEV2BAL_ENABLED = False` 停用**（06 改回手動範本，D9 引用 `03_持股總表` 合計），計算引擎保留可 `--xlsm` 離線試算。參數讀 `12_設定` B22~B32＋D2:G10 對照表，缺格只警告跳過；`--xlsm <本機檔>` 可離線印報表 |
 | `stock_notify.py` / `stock_alert.py` / `stock_alert_v2.py` / `stock_notify_gmail.py` / `youtube_notify.py` | LINE/Gmail 通知類，實際跑在 `stock-notify` repo 的 GitHub Actions（見上方同步規則），金鑰走環境變數 |
 | `sheets_writer.py` | 「股票買賣紀錄」分頁匯入（交割明細擷圖 → 寫入） |
@@ -155,8 +155,25 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 
 - 憑證/token（`credentials.json`、`token.json`、`token.pickle`、`client_secret_*.json`）為使用中金鑰，勿誤刪或提交版本控制。
 - 純數字股票代號（0050／0056／00878…）寫入 Sheets 前要加 `'` 前綴，避免被當數字吃掉前導零。
+- **歷史資料表一律「日期由新到舊」（2026-10-01 起）**：`16_資產歷史`／`21_國泰資產歷史` 的列2＝最新一天，
+  新資料由腳本插進列2、其餘整批往下推（`_renumber_row_xml`），跟 `02_每日漲跌`／`03_國泰漲跌` 同方向，
+  兩邊列號固定差 23 列，每日表公式因此可用單純的相對參照。**程式內部仍一律用「舊到新」**
+  （讀進來就 sort，`hist[0]`＝最早），只有「換算成列號」那一步知道儲存順序。
 - 對帳單是「交割日（T+2）」、分頁記的是「成交日」，匯入買賣紀錄時勿混淆（見 `README_股票買賣紀錄匯入.md`）。
 - 深入文件都在 `jimmy_scripts/`：`README_sheet_tools.md`（Sheets 工具細節）、`SHEETS_API_SETUP.md`（API 初始設定）、`換電腦環境還原指南.md`（環境重建）。
+- **`04_ETF分析` 列10~14 是 Jimmy 手動維護的公式，腳本不得覆寫**（2026-10-02 定案）：
+  B10/C10/D10＝`金額`／`曝險比例`／`成本比例`；B12 存**未加倍**的正二市值、B14 才乘 2；
+  **C 欄（曝險，分母 B14）與 D 欄（成本，分母 SUM(B11:B13)）是兩種口徑、各自加總 100%，
+  不要「修正」成一致**。`full_refresh()` 只寫列 4~9 與 D5/E4/E6，已實測不碰列 10~14。
+  完整公式備份見 memory（[[project-etf-exposure-formulas]]）。
+- **排程遲到＋手動補跑的連坐失敗（2026-10-02 解決）**：GitHub 排程常遲到數小時，
+  若期間先手動補跑，排程才跑時會因「當天快照已存在」`exit 1`，**GitHub Actions 連坐跳過後面五步**
+  ——其中國泰漲跌／ETF除息日曆／跌幅查詢頁／正二分析各自抓自己的 TWSE 資料、與快照無關，
+  被跳過等於那天資料整天空缺。workflow 的更新股價步驟已帶 `--skip-if-exists`。
+- **版本紀錄要順手補（2026-09-29 起）**：做完有份量的改動（新腳本／新功能／行為變更／重要修復）後，
+  **主動**在 `projects.html` 「版本紀錄」最上方補一筆並更新頁首日期，不必等「更新專案總覽」指令。
+  每日排程的 `publish_projects.py` 只同步檔案、不會代寫版本紀錄（2026-09-02～09-26 曾因此空窗三週）。
+  純使用行為（跑一次摘要、查一次股價）不算異動。細節見 memory（[[feedback-devlog-version-entry]]）。
 - **開發紀錄（HTML，倒序排列，新紀錄加在最上面）**：`stock_automation_devlog.html`（股票自動化家族總表，
   涵蓋 2026-04-12 起全系列六層架構、18 個項目，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`
   （Wealth OS 專屬，2026-07-11 起 14 個項目）。格式沿用 `~/Downloads/docs/devlog.html` 模板
@@ -164,6 +181,30 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   「Wealth OS 資產管理自動化」卡片上；日後有重要開發或踩坑，記得回頭補一筆。
 
 ## 進行中專案與背景
+
+- [2026-10-02] **Wealth OS 配置監控強化**（已完成）
+  - **正二曝險上限**：`12_設定` **B21 ＝ 70%**，口徑為 **正二×2 ÷ 總曝險**（原型＋正二×2＋現金），
+    與 `04_ETF分析` C 欄一致。⚠ 別跟 B13「正二目標上限」60% 搞混——**那條管的是「占股票市值」**
+    （目前 28.3%），才是 Dashboard 講的「正二比例」、才會扣安全指數 15 分。
+    新門檻已進每日 AI 摘要第 4 點（與既有正二那行併排顯示），**依 Jimmy 指示暫不扣安全指數**。
+  - **新增 `OPTIONAL_SETTINGS_MAP`**：後加的選用門檻缺值時退回預設並印警告，**不像必填項那樣
+    `sys.exit`**——避免一格空白就讓整個每日排程掛掉。日後加新門檻一律放這組。
+  - **金額千分位**：`02_每日漲跌`／`03_國泰漲跌` 的報酬日曆與每日表格共 6 張表套 `CAL_AMT_FMT="#,##0"`。
+    **這兩張分頁每次同步都整張重建，手動改格式隔天就會被蓋掉——一律改產生器。**
+  - **Jimmy 的配置方向：逐步賣個股、轉買正二 ETF**，要求每次記帳後一併回報曝險比例與成本比例
+    （目前曝險 50:39:11、成本 62:25:14）。⚠ 回報時須自己從 B4:B9 重算，不可讀列 11~14 的快取。
+  - 細節見 memory（[[project-etf-exposure-formulas]]、[[feedback-trade-entry]]）
+
+- [2026-09-29] **禾伸堂（3026）買進紀錄還原｜9,444 元差額待查**（⚠ 待辦；該股已於 2026-10-01 全出清）
+  - **待辦：翻 2026 年 6 月對帳單，核對 6/2、6/10 兩筆禾伸堂買進的實際成交價與股數**
+  - 「股票買賣紀錄」分頁記 6/2（50股@620＝31,026）＋6/10（50股@718＝35,930）＝100 股／66,956 元，
+    但快照 `Jimmy_260612` 顯示當時 100 股成本為 **76,400**（均價 764.00），元大 App 總成本 244,506
+    也與快照一致 → **這二筆短記 9,444 元**（快照與券商兩個獨立來源互相佐證，故 76,400 為準）
+  - 差額已在買賣紀錄 **列18、列29 的 Z 欄備註**留痕；未補假交易湊平，查到真實數字再更正
+  - 同時已用「快照差分」還原 7/09 批 150 股、7/13 批 50 股共 3 筆缺漏紀錄（列11~13，Z 欄註明來源）；
+    還原法與驗證方式（手續費須符合 0.1425%×6折）見 memory（[[feedback-trade-entry]]）
+  - 順帶釐清：元大 App 用 **FIFO**、試算表用 **加權平均**，總損益相同僅認列時點不同；
+    Jimmy 決定**維持加權平均**（部分賣出時 B 欄均價不動、只減 C 欄股數）
 
 - [2026-09-26] **每日跌幅分布查詢（手機版上線）**（v2.0 完成）
   - 仿網路「00878 當日跌到多少% 你會選擇進場？」圖卡：跌幅分桶天數／占比、最大單日漲跌幅、期間含息報酬對照 0050
@@ -204,6 +245,8 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   - claude CLI 已完成首次 `/login`，真實摘要實測成功（TED 拖延症演講、阿格力 EP134）
   - [2026-07-19] 摘要庫已上 GitHub Pages：`deploy_yt_summaries.sh` 一鍵部署（rsync 同步、自動建 repo/啟用 Pages），https://yaojing277.github.io/yt-summaries/
   - [2026-07-19] 新片自動摘要 v2.0 完成：`yt_auto_summary.py` 手動執行（不排程），首輪 `--backfill 1` 實測 3 部全成功（含 2 部無字幕走 Whisper：阿良 EP147、卡哇KAWA）；oEmbed 401 時以 RSS 標題/頻道備援（`fallback_meta`）
+  - [2026-09-09] 加入字幕／轉錄快取 `.yt_transcript_cache/`：Whisper 結果存檔，摘要步驟失敗重跑免再轉錄一次；claude CLI 的 OAuth **會過期**（錯誤訊息 `OAuth session expired`），失效時需本人 `/login`，期間可由 Claude 讀快取逐字稿自行撰寫摘要再產頁（見 [[feedback-yt-summary-trigger]]）
+  - [2026-09-29] 摘要庫累積 8 部影片；線上 https://yaojing277.github.io/yt-summaries/
   - **待辦**：本機建 `jimmy_scripts/line_secrets.json`（`{"LINE_TOKEN":"...","LINE_USER_ID":"..."}`，與 GitHub Secrets 同組值）啟用 LINE 摘要推播
 - [2026-07-08] **MouseSideKey 保存與升格**（已完成）
   - 本機完成安裝（Hammerspoon 1.1.1、登入項目已設，輔助使用權限需手動授予）
