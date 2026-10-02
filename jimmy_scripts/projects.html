@@ -959,7 +959,7 @@
       <tbody>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-03</td>
-          <td>⌨️ <b>MouseSideKey 新增選用模組：Claude 快捷鍵 ⌥Q</b>：一鍵切到 Claude App → 點擊輸入框 → 送出 → 方向鍵 → 1 秒後 Enter（本體 <code>claude_hotkey.lua</code>，symlink 到 <code>~/.hammerspoon/</code>）。<code>init.lua</code> 改為<b>檔案存在才載入</b>、<code>pcall</code> 隔離錯誤，不影響側鍵功能，重裝不再遺失。踩坑：<code>hs.timer.doAfter</code> 未保留參照會被 GC 回收而不觸發；按鍵改送前景視窗（Electron 收不到 <code>postToApplication</code>）</td>
+          <td>⌨️ <b>MouseSideKey 新增選用模組：Claude 快捷鍵 ⌥Q</b>：一鍵切到 Claude App → 點擊輸入框 → 送出 → 方向鍵 → 0.3 秒後 Enter（本體 <code>claude_hotkey.lua</code> 收進 <code>mouse-side-key</code> repo，<code>install.command</code> 一併安裝；延遲調為切換 0.2 秒、→ 與 Enter 間 0.3 秒，全程約 0.7 秒）。<code>init.lua</code> 改為<b>檔案存在才載入</b>、<code>pcall</code> 隔離錯誤，不影響側鍵功能，重裝不再遺失。踩坑：<code>hs.timer.doAfter</code> 未保留參照會被 GC 回收而不觸發；按鍵改送前景視窗（Electron 收不到 <code>postToApplication</code>）</td>
         </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-03</td>
