@@ -959,6 +959,10 @@
       <tbody>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-03</td>
+          <td>⌨️ <b>MouseSideKey 新增選用模組：Claude 快捷鍵 ⌥Q</b>：一鍵切到 Claude App → 點擊輸入框 → 送出 → 方向鍵 → 1 秒後 Enter（本體 <code>claude_hotkey.lua</code>，symlink 到 <code>~/.hammerspoon/</code>）。<code>init.lua</code> 改為<b>檔案存在才載入</b>、<code>pcall</code> 隔離錯誤，不影響側鍵功能，重裝不再遺失。踩坑：<code>hs.timer.doAfter</code> 未保留參照會被 GC 回收而不觸發；按鍵改送前景視窗（Electron 收不到 <code>postToApplication</code>）</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-03</td>
           <td>🎯 <b>持股比例修正＋單一持股集中度排除正二</b>：<code>03_持股總表</code> S 欄分母 <code>SUM($F$3:$F$23)</code> 把合計列也加進去，<b>所有持股比例只剩一半</b>（S23 合計 50%），連帶 <code>05</code>／<code>13</code>／<code>14</code>／<code>18</code> 共 36 格與安全指數 B8 判斷錯誤（試算表重算時顯示 85 分，實際 75 分）——改為除以 <code>$F$23</code>。另依配置方向（逐步轉正二），<code>15_安全指數</code> B8 與 <code>18_投資規則檢查</code> B9 改用 <code>MAXIFS(…,"&lt;&gt;正二ETF")</code> 排除正二（正二另有 B13／B21 兩道上限把關），<code>update_wealth_os.py</code> 的 <code>--full</code> 計算同步改口徑。排除後最大單一持股為 00878（20.4%），仍超過 15% 上限</td>
         </tr>
         <tr>
