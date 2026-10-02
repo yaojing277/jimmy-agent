@@ -27,7 +27,7 @@ _rebuild_daily_and_calendar() 每次執行都會強制套用,不管資料怎麼�
   3. A 欄(日期):一律是真日期數值＋日期樣式,樣式動態抓自 21_國泰資產歷史 A2
      (_hist_date_style,不寫死索引——寫死曾經因為 Google 重存檔漂移而顯示成序號數字)
   4. G 欄(單日報酬率):百分比樣式動態抓自 21_國泰資產歷史 E2(_hist_pct_style,同上不寫死)
-  5. B~F 欄(總市值/損益/漲跌相關數字):文字強制黑色(uwo._fix_daily_value_font_color),
+  5. B~F 欄(總市值/損益/漲跌相關數字):文字強制黑色(uwo._fix_daily_value_style),
      不管共用樣式 s="9" 目前實際字色漂移成什麼顏色
   6. 手機暗色主題可讀性:日期欄/表頭/報酬率欄改用明確白底黑字的安全樣式
      (uwo._ensure_readable_text_style),不用「無填色＋主題相對字色」
@@ -125,11 +125,18 @@ def _read_hist_rows(path):
             dt_str = str(dt).replace("-", "/")[:10]
         rows.append((dt_str, float(hws.cell(r, 2).value), float(hws.cell(r, 3).value),
                      float(hws.cell(r, 4).value)))
+    # 21_國泰資產歷史 自 2026-10-01 起是「新到舊」儲存(列2=最新一天),但程式內部一律用
+    # 「舊到新」(rows[0]=最早),所以讀進來就地排序;排序後不受儲存順序影響
+    rows.sort(key=lambda r: datetime.strptime(r[0], "%Y/%m/%d"))
     return rows
 
 
 def _upsert_hist_row(hxml, date_str, mv, cost, pl, ret):
-    """同日覆寫、否則附加一列到「21_國泰資產歷史」原始 XML。回傳 (新xml, 動作說明)。
+    """同日覆寫、否則插入最上面(列2)到「21_國泰資產歷史」原始 XML。回傳 (新xml, 動作說明)。
+
+    2026-10-01 起這張表改成日期由新到舊儲存(列2=最新一天),跟 03_國泰漲跌 的表格方向一致。
+    新的一天插進列2、既有資料列整批往下推一列(uwo._renumber_row_xml);整張表都是靜態
+    快照值沒有公式,重編號不會動到任何相對參照。
     A~E 各欄樣式索引一律動態抓自現有第一筆資料列(row2),不可寫死——cellXfs 索引會隨 Google
     Sheets 重新存檔漂移。2026-08-27 曾因寫死 A欄=75/B~D欄=5/E欄=26,當時實際日期樣式已漂移
     成62(其餘欄漂移成2/25),導致寫入的日期欄不是日期格式,openpyxl 讀回來變成裸數字字串,
@@ -166,10 +173,15 @@ def _upsert_hist_row(hxml, date_str, mv, cost, pl, ret):
     if same_day:
         new_row = build_row(same_day[0])
         return hxml.replace(same_day[2], new_row, 1), f"同日重跑,覆寫列{same_day[0]}({date_str})"
-    n = max(r[0] for r in data_rows) + 1
-    new_row = build_row(n)
-    last = max(data_rows, key=lambda r: r[0])
-    return hxml.replace(last[2], last[2] + new_row, 1), f"附加 {date_str} 至列{n}"
+    # 新的一天插進最上面(列2),既有資料列依日期新到舊重編號往下推
+    ordered = sorted(data_rows, key=lambda r: r[1], reverse=True)
+    doc_order = sorted(data_rows, key=lambda r: r[0])
+    start = hxml.index(doc_order[0][2])
+    end = hxml.index(doc_order[-1][2]) + len(doc_order[-1][2])
+    block = build_row(2) + "".join(
+        uwo._renumber_row_xml(r[2], i) for i, r in enumerate(ordered, start=3))
+    return (hxml[:start] + block + hxml[end:],
+            f"插入 {date_str} 至列2(最新在最上面),其餘 {len(ordered)} 列往下推一列")
 
 
 def _hist_date_style(zin, fallback=75):
@@ -236,8 +248,20 @@ def _rebuild_daily_and_calendar(zin, hist_rows, repl, new_parts):
     確認 02 的新版面滿意後同步過來):本月報酬日曆在最上面 → 每日表格(日期新到舊、加總列
     釘在表頭正下方、最早一天原始資料獨立放最後一列) → 上月與更早月份的報酬日曆。
     所有格式函式都直接用 uwo 的,不再各自維護複製品,以後那邊改這邊自動跟上。"""
-    uwo.DAILY_TAB = DAILY_TAB
-    uwo.HIST_TAB = HIST_TAB
+    # uwo 的建表函式吃模組全域 DAILY_TAB/HIST_TAB,這裡暫時借用成國泰的分頁,離開前一定要還
+    # 回去——否則同一個 Python 行程內接著呼叫 uwo.full_refresh(),它會把「21_國泰資產歷史」
+    # 當成「16_資產歷史」來讀(2026-10-01 在驗證腳本裡踩到:主帳戶拿到國泰的日期而崩潰)。
+    _saved = (uwo.DAILY_TAB, uwo.HIST_TAB)
+    try:
+        uwo.DAILY_TAB = DAILY_TAB
+        uwo.HIST_TAB = HIST_TAB
+        _rebuild_inner(zin, hist_rows, repl, new_parts)
+    finally:
+        uwo.DAILY_TAB, uwo.HIST_TAB = _saved
+
+
+def _rebuild_inner(zin, hist_rows, repl, new_parts):
+    """實際的重建流程(呼叫端 _rebuild_daily_and_calendar 已經把 uwo 的分頁全域設好)。"""
     pct_style = _hist_pct_style(zin)
 
     daily_part = uwo._locate_sheet_part(zin, DAILY_TAB)
@@ -280,9 +304,13 @@ def _rebuild_daily_and_calendar(zin, hist_rows, repl, new_parts):
         cal_styles_xml, cal_pct_numfmt = uwo._ensure_numfmt(cal_styles_xml, "0.0%")
         cal_styles_xml, cal_pct_base = uwo._ensure_numfmt_style(cal_styles_xml, safe_pct_style,
                                                                 cal_pct_numfmt)
+        # 金額格(每日/週損益/月損益)套千分位,與 02_每日漲跌 共用 uwo.CAL_AMT_FMT
+        cal_styles_xml, cal_amt_numfmt = uwo._ensure_numfmt(cal_styles_xml, uwo.CAL_AMT_FMT)
+        cal_styles_xml, cal_num_base = uwo._ensure_numfmt_style(cal_styles_xml, safe_num_style,
+                                                                cal_amt_numfmt)
         cal_styles_xml, style_map = uwo._ensure_calendar_grid_styles(
             cal_styles_xml,
-            {"title": 58, "txt": safe_txt_style, "num": safe_num_style, "pct": cal_pct_base},
+            {"title": 58, "txt": safe_txt_style, "num": cal_num_base, "pct": cal_pct_base},
             color=uwo.CAL_GRID_COLOR_CURRENT)
         start_row = row_cursor
         rows_xml, mc, cf, last_row = uwo._build_calendar_rows(g, start_row, style_map)
@@ -309,7 +337,7 @@ def _rebuild_daily_and_calendar(zin, hist_rows, repl, new_parts):
     daily_sheetdata = daily_sheetdata.replace("02_每日漲跌｜每日總市值與損益變化", DAILY_TITLE)
     daily_sheetdata = _fix_date_column_as_real_dates(
         daily_sheetdata, hist_rows, _hist_date_style(zin), daily_info)
-    daily_sheetdata, cal_styles_xml = uwo._fix_daily_value_font_color(
+    daily_sheetdata, cal_styles_xml = uwo._fix_daily_value_style(
         daily_sheetdata, hist_rows, cal_styles_xml,
         data_start=daily_info["agg_row"], data_end=daily_info["base_row"])
     # 標題列合併置中(跟 02_每日漲跌 共用同一支函式)

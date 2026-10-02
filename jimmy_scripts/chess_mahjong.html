@@ -180,6 +180,38 @@
     .eat-controls { margin-top: 10px; }
     .btn.eat { background: #e05c00; color: white; }
     .btn.eat:hover:not(:disabled) { background: #ff7020; }
+
+    /* ── 座位設定（真人／AI）── */
+    .seat-config { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:12px; }
+    .seat-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,215,0,0.25);
+      color: #ddd; border-radius: 8px;
+      padding: 5px 11px; font-size: .78rem; cursor: pointer;
+      font-family: inherit; transition: background .2s, border-color .2s, color .2s;
+    }
+    .seat-btn:hover { background: rgba(255,255,255,0.12); }
+    .seat-btn.ai { border-color: #5577cc; color: #9db8ff; background: rgba(85,119,204,0.14); }
+    .seat-btn .seat-role { font-weight: bold; margin-left: 2px; }
+    .seat-hint { font-size: .74rem; color: #ffd700; margin-top: 6px; min-height: 1rem; }
+
+    /* ── AI 標記與思考動畫 ── */
+    .ai-badge {
+      background: linear-gradient(135deg,#5577cc,#334499); color: #fff;
+      font-size: .62rem; padding: 2px 7px; border-radius: 10px;
+      font-weight: bold; letter-spacing: 1px;
+    }
+    .thinking { font-size: .72rem; color: #9db8ff; display: inline-flex; align-items: center; gap: 3px; }
+    .dot-anim span {
+      display: inline-block; width: 4px; height: 4px; border-radius: 50%;
+      background: #9db8ff; margin-left: 2px; animation: dot-bounce 1.1s infinite ease-in-out;
+    }
+    .dot-anim span:nth-child(2) { animation-delay: .18s; }
+    .dot-anim span:nth-child(3) { animation-delay: .36s; }
+    @keyframes dot-bounce {
+      0%, 70%, 100% { opacity: .25; transform: translateY(0); }
+      35%           { opacity: 1;   transform: translateY(-3px); }
+    }
   </style>
 </head>
 <body>
@@ -192,6 +224,9 @@
       <button class="btn secondary" onclick="newGame()">新遊戲</button>
       <button class="btn secondary" id="reveal-btn" onclick="toggleReveal()">👁 顯示全部手牌</button>
     </div>
+    <div class="seat-config" id="seat-config"></div>
+    <div id="seat-summary" style="font-size:.74rem;color:#9db8ff;margin-top:5px"></div>
+    <div class="seat-hint" id="seat-hint"></div>
   </div>
 
   <div class="players-area" id="players-area"></div>
@@ -298,23 +333,170 @@
       return {win:false};
     }
 
+    // ── 座位設定（真人／AI）──────────────────────────────
+    const SEAT_KEY = 'chess_mahjong_seats';
+    let seatConfig = loadSeatConfig();
+
+    function loadSeatConfig() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(SEAT_KEY));
+        if (Array.isArray(raw) && raw.length === 4 && raw.every(v => v === 'human' || v === 'ai')) return raw;
+      } catch (e) { /* 忽略毀損的設定 */ }
+      return ['human','human','human','ai'];   // 預設：三真人 + 一 AI
+    }
+
+    function saveSeatConfig() {
+      try { localStorage.setItem(SEAT_KEY, JSON.stringify(seatConfig)); } catch (e) {}
+    }
+
+    function toggleSeat(i) {
+      seatConfig[i] = seatConfig[i] === 'ai' ? 'human' : 'ai';
+      saveSeatConfig();
+      renderSeatConfig();
+      document.getElementById('seat-hint').textContent =
+        state.phase === 'idle' ? '' : '座位變更將於下一局生效';
+    }
+
+    function seatName(i) { return seatConfig[i] === 'ai' ? `AI ${i+1}` : `玩家 ${i+1}`; }
+
+    function renderSeatConfig() {
+      const box = document.getElementById('seat-config');
+      box.innerHTML = '';
+      for (let i = 0; i < 4; i++) {
+        const isAI = seatConfig[i] === 'ai';
+        const b = document.createElement('button');
+        b.className = `seat-btn${isAI ? ' ai' : ''}`;
+        b.innerHTML = `${isAI ? '🤖' : '👤'} ${i+1}號<span class="seat-role">${isAI ? 'AI' : '真人'}</span>`;
+        b.title = '點擊切換「真人／AI」';
+        b.onclick = () => toggleSeat(i);
+        box.appendChild(b);
+      }
+      const aiCount = seatConfig.filter(s => s === 'ai').length;
+      document.getElementById('seat-summary').textContent =
+        `真人 ${4 - aiCount} 位 ／ AI ${aiCount} 位（點座位可切換）`;
+    }
+
+    // ── AI 引擎（記牌加強版）──────────────────────────────
+    // createDeck() 的 id 配發順序固定，可當作 id ↔ 棋子的對照表
+    const FULL_DECK = createDeck();
+    const AI_DELAY  = { draw: 650, discard: 950, eat: 800 };
+
+    // 這一局「尚未現形」的牌 = 全牌 −（AI 自己手牌 ＋ 所有棄牌 ＋ 曾被吃走的牌）
+    function unseenPool(aiId) {
+      const seen = new Set();
+      state.players[aiId].hand.forEach(p => seen.add(p.id));
+      state.discards.forEach(pile => pile.forEach(p => seen.add(p.id)));
+      state.eaten.forEach(p => seen.add(p.id));
+      return FULL_DECK.filter(p => !seen.has(p.id));
+    }
+
+    // 保留這 4 張時，下一張隨機摸牌就能胡的機率（已打光的牌型權重自然歸零 ＝ 記牌）
+    function winProb(hand4, unseen) {
+      if (hand4.length !== 4 || unseen.length === 0) return 0;
+      const cache = new Map();
+      let hits = 0;
+      for (const cand of unseen) {
+        const key = cand.color + cand.type;
+        let ok = cache.get(key);
+        if (ok === undefined) { ok = checkWin([...hand4, cand]).win; cache.set(key, ok); }
+        if (ok) hits++;
+      }
+      return hits / unseen.length;
+    }
+
+    // 打出這張牌的危險度：同型還沒現形的張數越多，對手手上有、靠它成牌的機會越大
+    function discardRisk(piece, unseen) {
+      if (unseen.length === 0) return 0;
+      const same = unseen.filter(p => p.type === piece.type && p.color === piece.color).length;
+      return same / unseen.length;
+    }
+
+    // 防守權重：牌堆見底、或別家吃過牌（代表有人在做牌）時提高戒心
+    function defenseWeight(aiId) {
+      let w = 0.12;
+      if (state.deck.length <= 8) w += 0.18;
+      if (state.deck.length <= 4) w += 0.20;
+      const othersEat = state.eatCount.reduce((s, c, i) => i === aiId ? s : s + c, 0);
+      return w + Math.min(othersEat, 4) * 0.06;
+    }
+
+    function aiChooseDiscard(hand5, aiId) {
+      const unseen = unseenPool(aiId);
+      const dw     = defenseWeight(aiId);
+      let best = hand5[0], bestScore = -Infinity;
+      for (const piece of hand5) {
+        const rest  = hand5.filter(p => p.id !== piece.id);
+        const score = winProb(rest, unseen) - dw * discardRisk(piece, unseen);
+        if (score > bestScore) { bestScore = score; best = piece; }
+      }
+      return best;
+    }
+
+    function aiShouldEat(hand4, piece, aiId) {
+      if (checkWin([...hand4, piece]).win) return true;
+      const unseen = unseenPool(aiId);
+      const after  = [...hand4, piece];
+      let bestAfter = 0;
+      for (const p of after) {
+        bestAfter = Math.max(bestAfter, winProb(after.filter(x => x.id !== p.id), unseen));
+      }
+      return bestAfter > winProb(hand4, unseen) + 0.01;   // 確實變強才吃，否則跳過自己摸
+    }
+
+    // ── AI 自動出手 ──────────────────────────────────────
+    let aiTimer = null;
+
+    function cancelAITurn() { if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; } }
+
+    function scheduleAITurn() {
+      if (aiTimer) return;
+      const p = state.players[state.currentPlayer];
+      if (!p || !p.isAI) return;
+      if (!['draw','discard','can-eat'].includes(state.phase)) return;
+      const delay = state.phase === 'draw'    ? AI_DELAY.draw
+                  : state.phase === 'discard' ? AI_DELAY.discard
+                  :                             AI_DELAY.eat;
+      aiTimer = setTimeout(() => {
+        aiTimer = null;
+        const cur = state.players[state.currentPlayer];
+        if (!cur || !cur.isAI) return;
+        if (state.phase === 'draw') {
+          drawPiece();
+        } else if (state.phase === 'discard') {
+          discardPiece(cur.id, aiChooseDiscard(cur.hand, cur.id).id);
+        } else if (state.phase === 'can-eat') {
+          (state.lastDiscard && aiShouldEat(cur.hand, state.lastDiscard, cur.id)) ? eatPiece() : skipEat();
+        }
+      }, delay);
+    }
+
     // ── 遊戲狀態 ──────────────────────────────────────────
-    let state = { deck:[], players:[], discards:[[],[],[],[]], currentPlayer:0, phase:'idle', drawnPieceId:null, lastDiscard:null, lastDiscardPlayer:-1 };
+    let state = {
+      deck: [], players: [], discards: [[],[],[],[]],
+      currentPlayer: 0, phase: 'idle',
+      drawnPieceId: null, lastDiscard: null, lastDiscardPlayer: -1,
+      eaten: [], eatCount: [0,0,0,0]
+    };
     let revealAll = false;
     let dealerIndex = 0;
 
     function newGame() {
+      cancelAITurn();
       const deck = shuffle(createDeck());
       const players = [0,1,2,3].map(i=>({
-        id:i, name:`玩家 ${i+1}`, hand:[], isDealer:i===dealerIndex
+        id:i, name:seatName(i), hand:[], isDealer:i===dealerIndex, isAI:seatConfig[i]==='ai'
       }));
       for (let i=0;i<4;i++) for (const p of players) p.hand.push(deck.pop());
+      players.forEach(p => sortHand(p.hand));
 
-      state = { deck, players, discards:[[],[],[],[]], currentPlayer:dealerIndex, phase:'draw', drawnPieceId:null, lastDiscard:null, lastDiscardPlayer:-1 };
+      state = { deck, players, discards:[[],[],[],[]], currentPlayer:dealerIndex, phase:'draw',
+                drawnPieceId:null, lastDiscard:null, lastDiscardPlayer:-1,
+                eaten:[], eatCount:[0,0,0,0] };
       dealerIndex = (dealerIndex + 1) % 4;
       document.getElementById('win-overlay').classList.remove('show');
+      document.getElementById('seat-hint').textContent = '';
       clearLog();
-      addLog(`遊戲開始！玩家 ${state.players.find(p=>p.isDealer).id+1} 為莊家，請摸牌。`);
+      addLog(`遊戲開始！${state.players.find(p=>p.isDealer).name} 為莊家，請摸牌。`);
       setStatus('');
       render();
     }
@@ -324,6 +506,7 @@
       if (state.deck.length===0) {
         addLog('牌堆已空，遊戲平局！');
         state.phase='idle';
+        cancelAITurn();
         render();
         return;
       }
@@ -333,16 +516,20 @@
       sortHand(player.hand);
       state.drawnPieceId = piece.id;
       state.phase = 'discard';
-      addLog(`玩家 ${player.id+1} 摸到「${piece.color==='red'?'紅':'黑'}${piece.type}」`);
+      // AI 摸到什麼不寫進紀錄，以免玩家從側錄推回 AI 手牌
+      addLog(player.isAI
+        ? `${player.name} 摸牌`
+        : `${player.name} 摸到「${piece.color==='red'?'紅':'黑'}${piece.type}」`);
 
       const result = checkWin(player.hand);
       if (result.win) {
-        addLog(`玩家 ${player.id+1} 胡牌！${result.pattern}`);
+        addLog(`${player.name} 胡牌！${result.pattern}`);
         state.phase='idle';
+        cancelAITurn();
         render();
         showWin(player, result.pattern);
       } else {
-        setStatus(`玩家 ${player.id+1}，請點擊手牌打出一張`);
+        setStatus(player.isAI ? `${player.name} 思考中…` : `${player.name}，請點擊手牌打出一張`);
         render();
       }
     }
@@ -354,7 +541,7 @@
       if (idx===-1) return;
       const discarded = player.hand.splice(idx,1)[0];
       state.discards[playerId].push(discarded);
-      addLog(`玩家 ${player.id+1} 打出「${discarded.color==='red'?'紅':'黑'}${discarded.type}」`);
+      addLog(`${player.name} 打出「${discarded.color==='red'?'紅':'黑'}${discarded.type}」`);
       state.drawnPieceId = null;
       state.lastDiscard = discarded;
       state.lastDiscardPlayer = playerId;
@@ -368,8 +555,13 @@
         if (result.win) {
           const pile = state.discards[playerId];
           pile.splice(pile.findIndex(p=>p.id===discarded.id), 1);
-          addLog(`玩家 ${checkId+1} 以「${result.pattern}」胡牌（放砲）！`);
+          checkPlayer.hand.push(discarded);
+          sortHand(checkPlayer.hand);
+          addLog(`${checkPlayer.name} 以「${result.pattern}」胡牌（${player.name} 放砲）！`);
           state.phase = 'idle';
+          state.lastDiscard = null;
+          state.lastDiscardPlayer = -1;
+          cancelAITurn();
           render();
           showWin(checkPlayer, result.pattern);
           return;
@@ -379,7 +571,8 @@
       // 無人能胡，進入下家吃牌流程
       state.currentPlayer = (playerId + 1) % 4;
       state.phase = 'can-eat';
-      setStatus(`玩家 ${state.currentPlayer+1}，可以吃上家的牌`);
+      const next = state.players[state.currentPlayer];
+      setStatus(next.isAI ? `${next.name} 思考中…` : `${next.name}，可以吃上家的牌`);
       render();
     }
 
@@ -394,27 +587,32 @@
       const player = state.players[state.currentPlayer];
       player.hand.push(piece);
       sortHand(player.hand);
+      state.eaten.push(piece);              // 已現形但不在棄牌區 → 記牌用
+      state.eatCount[player.id]++;
       state.drawnPieceId = piece.id;
       state.lastDiscard = null;
       state.lastDiscardPlayer = -1;
       state.phase = 'discard';
 
-      addLog(`玩家 ${player.id+1} 吃了「${piece.color==='red'?'紅':'黑'}${piece.type}」`);
+      addLog(`${player.name} 吃了「${piece.color==='red'?'紅':'黑'}${piece.type}」`);
 
       const result = checkWin(player.hand);
       if (result.win) {
-        addLog(`玩家 ${player.id+1} 胡牌！${result.pattern}`);
+        addLog(`${player.name} 胡牌！${result.pattern}`);
         state.phase = 'idle';
+        cancelAITurn();
         render();
         showWin(player, result.pattern);
       } else {
-        setStatus(`玩家 ${player.id+1}，吃牌後請打出一張`);
+        setStatus(player.isAI ? `${player.name} 思考中…` : `${player.name}，吃牌後請打出一張`);
         render();
       }
     }
 
     function skipEat() {
       if (state.phase!=='can-eat') return;
+      const player = state.players[state.currentPlayer];
+      if (player.isAI) addLog(`${player.name} 不吃，改為摸牌`);
       state.lastDiscard = null;
       state.lastDiscardPlayer = -1;
       state.phase = 'draw';
@@ -427,6 +625,9 @@
       const area = document.getElementById('players-area');
       area.innerHTML='';
 
+      const current = state.players[state.currentPlayer];
+      const curIsAI = !!(current && current.isAI);
+
       for (const player of state.players) {
         const isActive = player.id===state.currentPlayer;
         const panel = document.createElement('div');
@@ -434,7 +635,15 @@
 
         const nameDiv = document.createElement('div');
         nameDiv.className='player-name';
-        nameDiv.innerHTML=`${player.name}${player.isDealer?' <span class="dealer-badge">莊</span>':''} <span style="color:#aaa;font-size:.85rem">(${player.hand.length}張)</span>`;
+        const thinking = isActive && player.isAI && state.phase!=='idle'
+          ? ' <span class="thinking">思考中<span class="dot-anim"><span></span><span></span><span></span></span></span>'
+          : '';
+        nameDiv.innerHTML =
+          `${player.name}` +
+          `${player.isAI?' <span class="ai-badge">AI</span>':''}` +
+          `${player.isDealer?' <span class="dealer-badge">莊</span>':''}` +
+          ` <span style="color:#aaa;font-size:.85rem">(${player.hand.length}張)</span>` +
+          thinking;
         panel.appendChild(nameDiv);
 
         const handDiv = document.createElement('div');
@@ -442,10 +651,11 @@
 
         for (const piece of player.hand) {
           const el = document.createElement('div');
-          const canDiscard = isActive && state.phase==='discard';
+          const canDiscard = isActive && state.phase==='discard' && !player.isAI;
           const isNew = piece.id===state.drawnPieceId;
 
-          const showFace = isActive || state.phase==='idle' || revealAll;
+          // AI 的手牌永遠蓋著（除非揭牌或結局），避免真人看光
+          const showFace = (isActive && !player.isAI) || state.phase==='idle' || revealAll;
           if (showFace) {
             el.className=`piece ${piece.color}${canDiscard?' selectable':''}${isNew?' drawn':''}`;
             el.textContent=piece.type;
@@ -462,18 +672,22 @@
         area.appendChild(panel);
       }
 
+      const curName = current ? current.name : '';
       const phaseLabel =
         state.phase==='idle'    ? '遊戲結束' :
-        state.phase==='draw'    ? `輪到 玩家 ${state.currentPlayer+1} 摸牌` :
-        state.phase==='can-eat' ? `玩家 ${state.currentPlayer+1}，是否吃牌？` :
-                                  `玩家 ${state.currentPlayer+1} 請打出一張牌`;
+        state.phase==='draw'    ? `輪到 ${curName} 摸牌` :
+        state.phase==='can-eat' ? `${curName}，是否吃牌？` :
+                                  `${curName} 請打出一張牌`;
 
       document.getElementById('turn-info').textContent=phaseLabel;
       document.getElementById('deck-count').textContent=`牌堆剩餘：${state.deck.length} 張`;
-      document.getElementById('draw-btn').disabled = state.phase!=='draw';
-      document.getElementById('eat-controls').style.display = state.phase==='can-eat' ? 'block' : 'none';
+      document.getElementById('draw-btn').disabled = state.phase!=='draw' || curIsAI;
+      document.getElementById('eat-controls').style.display =
+        (state.phase==='can-eat' && !curIsAI) ? 'block' : 'none';
 
+      renderSeatConfig();
       renderDiscards();
+      scheduleAITurn();
     }
 
     function renderDiscards() {
@@ -484,7 +698,7 @@
         row.className='discard-row';
         const label = document.createElement('span');
         label.className='discard-label';
-        label.textContent=`玩家 ${i+1}：`;
+        label.textContent=`${state.players[i] ? state.players[i].name : seatName(i)}：`;
         row.appendChild(label);
         if (state.discards[i].length===0) {
           const empty = document.createElement('span');
@@ -506,7 +720,7 @@
     }
 
     function showWin(player, pattern) {
-      document.getElementById('win-msg').textContent=`玩家 ${player.id+1} 以「${pattern}」胡牌！`;
+      document.getElementById('win-msg').textContent=`${player.name} 以「${pattern}」胡牌！`;
       document.getElementById('win-overlay').classList.add('show');
     }
 
@@ -529,6 +743,7 @@
 
     function clearLog() { document.getElementById('log').innerHTML=''; }
 
+    renderSeatConfig();
     render();
   </script>
 </body>

@@ -18,6 +18,7 @@ FILES=(
   stock_automation_devlog.html
   wealth_os_devlog.html
   schedule_runlog.html
+  return_calendar_guide.html
   00631L_vs_0050_returns.html
   00631L_vs_0050_returns_light.html
   stock_sector_chart.html

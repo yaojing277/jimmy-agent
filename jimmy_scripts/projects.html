@@ -288,7 +288,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-09-26</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-02</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -543,20 +543,24 @@
         <tbody>
           <tr><td>取價核心</td><td>twse_hist.py · price_source.py</td></tr>
           <tr><td>試算表維護</td><td>update_stock_price.py ·「更新股價」快照滾動</td></tr>
-          <tr><td>Wealth OS</td><td>update_wealth_os.py ·「更新所有分頁」<br>update_cathay_daily.py · 國泰帳戶</td></tr>
+          <tr><td>Wealth OS</td><td>update_wealth_os.py ·「更新所有分頁」／全出清列刪除<br>update_cathay_daily.py · 國泰帳戶</td></tr>
           <tr><td>衍生分析</td><td>lev2_analysis.py · etf_ex_dividend_calendar.py</td></tr>
         </tbody>
       </table>
       <ul class="todo-list">
         <li class="done">貼交易截圖自動記帳（含費均價併入＋投資日誌自動補登）</li>
         <li class="done">報酬日曆（月曆熱力圖＋逐日損益長條圖，本月／上月雙月）</li>
-        <li class="done">全出清通用列位移程序（跨 7 個分頁自動修正公式引用）</li>
+        <li class="done">全出清整列刪除抽成 <code>delete_stock_rows()</code>（跨 11 個分頁自動位移公式引用）</li>
         <li class="done">交易日守衛：時區跨夜也能算出正確目標交易日</li>
-        <li>均價精度提升（4 位小數，待評估）</li>
+        <li class="done">金額千分位（報酬日曆＋每日表格，主帳戶與國泰帳戶共 6 張表）</li>
+        <li class="done">正二曝險上限門檻（12_設定 B21）並納入每日 AI 摘要檢查</li>
+        <li class="done">排程遲到＋手動補跑不再連坐失敗（<code>--skip-if-exists</code>）</li>
+        <li>禾伸堂 9,444 元買進紀錄差額（待查 2026 年 6 月對帳單）</li>
       </ul>
       <div class="link-row">
         <a class="link-btn" href="stock_automation_devlog.html" target="_blank">📚 家族總表（2026-04 起）</a>
         <a class="link-btn" href="wealth_os_devlog.html" target="_blank">📘 Wealth OS 開發紀錄</a>
+        <a class="link-btn" href="return_calendar_guide.html" target="_blank">📊 報酬日曆建置手冊</a>
         <a class="link-btn" href="schedule_runlog.html" target="_blank">🗓️ 排程執行紀錄</a>
         <a class="link-btn secondary" href="https://github.com/yaojing277/stock-notify" target="_blank">⑂ GitHub</a>
       </div>
@@ -778,7 +782,7 @@
         <div class="card-icon">🎬</div>
         <div class="card-meta">
           <div class="card-name">YouTube 影片 AI 摘要</div>
-          <div class="card-sub">貼網址 / 頻道自動監控 → AI 重點摘要 · v2.0</div>
+          <div class="card-sub">貼網址 / 頻道自動監控 → AI 重點摘要 · v2.1</div>
         </div>
         <span class="dot"></span>
       </div>
@@ -792,6 +796,7 @@
         貼上 YouTube 網址，自動抓字幕（zh-TW 人工字幕優先、退到自動字幕，
         <b>無字幕自動 Whisper 語音轉錄</b>）→ <b>claude CLI</b> 產生結構化摘要 →
         深色 HTML 摘要頁：一句話總結、重點清單、<b>可點跳轉的時間戳章節</b>、金句與適合誰看。
+        字幕與轉錄結果會<b>快取</b>，摘要中斷重跑免再等一次 Whisper。
         另可 <b>yt_auto_summary.py</b> 一鍵檢查三個頻道新片、自動摘要＋部署＋LINE 推播。
       </div>
       <table class="sub-table">
@@ -812,6 +817,7 @@
         <li class="done">claude CLI 登入並實測成功（TED、阿格力 EP134）</li>
         <li class="done">摘要庫部署 GitHub Pages（deploy_yt_summaries.sh 一鍵）</li>
         <li class="done">頻道新片自動摘要（yt_auto_summary.py：RSS 比對已見清單 → 摘要 → 部署 → LINE）</li>
+        <li class="done">字幕／轉錄快取（.yt_transcript_cache，不隨 deploy 上傳）</li>
         <li>本機設定 LINE 金鑰（line_secrets.json）啟用摘要推播</li>
       </ul>
       <div class="link-row">
@@ -941,6 +947,62 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-02</td>
+          <td>🟢 <b>排程不再因「今天已建過快照」整個變紅</b>：<code>update_stock_price.py</code> 新增 <code>--skip-if-exists</code>，快照已存在時印訊息並正常結束（exit 0），workflow 帶上該參數。起因是當天排程遲到 6.5 小時、手動補跑在前，原本的 <code>exit 1</code> 讓 GitHub Actions <b>連坐跳過後面五步</b>——其中國泰漲跌／ETF除息日曆／跌幅查詢頁／正二分析<b>各自抓自己的資料、與該快照無關</b>，被跳過等於那天資料整天空缺。手動執行不帶參數時維持大聲中止</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-02</td>
+          <td>📐 <b>新增「正二曝險上限」門檻並納入 AI 摘要</b>：<code>12_設定</code> B21＝70%，口徑為 <b>正二×2 ÷ 總曝險</b>（與 <code>04_ETF分析</code> C 欄一致），和既有 B13「正二目標上限」60%（口徑是<b>占股票市值</b>）是兩回事。同時新增 <code>OPTIONAL_SETTINGS_MAP</code>：後加的選用門檻缺值時退回預設並印警告，<b>不再像必填項那樣 <code>sys.exit</code></b>——避免一格空白就讓整個每日排程掛掉。依指示暫不納入安全指數扣分</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-01</td>
+          <td>🗑️ <b>全出清整列刪除抽成正式函式</b> <code>delete_stock_rows()</code>：禾伸堂（3026）賣光後從 <code>03_持股總表</code>／<code>05_個股分析</code>／<code>13_加碼分析</code> 整列刪除，全檔 <b>9 張分頁</b>的跨表引用一併位移（含先前沒遇過的 <code>09_壓力測試</code> 20 處）。第四次手工做這件事後抽成函式並附四則血淚註解。<b>過程中踩到新坑</b>：共用公式的從屬格是自閉合 <code>&lt;f t="shared" si="1"/&gt;</code>，被當成開標籤後 lazy 比對會跨過數個儲存格，把已位移過的編號再減一次，導致兩列塌成同一列——已加負向前瞻並補回歸測試</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-01</td>
+          <td>🔄 <b>兩張歷史資料表改成「日期由新到舊」</b>（<code>16_資產歷史</code>／<code>21_國泰資產歷史</code>，列2＝最新）：與 <code>02</code>／<code>03</code> 兩張漲跌表同方向，手機打開歷史表也是最新的在最上面，且兩邊列號固定差 23 列，每日表公式可用單純相對參照。寫入端改為<b>插進列2、其餘重新編號</b>；<b>讀取端一律 sort 成舊到新</b>，程式內部邏輯零改動。順帶修好三個問題：<code>06_阿良資產負債表!B11</code> 原本用 <code>LOOKUP(2,1/…)</code> 取「最後一筆＝最新」（翻轉後會取到最舊）、加總列 <b>G 欄快取分母與公式不符</b>（國泰曾快取成 540%、重算才回到 21.7%）、<code>update_cathay_daily</code> 借用 <code>uwo</code> 的分頁全域<b>沒有還原</b>（同行程接著跑主帳戶會讀到國泰資料）。已驗證翻轉前後兩張漲跌表顯示內容零差異、重跑冪等、模擬隔日新增一天列號全部對位</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-01</td>
+          <td>📘 <b>《報酬日曆建置手冊》改寫成現行版面</b>：手冊停在 8/27 的舊版面（表格在最上面、日期由舊到新、起點列在第 3 列），與 8/28 起數次改版後的實況脫節。改寫 02~05 章與陷阱表，並新增兩條技術規則——<b>列號一律用游標算出來、不得寫死</b>（含「對自己的產出重跑一次應零差異」的冪等驗收法）、<b>列序反轉要改圖表類別軸而非複製一份正序資料</b>（雙軸圖的兩個類別軸都要改）；另補暗色主題字色、加總範圍不可開放式（表格上下都被月曆夾住）等新版面特有的坑。範例數字全部改用 <code>03_國泰漲跌</code> 的實際值（金額由七位數降為五位數，順帶修正長條圖資料來源誤寫成日期列而非金額列），並以 <code>return_calendar_guide.html</code> 掛上專案總覽頁</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-01</td>
+          <td>🔢 <b>報酬日曆與每日表格金額加千分位</b>（<code>02_每日漲跌</code>／<code>03_國泰漲跌</code>）：新增共用常數 <code>CAL_AMT_FMT="#,##0"</code>，日曆比照百分比以 <code>_ensure_numfmt</code> 系列套用（append-only、冪等、樣式索引動態產生）；每日表格的 <code>_fix_daily_value_font_color</code> 更名為 <code>_fix_daily_value_style</code> 並兼管數字格式，保留「只作用於表格列範圍」以免誤傷共用 <code>s="9"</code> 的日曆格。<b>改名同時修正 <code>update_cathay_daily.py</code> 的呼叫端</b>，否則排程會 AttributeError</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-09-30</td>
+          <td>🔁 <b>回填 9/24 禾伸堂賣出</b>：交易隔 5 天才補記，成本變化原本全落在 9/29 並與當天四筆買進抵銷成 −39,367，看不出賣出被計入。因 <code>update_wealth_os.py</code> 無法指定來源分頁（固定讀最新快照），改以 zip 手術修 <code>16_資產歷史</code> 該列再讓 <code>--full</code> 重建 <code>02_每日漲跌</code>；淨投入資金 9/24 由 0 → <b>−163,004</b>、9/29 → <b>+123,637</b>。並補上賣股實收現金（<code>12_設定</code> 現金 2,072,754 → 2,234,130），修正淨資產短計</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-09-30</td>
+          <td>🔑 <b>排程自動發佈恢復</b>：補建 <code>PAGES_PAT</code> secret，<code>publish_projects.py</code> 的發佈步驟先前因缺金鑰而「安靜跳過」，runlog 自 09-03 起空窗；一併修好<b>停擺兩週的正二分析自動部署</b>（該步驟只認從未建立過的 GITHUB_TOKEN_LEV2，自 08-19 起每次排程都走跳過分支，leverage-etf 因此三週未更新），改為優先吃 PAGES_PAT。<b>啟用前先同步了 stock-notify 內過期的 projects.html 與 wealth_os_devlog.html</b>，避免排程把線上總覽蓋回舊版</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-09-29</td>
+          <td>🧾 釐清<b>禾伸堂持股成本與元大 App 的落差</b>：非費用或配息問題，而是 App 用<b>先進先出</b>、試算表用<b>加權平均</b>，總成本兩邊皆 244,506 分毫不差，僅「已賣出／未賣出」的切分不同（總損益相同，只差認列時點）；決定維持加權平均。另用<b>快照差分法</b>還原「股票買賣紀錄」缺漏的 3 筆買進（以手續費 0.1425%×6折 交叉驗證），並將查得的 9,444 元短記差額留痕待查</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-09-26</td>
+          <td>📉 <b>每日跌幅分布查詢 v2.0 手機版上線</b>：新增 drop_stats_web.html 查詢頁（yaojing277.github.io/projects/drop/），改由每日排程抓證交所全市場收盤行情存成月檔、瀏覽器端即時計算，<b>電腦不必開機</b>；漲跌幅採官方參考價，除息與分割皆已還原（00631L 1 拆 22 已驗證）</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-09-24</td>
+          <td>📐 修正 Wealth OS <b>01_Dashboard 欄寬</b>：A 欄 65.13→14、B 欄 63.38→40（合計 128.5→54），原因是標題列為 A1:H1 跨欄合併，欄寬被誤撐到內容實際只需 9 字寬的 8 倍；zip 手術只改 <code>&lt;cols&gt;</code>，98 個元件與全部儲存格值零差異</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-09-16</td>
+          <td>⚖️ 三項並行：<b>lev2_balance.py</b> 阿良「正二人生資產負債表」計算引擎（三桶 β 曝險／建議配置代號／加碼梯，後因 06 分頁改回手動範本而以 LEV2BAL_ENABLED=False 停用自動重建，引擎保留可離線試算）；<b>專案總覽自動發佈</b>（publish_projects.py 隨每日排程同步 projects.html／兩份 devlog 並寫 runlog.json）；<b>金鑰檔移出版控</b>——deploy_*.sh 改讀 _load_pat.sh（環境變數 GH_PAT 或 ~/.config/gh_pat），不再內嵌明文 PAT</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-09-15</td>
+          <td>🗓️ 修復 ETF 除息日曆「<b>待公告</b>」金額不會自動更新的問題：投信補公告金額後，既有日曆事件會同步更新而非停留在建立當下的狀態</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-09-09</td>
+          <td>🎬 YouTube 摘要加入<b>字幕／轉錄快取</b>（.yt_transcript_cache）：Whisper 轉錄結果存檔，摘要步驟失敗重跑時免再等一次轉錄（一部 2 小時影片可省數分鐘）；快取放在摘要庫外，不會被 deploy 推上 GitHub</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-09-02</td>
           <td>📚 補上開發紀錄文件兩份：<b>股票自動化家族開發總表</b>（stock_automation_devlog.html，涵蓋 2026-04-12 起全系列 18 個項目，含架構總覽與三條踩坑鐵律）與 <b>Wealth OS 開發紀錄</b>（wealth_os_devlog.html，2026-07-11 起 14 個項目）；同時把「Wealth OS 資產管理自動化」補為主要專案卡片（先前只有零散工具條目）</td>

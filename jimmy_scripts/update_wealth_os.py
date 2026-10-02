@@ -77,6 +77,12 @@ SETTINGS_MAP = {          # 鍵名 -> 11_設定 的列號(B 欄)
     "lev_max": 13, "hi_max": 14, "mkt_min": 15, "single_max": 16,
     "t0050": 17, "t00662": 18, "ttsmc": 19,
 }
+# 後加的選用門檻:缺格或非數值時退回預設值並印警告,**不中止**。
+# (SETTINGS_MAP 那組是舊有必填項,缺了代表版面被改壞,維持 sys.exit 的嚴格行為;
+#  但新門檻若因故被清空就讓整個每日排程掛掉並不合理,故分開處理。)
+OPTIONAL_SETTINGS_MAP = {
+    "lev_exp_max": (21, 0.70),   # 正二曝險上限:正二x2 ÷ 總曝險(原型+正二x2+現金)
+}
 # 設定表沒有對應項目、維持字面值的門檻
 LEV_LOWER = 0.20          # 正二下緣(低於此顯示「可分批增加」)
 STOCK_MAX = 0.40          # 個股合計上限
@@ -128,6 +134,15 @@ def read_settings(wb):
             out[key] = float(v)
         except (TypeError, ValueError):
             sys.exit(f"「{SETTINGS_TAB}」B{row}({ws.cell(row, 1).value})不是數值:{v!r},停止。")
+    for key, (row, default) in OPTIONAL_SETTINGS_MAP.items():
+        v = ws.cell(row, 2).value
+        if isinstance(v, str):
+            v = v.lstrip("=")
+        try:
+            out[key] = float(v)
+        except (TypeError, ValueError):
+            out[key] = default
+            print(f"⚠ 「{SETTINGS_TAB}」B{row}({key})缺值或非數值:{v!r},改用預設 {default}")
     return out
 
 
@@ -312,8 +327,25 @@ def _hist_row_xml(n, styles, date_str, m):
             + "</row>")
 
 
+def _renumber_row_xml(row_xml, n):
+    """把一整列的 XML 重新編號成第 n 列(<row r=> 與每個 <c r="X##"> 一起換)。
+    只能用在「純靜態值」的列——含公式的列重編號會讓相對參照失準,呼叫端要先確認。"""
+    row_xml = re.sub(r'(<row\b[^>]*?\br=")\d+(")', rf'\g<1>{n}\g<2>', row_xml, count=1)
+    return re.sub(r'(<c r="[A-Z]+)\d+(")', rf'\g<1>{n}\g<2>', row_xml)
+
+
+def _hist_sort_key(date_txt):
+    """歷史資料表的日期一律是 YYYY/MM/DD 或 YYYY-MM-DD 文字,統一成可比較的字串。"""
+    return str(date_txt).replace("-", "/")[:10]
+
+
 def _update_history(hxml, sis, date_str, metrics):
-    """凍結舊活公式列、同日覆寫、否則附加一列。回傳 (新xml, 動作說明)。"""
+    """凍結舊活公式列、同日覆寫、否則插入最上面(列2)。回傳 (新xml, 動作說明)。
+
+    2026-10-01 起「16_資產歷史」改成日期由新到舊儲存(列2=最新一天),跟 02_每日漲跌／
+    03_國泰漲跌 的表格方向一致,手機打開歷史表也是最新的在最上面。所以新的一天不再附加
+    到最後一列,而是插進列2、既有資料列整批往下推一列(_renumber_row_xml 重編號)。
+    這張表全是靜態快照值(沒有公式),重編號不會動到任何相對參照。"""
     data_rows = []          # (列號, 日期文字, 是否含公式, row原文)
     for m in re.finditer(r'<row r="(\d+)"[^>]*>(.*?)</row>', hxml, re.S):
         rn, content = int(m.group(1)), m.group(2)
@@ -339,13 +371,17 @@ def _update_history(hxml, sis, date_str, metrics):
     if same_day:
         new_row = _hist_row_xml(same_day[0], styles, date_str, metrics)
         return hxml.replace(same_day[3], new_row, 1), f"同日重跑,覆寫列{same_day[0]}({date_str})"
-    n = max(r[0] for r in data_rows) + 1
-    new_row = _hist_row_xml(n, styles, date_str, metrics)
-    m = re.search(rf'<row r="{n}"[^>]*>.*?</row>|<row r="{n}"[^>]*/>', hxml, re.S)
-    if m:
-        return hxml.replace(m.group(0), new_row, 1), f"附加 {date_str} 至列{n}(置換空列)"
-    last = next(r for r in data_rows if r[0] == n - 1)
-    return hxml.replace(last[3], last[3] + new_row, 1), f"附加 {date_str} 至列{n}"
+    # 新的一天插進最上面(列2),既有資料列整批往下推一列
+    if any(r[2] for r in data_rows):
+        sys.exit(f"「{HIST_TAB}」還有含公式的資料列,不能重編號,請先人工處理。")
+    ordered = sorted(data_rows, key=lambda r: _hist_sort_key(r[1]), reverse=True)
+    doc_order = sorted(data_rows, key=lambda r: r[0])
+    start = hxml.index(doc_order[0][3])
+    end = hxml.index(doc_order[-1][3]) + len(doc_order[-1][3])
+    block = _hist_row_xml(2, styles, date_str, metrics) + "".join(
+        _renumber_row_xml(r[3], i) for i, r in enumerate(ordered, start=3))
+    return (hxml[:start] + block + hxml[end:],
+            f"插入 {date_str} 至列2(最新在最上面),其餘 {len(ordered)} 列往下推一列")
 
 
 def _append_trade_log(lxml, date_str, trades):
@@ -485,7 +521,11 @@ DAILY_COLS = ('<cols><col customWidth="1" min="1" max="1" width="11.5"/>'
 
 
 def _build_daily_sheetdata(hist, pct_style="11"):
-    """組 02_每日漲跌 的 <cols>+<sheetData>:公式參照 16_資產歷史,快取一併寫入。
+    """⚠ 已棄用(2026-10-01):這是「日期由舊到新、起點列在第3列」的舊版面,而且假設歷史
+    資料表也是舊到新。兩個假設現在都不成立,目前沒有任何呼叫端,保留只為對照舊版行為。
+    現行版面請用 _build_daily_sheetdata_desc()。
+
+    組 02_每日漲跌 的 <cols>+<sheetData>:公式參照 16_資產歷史,快取一併寫入。
     hist: [(日期, 市值, 成本, 損益), ...](順序＝資產歷史列序,對應歷史列 2,3,4...)。
     欄:A日期 B總市值 C未實現損益 D單日損益漲跌(真實) E淨投入資金(成本變化) F單日市值漲跌 G單日報酬率。
     pct_style: 百分比(0.00%)樣式索引,由呼叫端動態取自 16_資產歷史 報酬率欄(索引會隨 styles 漂移,勿寫死)。"""
@@ -556,7 +596,10 @@ def _build_daily_sheetdata(hist, pct_style="11"):
 
 
 def _build_daily_chart_xml(hist):
-    """組 02_每日漲跌 的雙軸折線圖 chart5.xml(自足、快取內嵌、範圍隨歷史成長)。
+    """⚠ 已棄用(2026-10-01):搭配舊版 _build_daily_sheetdata 的升冪列序,目前無呼叫端。
+    現行版面請用 _build_daily_chart_xml_desc()。
+
+    組 02_每日漲跌 的雙軸折線圖 chart5.xml(自足、快取內嵌、範圍隨歷史成長)。
     hist 同 _build_daily_sheetdata:[(日期,市值,成本,損益),...]。圖只繪每日資料列(i>=1,
     即每日漲跌列4起,跳過起點列3——起點的 D/E/F 是整欄 SUM 總計非當日值,會讓折線爆衝)。
     主軸左:總市值(B)＋未實現損益(C);副軸右:單日損益漲跌(真實,D)。三者量級差百倍,需雙軸。"""
@@ -660,6 +703,13 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
     H = f"'{HIST_TAB}'!"
     ST_TITLE, ST_TXT, ST_NUM, ST_PCT = "58", str(txt_style), "9", str(pct_style)
     N = len(hist)
+    # 歷史資料表(16_資產歷史／21_國泰資產歷史)自 2026-10-01 起也改成「新到舊」儲存:
+    # 列2 = 最新一天、列 N+1 = 最早一天。hist 這個 list 本身仍維持「舊到新」
+    # (hist[0]=最早),只有「換算成歷史表列號」這一步要倒過來,其餘邏輯完全不動。
+    def hrow(idx):
+        """hist 的第 idx 筆(0=最早)對應歷史資料表的列號。"""
+        return 2 + (N - 1 - idx)
+
     header_row = title_row + 1
     agg_row = header_row + 1
     data_start = agg_row + 1
@@ -711,7 +761,10 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
         sD = sum(hist[j][3] - hist[j - 1][3] for j in range(1, N))
         sE = sum(hist[j][2] - hist[j - 1][2] for j in range(1, N))
         sF = sum(hist[j][1] - hist[j - 1][1] for j in range(1, N))
-        sG = sD / hist[0][1] if hist[0][1] else 0
+        # G 欄的公式是 D{agg}/B{agg},而 B{agg} 是「歷史新高市值」(MAX),不是最早那天的
+        # 市值。快取值要跟公式用同一個分母,否則試算表重算前/後會顯示兩個不同的數字
+        # (2026-10-01 抓到:國泰帳戶快取成 540%,Google Sheets 重算後才變回正確的 21.7%)
+        sG = sD / maxB if maxB else 0
         agg_parts += [cell(f"D{agg_row}", ST_NUM, f=f"SUM(D{data_start}:D{data_end})", v=f"{sD:.0f}"),
                       cell(f"E{agg_row}", ST_NUM, f=f"SUM(E{data_start}:E{data_end})", v=f"{sE:.0f}"),
                       cell(f"F{agg_row}", ST_NUM, f=f"SUM(F{data_start}:F{data_end})", v=f"{sF:.0f}"),
@@ -725,8 +778,8 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
     for k in range(max(N - 1, 0)):
         dr = data_start + k
         orig_idx = (N - 1) - k
-        hr = 2 + orig_idx          # 16_資產歷史 對應列號
-        hrp = hr - 1
+        hr = hrow(orig_idx)        # 歷史資料表對應列號(新到舊:最新在列2)
+        hrp = hrow(orig_idx - 1)    # 前一天在「下面」一列
         dt, mv, cost, pl = hist[orig_idx]
         A = f'IF({H}A{hr}="","",{H}A{hr})'
         B = f'IF({H}A{hr}="","",{H}B{hr})'
@@ -750,9 +803,10 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
     # D/E/F/G 留空(沒有前一天可比)。(2026-08-29 Jimmy 要求把 7/1 原始資料放回列表最底)
     base_row = data_end + 1
     dt0, mv0, cost0, pl0 = hist[0]
-    A0f = f'IF({H}A2="","",{H}A2)'
-    B0f = f'IF({H}A2="","",{H}B2)'
-    C0f = f'IF({H}A2="","",{H}D2)'
+    h0 = hrow(0)               # 最早一天:歷史表改新到舊後,它落在最後一列
+    A0f = f'IF({H}A{h0}="","",{H}A{h0})'
+    B0f = f'IF({H}A{h0}="","",{H}B{h0})'
+    C0f = f'IF({H}A{h0}="","",{H}D{h0})'
     base_parts = [cell(f"A{base_row}", ST_TXT, f=A0f, v=dt0, is_str=True),
                   cell(f"B{base_row}", ST_NUM, f=B0f, v=f"{mv0:.0f}"),
                   cell(f"C{base_row}", ST_NUM, f=C0f, v=f"{pl0:.0f}"),
@@ -857,7 +911,9 @@ def _month_seq_desc(hist_rows):
     """回傳(年,月)由新到舊的序列,涵蓋 hist_rows 全部月份。如果最早那筆資料不是從 1 號開始
     (通常是帳戶剛開戶、只有月中幾天零碎資料),排除那個月,避免產生一份幾乎全空的月曆;
     如果最早資料剛好是從 1 號開始(完整月),則保留,不會平白少算一個月。"""
-    dates = [datetime.strptime(r[0], "%Y/%m/%d").date() for r in hist_rows]
+    # 日期分隔符號容錯:16_資產歷史 存文字("2026/07/01")、21_國泰資產歷史 存真日期
+    # (openpyxl 讀回來是 "2026-01-30"),兩種都要吃得下
+    dates = [datetime.strptime(_hist_sort_key(r[0]), "%Y/%m/%d").date() for r in hist_rows]
     if not dates:
         return []
     latest, earliest = max(dates), min(dates)
@@ -931,6 +987,7 @@ def _month_calendar_grid(hist, year=None, month=None):
 
 CAL_GRID_COLOR = "FFD1D5DB"           # 上月(次要)報酬日曆格線:細灰
 CAL_GRID_COLOR_CURRENT = "FF000000"   # 本月(主要)報酬日曆格線:黑色(2026-08-22 Jimmy 要求加強本月可視性)
+CAL_AMT_FMT = "#,##0"                 # 報酬日曆金額格數字格式:千分位(2026-09-30 Jimmy 要求,負值顯示 -1,234)
 
 
 def _ensure_calendar_border(styles_xml, color=CAL_GRID_COLOR):
@@ -1272,16 +1329,20 @@ def _ensure_numfmt_style(styles_xml, base_id, numfmt_id):
     return new_xml, count
 
 
-def _fix_daily_value_font_color(daily_sheetdata, hist_rows, styles_xml, rgb="FF000000",
-                                 data_start=None, data_end=None):
+def _fix_daily_value_style(daily_sheetdata, hist_rows, styles_xml, rgb="FF000000",
+                           data_start=None, data_end=None):
     """每日漲跌表 B~F 欄(總市值/未實現損益/單日損益漲跌/淨投入資金/單日市值漲跌)固定共用
     _build_daily_sheetdata() 寫死的樣式 s="9"(ST_NUM)。這個樣式的實際顏色會隨 styles.xml
-    漂移。這裡動態讀「9」目前的字型,只把文字顏色強制改成 rgb,填色/框線/數字格式/粗體都不動,
-    且只作用在每日表格的列範圍(預設 3 ~ 2+len(hist_rows);報酬日曆搬到表格上方後列號會
-    不一樣,呼叫端可用 data_start/data_end 明確指定),不影響報酬日曆共用同組欄名的儲存格。"""
+    漂移。這裡動態讀「9」目前的字型,把文字顏色強制改成 rgb,並套上千分位數字格式
+    (CAL_AMT_FMT,與報酬日曆同一組格式碼);填色/框線/粗體都不動。
+    只作用在每日表格的列範圍(預設 3 ~ 2+len(hist_rows);報酬日曆搬到表格上方後列號會
+    不一樣,呼叫端可用 data_start/data_end 明確指定),不影響報酬日曆共用同組欄名的儲存格。
+    (2026-09-30 起兼管數字格式,原名 _fix_daily_value_font_color)"""
     base_font_id = _get_xf_font_id(styles_xml, 9)
     styles_xml, black_font_id = _ensure_font_color(styles_xml, base_font_id, rgb, bold=False)
     styles_xml, black_style_id = _ensure_style_variant(styles_xml, 9, font_id=black_font_id)
+    styles_xml, amt_numfmt = _ensure_numfmt(styles_xml, CAL_AMT_FMT)
+    styles_xml, black_style_id = _ensure_numfmt_style(styles_xml, black_style_id, amt_numfmt)
     start = 3 if data_start is None else data_start
     end = (2 + len(hist_rows)) if data_end is None else data_end
     for dr in range(start, end + 1):
@@ -1802,6 +1863,10 @@ def full_refresh(path_in, path_out, date_str):
     mort, loan = cfg["mortgage"], cfg["loan"]
     e6 = F27 + house + cash - mort - loan
     h6 = (mort + loan) / (F27 + house)
+    # 正二曝險比例:與 04_ETF分析 C12 同口徑(正二x2 ÷ 總曝險 B14)。
+    # B14 = 原型 + 正二x2 + 現金 = (F27 - 正二) + 正二x2 + 現金 = F27 + 正二 + 現金
+    lev_mv = cat.get('正二ETF', 0)
+    lev_exp = (lev_mv * 2) / (F27 + lev_mv + cash) if (F27 + lev_mv + cash) else 0
     b5x = 20 if cash < cfg["cash_target"] else 0
     b6x = 15 if lev > cfg["lev_max"] else 0
     b7x = 10 if hi > cfg["hi_max"] else 0
@@ -1882,7 +1947,10 @@ def full_refresh(path_in, path_out, date_str):
                                     if hi > cfg["hi_max"] else f"，低於 {cfg['hi_max']:.0%} 上限"),
         f"正二比例 {lev:.1%}" + (f"，已超過 {cfg['lev_max']:.0%} 上限，暫停加碼" if lev > cfg["lev_max"] else
                                 (f"，位於 {LEV_LOWER:.0%}~{cfg['lev_max']:.0%} 目標區間"
-                                 if lev >= LEV_LOWER else f"，低於 {LEV_LOWER:.0%} 目標區間下緣")),
+                                 if lev >= LEV_LOWER else f"，低於 {LEV_LOWER:.0%} 目標區間下緣"))
+        # 曝險是另一個口徑(正二x2÷總曝險),與上面的「占股票市值」併成同一行,不另占摘要欄位
+        + f"；曝險 {lev_exp:.1%}" + (f"，已超過 {cfg['lev_exp_max']:.0%} 上限"
+                                     if lev_exp > cfg["lev_exp_max"] else f"，低於 {cfg['lev_exp_max']:.0%} 上限"),
         f"最大單一持股 {mx_d['name']}({mx:.1%})" + (f"，超過 {cfg['single_max']:.0%} 上限，留意集中度"
                                                 if mx > cfg["single_max"] else ""),
         f"安全指數 {safety} 分;現金池 {cash:,.0f}(預留目標 {cfg['cash_target']:,.0f})",
@@ -1891,6 +1959,17 @@ def full_refresh(path_in, path_out, date_str):
         setstr(p, f"B{18 + i}", t)
 
     # 03_ETF分析
+    # ⚠ 只刷列4~9 的分類市值/占比與 F 欄狀態、以及 D5/E4/E6 這三個引用 12_設定 的目標欄。
+    #   **列11~14(原型/正二/現金/曝險比例)整塊是 Jimmy 手動維護的公式,嚴禁加寫入**
+    #   B11=SUM(B4:B9)-B6-B7(原型)  B12=(B6+B7)(正二,**未加倍**)  B13='12_設定'!B6(現金)
+    #   B14=B11+B12*2+B13(總曝險,正二在這裡才乘 2)
+    #   標題列:B10=金額 C10=曝險比例 D10=成本比例(Jimmy 用詞,照抄勿改)
+    #   C 欄=曝險比例(分母 B14,C12 分子乘 2)  D 欄=成本比例(分母 SUM(B11:B13))
+    #   兩欄是兩種口徑、各自加總 100%(目前 C=50:39:11、D=62:25:14),**不要「修正」成一致**。
+    #   (2026-10-02 Jimmy 重構定案。⚠B12 以前是 (B6+B7)*2 已加倍,現在沒有,勿沿用舊假設;
+    #    D12/D13 原為共用公式已拆成獨立格,否則改 D12 會把 D13 連帶推成錯的相對參照)
+    #   這塊的快取不由本腳本刷新,靠 Jimmy 開檔時 Google Sheets 重算(已實測會正確更新)。
+    #   注意別跟下面 01_Dashboard 的 C(p,"D11"/"D12"/"D13",...) 搞混,那是另一張分頁的同名儲存格。
     p = tabs["04_ETF分析"]
     lev_ex = cat.get('正二ETF', 0) - N['00663L']['F']
     for rn, v in {"4": cat.get('高股息ETF', 0), "5": cat.get('市值ETF', 0), "6": lev_ex,
@@ -2007,6 +2086,9 @@ def full_refresh(path_in, path_out, date_str):
         hist_rows.append((str(dt)[:10], float(hws.cell(r, 2).value),   # 市值 B
                           float(hws.cell(r, 3).value),                 # 成本 C
                           float(hws.cell(r, 4).value)))                # 損益 D
+    # 歷史表自 2026-10-01 起是「新到舊」儲存,但程式內部一律用「舊到新」(hist[0]=最早),
+    # 所以讀進來一定要重新排序;排序後就不受儲存順序影響,哪天再翻回去也不會壞
+    hist_rows.sort(key=lambda r: _hist_sort_key(r[0]))
     # 百分比樣式索引動態取自 16_資產歷史 報酬率欄(E),避免寫死索引隨 styles 漂移而失準
     try:
         pct_style = wb[HIST_TAB]["E2"].style_id
@@ -2046,8 +2128,11 @@ def full_refresh(path_in, path_out, date_str):
         nonlocal cal_styles_xml, row_cursor
         cal_styles_xml, cal_pct_numfmt = _ensure_numfmt(cal_styles_xml, "0.0%")
         cal_styles_xml, cal_pct_base = _ensure_numfmt_style(cal_styles_xml, safe_pct_style, cal_pct_numfmt)
+        # 金額格(每日/週損益/月損益)套千分位;與百分比同一套 append-only 機制,樣式索引動態產生勿寫死
+        cal_styles_xml, cal_amt_numfmt = _ensure_numfmt(cal_styles_xml, CAL_AMT_FMT)
+        cal_styles_xml, cal_num_base = _ensure_numfmt_style(cal_styles_xml, safe_num_style, cal_amt_numfmt)
         cal_styles_xml, style_map = _ensure_calendar_grid_styles(
-            cal_styles_xml, {"title": 58, "txt": safe_txt_style, "num": safe_num_style, "pct": cal_pct_base},
+            cal_styles_xml, {"title": 58, "txt": safe_txt_style, "num": cal_num_base, "pct": cal_pct_base},
             color=CAL_GRID_COLOR_CURRENT)
         start_row = row_cursor
         rows_xml, mc, cf, last_row = _build_calendar_rows(g, start_row, style_map)
@@ -2071,7 +2156,7 @@ def full_refresh(path_in, path_out, date_str):
         _emit_calendar(marker, g)
 
     daily_sheetdata = "".join(blocks)
-    daily_sheetdata, cal_styles_xml = _fix_daily_value_font_color(
+    daily_sheetdata, cal_styles_xml = _fix_daily_value_style(
         daily_sheetdata, hist_rows, cal_styles_xml,
         data_start=daily_info["agg_row"], data_end=daily_info["base_row"])
     daily_sheetdata, cal_styles_xml, title_merge_ref = _center_daily_title(
@@ -2368,6 +2453,105 @@ def sync(args):
     print(f"\n✅ 已就地更新:{info['name']}(檔案 ID 不變,版本 {info.get('version')},"
           f"大小 {info.get('size')} bytes,雲端時間 {info['modifiedTime']})")
     print(f"   共更新 {len(common)} 檔;原檔備份:{backup}")
+
+
+# ========================= 全出清:整列刪除 =========================
+# 一檔股票賣光後,要從 03_持股總表/05_個股分析/13_加碼分析 整列刪除,並把全檔受影響的列號與
+# 公式參照往上位移。2026-07-28(寶雅)起手工做過四次,2026-10-01(禾伸堂)正式抽成函式。
+# ⚠ 血淚經驗,改動前務必讀:
+#   1.「結構位移」(<row r=>/<c r=>/ref=/sqref=)與「公式文字位移」(<f>…</f>)必須分開做,
+#     否則同一個列號會被位移兩次(off-by-one)。
+#   2. 做同分頁公式位移前,必須把「'分頁'!參照」整串(含參照本身與範圍結尾)遮成不含英數的佔位符;
+#     只遮前綴會讓裸露的 F22 被誤認成同分頁參照而多減 1(2026-08-26 實際踩過)。
+#   3. 範圍參照只有開頭帶分頁前綴('03'!$B$3:$B$25),結尾那格沒有,要一併捕捉位移。
+#   4. 每張分頁要刪的列號各不相同(同一檔股票在不同分頁列號不同),不可共用同一個數字。
+#   5. 不只 05/13 會引用 03——2026-10-01 實測有 9 張分頁引用,務必全檔掃描而非憑印象列舉。
+
+_CELL_IN_REF = re.compile(r"(\$?)([A-Z]{1,3})(\$?)(\d+)")
+# 「'分頁名'!參照」或「分頁名!參照」,含可選的範圍結尾(結尾不帶前綴)
+_QUALIFIED_REF = re.compile(
+    r"('[^']+'|[A-Za-z0-9_一-鿿]+)!(\$?[A-Z]{1,3}\$?\d+(?::\$?[A-Z]{1,3}\$?\d+)?)")
+
+
+def _shift_rows_in_ref(ref_body, del_row):
+    """把一段參照文字(如 "$B$3:$B$25")裡 > del_row 的列號減 1。"""
+    def one(m):
+        d1, col, d2, n = m.group(1), m.group(2), m.group(3), int(m.group(4))
+        return f"{d1}{col}{d2}{n - 1 if n > del_row else n}"
+    return _CELL_IN_REF.sub(one, ref_body)
+
+
+def _delete_row_structure(xml, del_row):
+    """刪掉 <row r="del_row"> 整列,並位移「結構」上的列號:<row r=>、<c r=COLn>、
+    以及任何 ref="…"(用子字串比對,天然涵蓋 <f ref=>/<mergeCell ref=>/<conditionalFormatting
+    sqref=> 三種,因為 "sqref=" 尾端就是 "ref=")。**不碰 <f>…</f> 內的公式文字**。"""
+    xml = re.sub(rf'<row r="{del_row}"[^>]*/>|<row r="{del_row}"[^>]*>.*?</row>', "", xml, flags=re.S)
+    xml = re.sub(r'<row r="(\d+)"',
+                 lambda m: f'<row r="{int(m.group(1)) - 1 if int(m.group(1)) > del_row else int(m.group(1))}"', xml)
+    xml = re.sub(r'<c r="([A-Z]{1,3})(\d+)"',
+                 lambda m: f'<c r="{m.group(1)}'
+                           f'{int(m.group(2)) - 1 if int(m.group(2)) > del_row else int(m.group(2))}"', xml)
+    xml = re.sub(r'(ref=)"([^"]+)"',
+                 lambda m: f'{m.group(1)}"{_shift_rows_in_ref(m.group(2), del_row)}"', xml)
+    return xml
+
+
+def _mask_qualified_refs(xml):
+    """把 <f> 內所有「分頁!參照」整串換成不含英數的佔位符(\\x01N\\x01)。
+    佔位符的數字前面不是大寫字母,所以不會被同分頁位移的 regex 誤抓。回傳 (xml, 原文list)。"""
+    store = []
+
+    def grab(m):
+        store.append(m.group(0))
+        return f"\x01{len(store) - 1}\x01"
+    return _QUALIFIED_REF.sub(grab, xml), store
+
+
+def _unmask_qualified_refs(xml, store):
+    return re.sub(r"\x01(\d+)\x01", lambda m: store[int(m.group(1))], xml)
+
+
+def _shift_same_sheet_formula_rows(xml, del_row):
+    """只位移 <f>…</f> 內「同分頁、無前綴」的儲存格參照。呼叫前務必先遮罩跨分頁參照。
+    ⚠ `(?![^>]*/>)` 不可省:共用公式的從屬格是**自閉合** <f t="shared" si="1"/>,若被當成開標籤,
+    lazy 的 .*? 會一路跨過中間好幾個 <c r="A23"> 直到下一個真正的 </f>,把沿途**已被結構位移過**的
+    儲存格編號再減一次,導致兩列塌成同一列(2026-10-01 禾伸堂全出清實際踩到:A 欄出現兩個 A22)。"""
+    return re.sub(r"(<f(?![^>]*/>)[^>]*>)(.*?)(</f>)",
+                  lambda m: m.group(1) + _shift_rows_in_ref(m.group(2), del_row) + m.group(3),
+                  xml, flags=re.S)
+
+
+def delete_stock_rows(zin, deletions, cross_shift=None):
+    """全出清:整列刪除並位移。
+    zin:       已開啟的 zipfile.ZipFile(原始 xlsm)
+    deletions: {分頁名: 要刪的列號} —— 這些分頁會刪列 + 自身結構/公式位移
+    cross_shift: {被引用的分頁名: 該分頁刪掉的列號} —— 全檔(含未刪列的分頁)指向它的參照一律位移
+    回傳 {part路徑: 新XML}(只含有變動的分頁)。"""
+    cross_shift = cross_shift or {}
+    parts = {}
+    targets = set(deletions) | {t for t in _iter_sheet_names(zin)}
+    for tab in targets:
+        part = _locate_sheet_part(zin, tab)
+        xml = original = zin.read(part).decode("utf-8")
+        del_row = deletions.get(tab)
+        if del_row:
+            xml = _delete_row_structure(xml, del_row)
+        xml, store = _mask_qualified_refs(xml)
+        if del_row:
+            xml = _shift_same_sheet_formula_rows(xml, del_row)
+        for i, ref in enumerate(store):
+            m = _QUALIFIED_REF.fullmatch(ref)
+            name = m.group(1).strip("'")
+            if name in cross_shift:
+                store[i] = f"{m.group(1)}!{_shift_rows_in_ref(m.group(2), cross_shift[name])}"
+        xml = _unmask_qualified_refs(xml, store)
+        if xml != original:
+            parts[part] = xml
+    return parts
+
+
+def _iter_sheet_names(zin):
+    return re.findall(r'<sheet [^>]*name="([^"]+)"', zin.read("xl/workbook.xml").decode("utf-8"))
 
 
 def main():

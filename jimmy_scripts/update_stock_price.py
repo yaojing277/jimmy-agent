@@ -685,14 +685,32 @@ def cmd_update(service, args):
         src_title = SHEET_NAME
         new_title = f"Jimmy_{exec_date.strftime('%y%m%d')}"
         if new_title == src_title:
+            # 最新分頁本身就是今天 → 今天已建過快照(排程遲到、手動補跑在前時最常見)。
+            # 這道才是實際會觸發的那一道(不是下面的 new_title in props),兩道都要支援
+            # --skip-if-exists,否則排程照樣 exit 1、後面不相干的步驟被連坐跳過。
+            if getattr(args, "skip_if_exists", False):
+                print(f"[skip] 最新分頁已是當天日期「{src_title}」(今天已建過快照),"
+                      f"略過本步驟,不重複建立;後續同步步驟照常進行。")
+                return
             sys.exit(f"最新分頁已是當天日期「{src_title}」;"
-                     f"若要就地滾動請改用 --in-place。")
+                     f"若要就地滾動請改用 --in-place,"
+                     f"排程情境請加 --skip-if-exists(已存在時正常結束而非中止)。")
         props = get_sheet_props(service)
         if src_title not in props:
             sys.exit(f"找不到來源分頁「{src_title}」。")
         if new_title in props:
+            # --skip-if-exists:排程專用。快照已存在代表今天已經建過(常見於「手動補跑在前、
+            # 遲到的排程在後」),此時不該讓整個 workflow 變紅——更重要的是,後面的國泰漲跌/
+            # ETF除息日曆/跌幅查詢頁/正二分析這四步**各自抓自己的資料、與本快照無關**,
+            # 若在這裡 exit 1 會被 GitHub Actions 連坐跳過,那天的那些資料就整天空缺。
+            # 手動執行時不帶此參數,維持大聲中止的舊行為。
+            if getattr(args, "skip_if_exists", False):
+                print(f"[skip] 分頁「{new_title}」已存在(今天已建過快照),略過本步驟,"
+                      f"不重複建立;後續同步步驟照常進行。")
+                return
             sys.exit(f"分頁「{new_title}」已存在(今天可能已跑過),中止以免覆蓋。"
-                     f"\n如需重跑請先手動刪除該分頁,或改用 --in-place 就地滾動最新分頁。")
+                     f"\n如需重跑請先手動刪除該分頁,或改用 --in-place 就地滾動最新分頁,"
+                     f"\n排程情境請加 --skip-if-exists(已存在時正常結束而非中止)。")
         if args.dry_run:
             print(f"[dry-run] 實跑會先複製 {src_title} → {new_title}(插於其左側)並於副本滾動;"
                   f"以下為在最新分頁 {src_title} 上的模擬預覽,不會建立副本、不寫入。\n")
@@ -842,6 +860,9 @@ def main():
     p_up.add_argument("--date", help="執行日期(預設今天),例 2026/7/1;副本也依此命名")
     p_up.add_argument("--in-place", action="store_true",
                       help="就地滾動最新分頁、不複製(舊行為)")
+    p_up.add_argument("--skip-if-exists", action="store_true",
+                      help="當天快照分頁已存在時正常結束(exit 0)而非中止;排程專用,"
+                           "避免「手動補跑在前、遲到排程在後」時讓後續不相干的步驟被連坐跳過")
     p_up.add_argument("--max-row", type=int, default=80, help="掃描到第幾列(預設 80)")
     p_up.add_argument("--yes", action="store_true", help="免確認直接寫")
     p_up.add_argument("--dry-run", action="store_true", help="只預覽不寫入")

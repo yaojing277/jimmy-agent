@@ -38,6 +38,7 @@ SYNC_FILES = {
     "stock_automation_devlog.html": "stock_automation_devlog.html",
     "wealth_os_devlog.html": "wealth_os_devlog.html",
     "schedule_runlog.html": "schedule_runlog.html",
+    "return_calendar_guide.html": "return_calendar_guide.html",
 }
 
 
