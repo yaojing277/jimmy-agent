@@ -15,3 +15,7 @@ stock_notify_tmp/
 jimmy_scripts/MouseSideKey/
 # 跌幅查詢頁本機建置輸出（可隨時重建）
 jimmy_scripts/drop_site/
+# 跌幅查詢圖卡 CLI 輸出（drop_stats_card.py 依代號產生，可隨時重建）
+# ⚠ drop_stats_web.html 是手機查詢頁的「模板原始碼」，必須保留在版控內，故排除於外
+jimmy_scripts/drop_stats_*.html
+!jimmy_scripts/drop_stats_web.html
