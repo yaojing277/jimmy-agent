@@ -230,14 +230,17 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   - 說「除息日同步」或「檢查除息日」即可接手，細節記錄於 memory（[[project-etf-dividend-calendar]]）
 
 - [2026-08-19] **正二 ETF 每日漲跌分析**（v1.0 完成）
-  - 兩檔台股 2 倍槓桿 ETF（**00631L** 元大台灣50正2 vs **00663L** 國泰臺灣加權正2）的日漲跌統計分析
+  - 兩檔台股 2 倍槓桿 ETF（**00631L** 元大台灣50正2 vs **00685L** 群益臺灣加權正2）的日漲跌統計分析
+  - [2026-10-03] 比較對象由 00663L 改為 00685L；標的只定義在 `lev2_analysis.py` 的 `CODE_*`／`NAME_*`／`SHORT_*`，
+    `update_wealth_os.py` 的 `00_正二分析` 標題／標籤／表頭都從那裡組字，**日後換標的只改這一處**
+    （`update_wealth_os.py` 裡 `04_ETF分析` 的 `N['00663L']` 是持股曝險分類，與本頁無關，勿一起改）
   - 核心引擎 `lev2_analysis.py`：TWSE 官方日收盤 → 逐日漲跌 % → 相關係數、追蹤差異、同向比例、Beta 等統計
   - **產出**（均於 `jimmy_scripts/`）：
     - CLI 工具 `lev2_analysis.py --days 60` 直接終端列印 / `--html` 產出單一自足 HTML
     - HTML 圖卡：累積報酬走勢 + 每日差異柱狀 + 統計摘要 + 60 日明細表（Chart.js 深色主題）
     - 已部署 GitHub Pages：https://yaojing277.github.io/leverage-etf/
   - **xlsm 同步**：`update_wealth_os.py --full` 自動更新 `00_正二分析` 分頁（60 筆日資料 + 統計區塊）
-  - 最新 60 日分析結果：相關 0.9966、累積差 +0.87 pp（631L 領先）、同向 96.7%、追蹤差 0.34 pp
+  - 最新 60 日分析結果（2026-10-02）：相關 0.9967、累積差 −0.85 pp（685L 領先）、同向 96.7%、追蹤差 0.27 pp
   - 說「續做正二分析」或「更新正二分析」即可接手
 - [2026-07-12] **YouTube 影片 AI 摘要工具**（v1.0 完成，已實測可用）
   - `jimmy_scripts/yt_summary.py`：貼網址 → 抓字幕 → claude CLI 摘要 → HTML 摘要頁＋摘要庫 index；已加入 projects.html 主要專案卡片

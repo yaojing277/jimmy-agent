@@ -288,7 +288,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-02</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-03</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -698,7 +698,7 @@
         <div class="card-icon">📊</div>
         <div class="card-meta">
           <div class="card-name">正二 ETF 每日漲跌分析</div>
-          <div class="card-sub">00631L vs 00663L · 60日相關/追蹤統計</div>
+          <div class="card-sub">00631L vs 00685L · 60日相關/追蹤統計</div>
         </div>
         <span class="dot active"></span>
       </div>
@@ -716,9 +716,9 @@
           <tr><th>指標</th><th>最新 60 日</th></tr>
         </thead>
         <tbody>
-          <tr><td>日報酬相關係數</td><td>0.9966（高度連動）</td></tr>
-          <tr><td>累積報酬差</td><td>+0.87 pp（631L 領先）</td></tr>
-          <tr><td>平均絕對追蹤差</td><td>0.3416 pp</td></tr>
+          <tr><td>日報酬相關係數</td><td>0.9967（高度連動）</td></tr>
+          <tr><td>累積報酬差</td><td>−0.85 pp（685L 領先）</td></tr>
+          <tr><td>平均絕對追蹤差</td><td>0.2652 pp</td></tr>
           <tr><td>同向天數比例</td><td>96.7%</td></tr>
         </tbody>
       </table>
@@ -947,6 +947,10 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-03</td>
+          <td>📊 <b>正二分析比較對象改為 00631L vs 00685L</b>（群益臺灣加權正2，取代 00663L）：GitHub Pages 圖卡與 <code>00_正二分析</code> 分頁同步切換。<code>update_wealth_os.py</code> 的分頁標題／統計標籤／表頭改從 <code>lev2_analysis</code> 的 <code>CODE_*</code>／<code>NAME_*</code>／<code>SHORT_*</code> 常數組字，<b>日後換標的只改一處</b>；順手修正差異圖說明在紅漲綠跌對調後仍寫「正值（綠）」的錯誤。最新 60 日：相關 0.9967、追蹤差 0.27 pp、累積 685L 領先 0.85 pp</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-02</td>
           <td>🟢 <b>排程不再因「今天已建過快照」整個變紅</b>：<code>update_stock_price.py</code> 新增 <code>--skip-if-exists</code>，快照已存在時印訊息並正常結束（exit 0），workflow 帶上該參數。起因是當天排程遲到 6.5 小時、手動補跑在前，原本的 <code>exit 1</code> 讓 GitHub Actions <b>連坐跳過後面五步</b>——其中國泰漲跌／ETF除息日曆／跌幅查詢頁／正二分析<b>各自抓自己的資料、與該快照無關</b>，被跳過等於那天資料整天空缺。手動執行不帶參數時維持大聲中止</td>

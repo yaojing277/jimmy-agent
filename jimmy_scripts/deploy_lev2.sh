@@ -33,7 +33,7 @@ if [ "$STATUS" != "200" ]; then
   echo "① repo 不存在，自動建立 ${REPO}..."
   curl -s -o /dev/null -X POST "https://api.github.com/user/repos" \
     -H "Authorization: token $PAT" -H "Accept: application/vnd.github+json" \
-    -d '{"name":"leverage-etf","description":"00631L vs 00663L 正二 ETF 每日漲跌分析（lev2_analysis.py 產生）","auto_init":true}'
+    -d '{"name":"leverage-etf","description":"00631L vs 00685L 正二 ETF 每日漲跌分析（lev2_analysis.py 產生）","auto_init":true}'
   sleep 3
 else
   echo "① repo 已存在"

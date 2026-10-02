@@ -3,7 +3,7 @@
 """lev2_analysis.py — 台股兩檔 2 倍槓桿 ETF 每日漲跌分析
 
   00631L 元大台灣50正2   追蹤「台灣50指數」報酬兩倍
-  00663L 國泰臺灣加權正2  追蹤「加權股價指數」報酬兩倍
+  00685L 群益臺灣加權正2  追蹤「加權股價指數」報酬兩倍
 
 槓桿倍數相同、追蹤標的不同,故兩者每日漲跌的差異即反映
 兩檔指數的分歧與各自的槓桿再平衡耗損。
@@ -13,7 +13,7 @@
 計算日漲跌,不需還原股價。
 
 對外介面:
-  fetch(days=60)        -> [(date, p631, p663), ...] 升冪,長度 days+1(算報酬需前一日)
+  fetch(days=60)        -> [(date, pa, pb), ...] 升冪,長度 days+1(算報酬需前一日)
   analyse(rows)         -> dict:逐日明細 daily[] + 統計摘要 stats{}
   build_html(data)      -> 單一自足 HTML 字串
 
@@ -36,18 +36,20 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SITE_DIR = os.path.join(HERE, "lev2_site")
 
 CODE_A = "00631L"        # 基準比較的「主角」,差異一律以 A - B 計
-CODE_B = "00663L"
+CODE_B = "00685L"
 NAME_A = "元大台灣50正2"
-NAME_B = "國泰臺灣加權正2"
+NAME_B = "群益臺灣加權正2"
 IDX_A = "台灣50指數"
 IDX_B = "加權股價指數"
+SHORT_A = CODE_A[2:]     # 表頭/CLI 用短標籤,如 631L
+SHORT_B = CODE_B[2:]
 
 TRADING_DAYS_PER_YEAR = 252
 
 
 # ========================= 取價 =========================
 def fetch(days=60):
-    """取兩檔近 days 個交易日的共同收盤價;回 [(date, p631, p663), ...] 升冪。
+    """取兩檔近 days 個交易日的共同收盤價;回 [(date, pa, pb), ...] 升冪。
 
     長度為 days+1:第一筆只當「前一日」用來算第二筆的報酬。
     以日曆天回抓 days*2.2 天(含週末與國定假日餘裕),不足時再往前追一次。
@@ -125,7 +127,7 @@ def analyse(rows):
     # 同向天數:兩檔當日同漲或同跌(其中一檔平盤不計入同向)
     same_dir = sum(1 for a, b in zip(ras, rbs) if (a > 0 and b > 0) or (a < 0 and b < 0))
 
-    # 以 00663L(追蹤大盤)當日方向分組,看多頭日/空頭日各自誰較強
+    # 以 B 檔(追蹤大盤)當日方向分組,看多頭日/空頭日各自誰較強
     up_days = [x for x in daily if x["rb"] > 0]
     down_days = [x for x in daily if x["rb"] < 0]
 
@@ -185,13 +187,13 @@ def print_report(data, tail=20):
 
     print(f"\n\033[1m── 連動與追蹤統計 ──\033[0m")
     print(f"  日報酬相關係數      {s['corr']:.4f}"
-          f"        Beta(631L對663L)  {s['beta']:.4f}")
+          f"        Beta({SHORT_A}對{SHORT_B})  {s['beta']:.4f}")
     print(f"  平均絕對追蹤差      {s['mad']:.4f} pp"
           f"     追蹤差標準差      {s['sd_diff']:.4f} pp")
     print(f"  同向天數            {s['same_dir']}/{s['n']}（{s['same_dir_pct']}%）"
-          f"     631L較強 {s['a_wins']} 天／663L較強 {s['b_wins']} 天")
+          f"     {SHORT_A}較強 {s['a_wins']} 天／{SHORT_B}較強 {s['b_wins']} 天")
     print(f"  單日最大偏離        {s['max_dev']['date']}　"
-          f"631L {s['max_dev']['ra']:+.2f}%　663L {s['max_dev']['rb']:+.2f}%　"
+          f"{SHORT_A} {s['max_dev']['ra']:+.2f}%　{SHORT_B} {s['max_dev']['rb']:+.2f}%　"
           f"差 {s['max_dev']['diff']:+.2f} pp")
 
     print(f"\n\033[1m── 期間績效 ──\033[0m")
@@ -199,13 +201,13 @@ def print_report(data, tail=20):
           f"年化波動 {s['vol_a']:.2f}%")
     print(f"  {CODE_B}  累積{_c(s['cum_b'], 8)}%   日均{_c(s['mean_b'], 8, 4)}%   "
           f"年化波動 {s['vol_b']:.2f}%")
-    print(f"  累積差距（631L−663L）{_c(s['cum_gap'], 8)} pp")
+    print(f"  累積差距（{SHORT_A}−{SHORT_B}）{_c(s['cum_gap'], 8)} pp")
 
-    print(f"\n\033[1m── 多空分組（以 663L 當日方向）──\033[0m")
-    print(f"  上漲日 {s['up_n']:>3} 天：631L 日均{_c(s['up_a'], 8, 3)}%   "
-          f"663L 日均{_c(s['up_b'], 8, 3)}%")
-    print(f"  下跌日 {s['down_n']:>3} 天：631L 日均{_c(s['down_a'], 8, 3)}%   "
-          f"663L 日均{_c(s['down_b'], 8, 3)}%")
+    print(f"\n\033[1m── 多空分組（以 {SHORT_B} 當日方向）──\033[0m")
+    print(f"  上漲日 {s['up_n']:>3} 天：{SHORT_A} 日均{_c(s['up_a'], 8, 3)}%   "
+          f"{SHORT_B} 日均{_c(s['up_b'], 8, 3)}%")
+    print(f"  下跌日 {s['down_n']:>3} 天：{SHORT_A} 日均{_c(s['down_a'], 8, 3)}%   "
+          f"{SHORT_B} 日均{_c(s['down_b'], 8, 3)}%")
     print()
 
 
@@ -239,7 +241,7 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     --bg:#0f1115; --card:#171a21; --line:#262b35;
     --txt:#e6e8ec; --sub:#9aa3b2;
     --ca:#ff6b4a;   /* 00631L 橘 */
-    --cb:#4aa3ff;   /* 00663L 藍 */
+    --cb:#4aa3ff;   /* 00685L 藍 */
     --up:#ff5d5d; --down:#2ec27e;
   }
   *{box-sizing:border-box}
@@ -304,7 +306,7 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
   <div class="card">
     <div class="sec-title">每日漲跌差異（__CODE_A__ − __CODE_B__，百分點）</div>
     <div class="chart-box"><canvas id="diff"></canvas></div>
-    <div class="note">正值（綠）＝當日 <b>__CODE_A__</b> 較強；負值（紅）＝<b>__CODE_B__</b> 較強。
+    <div class="note">正值（紅）＝當日 <b>__CODE_A__</b> 較強；負值（綠）＝<b>__CODE_B__</b> 較強。
       兩檔槓桿倍數相同，差異主要來自 __IDX_A__ 與 __IDX_B__ 的成分股分歧。</div>
   </div>
 
@@ -437,7 +439,7 @@ document.querySelector('#tbl tbody').innerHTML = D.slice().reverse().map(x => `
 
 # ========================= CLI =========================
 def main():
-    ap = argparse.ArgumentParser(description="00631L / 00663L 每日漲跌分析")
+    ap = argparse.ArgumentParser(description=f"{CODE_A} / {CODE_B} 每日漲跌分析")
     ap.add_argument("--days", type=int, default=60, help="分析的交易日數(預設 60)")
     ap.add_argument("--tail", type=int, default=20, help="終端顯示最近幾筆(預設 20)")
     ap.add_argument("--html", action="store_true", help="產出 lev2_site/index.html")

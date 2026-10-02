@@ -90,7 +90,7 @@ STOCK_MAX = 0.40          # 個股合計上限
 # 02_每日漲跌:每次 --full 依 16_資產歷史 重建;公式參照歷史,快取一併刷新(Drive 預覽也正確)
 DAILY_TAB = "02_每日漲跌"
 
-# 00_正二分析:每次 --full 由 lev2_analysis 抓 TWSE 收盤重建(00631L vs 00663L)
+# 00_正二分析:每次 --full 由 lev2_analysis 抓 TWSE 收盤重建(00631L vs 00685L,標的定義在 lev2_analysis)
 # 資料源在 TWSE 而非表內,故全部寫死為數值,不寫公式。
 # 抓取失敗只警告不中斷 —— wealth_sync.yml 每日排程會跑 --full,不能因外部 API 抖動整批失敗。
 LEV2_TAB = "00_正二分析"
@@ -1570,6 +1570,8 @@ def _build_lev2_sheetdata(data, st_title="58", st_hdr="5"):
     數值一律 s="0"(通用格式),讓小數完整顯示;標題/表頭沿用全檔既有樣式索引
     (cellXfs 是 workbook 級共用,故 02_每日漲跌 在用的索引在本分頁同樣有效)。
     """
+    import lev2_analysis as L2                    # 標的代號/名稱以 lev2_analysis 為唯一來源
+    A, B, a, b = L2.CODE_A, L2.CODE_B, L2.SHORT_A, L2.SHORT_B
     d, s = data["daily"], data["stats"]
     NUM = "0"
     rows = []
@@ -1582,7 +1584,7 @@ def _build_lev2_sheetdata(data, st_title="58", st_hdr="5"):
                 _lev2_cell(f"{col_v}{n}", NUM, val, is_str=is_str)]
 
     row(1, [_lev2_cell("A1", st_title,
-                       "00_正二分析｜00631L 元大台灣50正2　vs　00663L 國泰臺灣加權正2",
+                       f"00_正二分析｜{A} {L2.NAME_A}　vs　{B} {L2.NAME_B}",
                        is_str=True)])
     row(2, [_lev2_cell("A2", st_hdr,
                        f"期間 {s['start']} ~ {s['end']}（{s['n']} 個交易日）"
@@ -1592,23 +1594,23 @@ def _build_lev2_sheetdata(data, st_title="58", st_hdr="5"):
     row(4, [_lev2_cell("A4", st_title, "── 連動與追蹤統計 ──", is_str=True),
             _lev2_cell("D4", st_title, "── 期間績效 ──", is_str=True)])
     stat_l = [("日報酬相關係數", s["corr"], False),
-              ("Beta（631L 對 663L）", s["beta"], False),
+              (f"Beta（{a} 對 {b}）", s["beta"], False),
               ("平均絕對追蹤差 (pp)", s["mad"], False),
               ("追蹤差標準差 (pp)", s["sd_diff"], False),
               ("同向天數比例 (%)", s["same_dir_pct"], False),
-              ("00631L 較強天數", s["a_wins"], False),
-              ("00663L 較強天數", s["b_wins"], False),
+              (f"{A} 較強天數", s["a_wins"], False),
+              (f"{B} 較強天數", s["b_wins"], False),
               ("單日最大偏離 (pp)", s["max_dev"]["diff"], False),
               ("最大偏離發生日", s["max_dev"]["date"], True)]
-    stat_r = [("00631L 累積報酬 (%)", s["cum_a"], False),
-              ("00663L 累積報酬 (%)", s["cum_b"], False),
+    stat_r = [(f"{A} 累積報酬 (%)", s["cum_a"], False),
+              (f"{B} 累積報酬 (%)", s["cum_b"], False),
               ("累積差距 (pp)", s["cum_gap"], False),
-              ("00631L 年化波動 (%)", s["vol_a"], False),
-              ("00663L 年化波動 (%)", s["vol_b"], False),
-              ("上漲日 631L 日均 (%)", s["up_a"], False),
-              ("上漲日 663L 日均 (%)", s["up_b"], False),
-              ("下跌日 631L 日均 (%)", s["down_a"], False),
-              ("下跌日 663L 日均 (%)", s["down_b"], False)]
+              (f"{A} 年化波動 (%)", s["vol_a"], False),
+              (f"{B} 年化波動 (%)", s["vol_b"], False),
+              (f"上漲日 {a} 日均 (%)", s["up_a"], False),
+              (f"上漲日 {b} 日均 (%)", s["up_b"], False),
+              (f"下跌日 {a} 日均 (%)", s["down_a"], False),
+              (f"下跌日 {b} 日均 (%)", s["down_b"], False)]
     for i in range(9):
         n = 5 + i
         cells = kv(n, "A", "B", *stat_l[i][:2], is_str=stat_l[i][2])
@@ -1617,8 +1619,8 @@ def _build_lev2_sheetdata(data, st_title="58", st_hdr="5"):
 
     # 第 16 列起:每日明細(最新在上,與 HTML 圖卡一致)
     row(16, [_lev2_cell("A16", st_title, "── 每日明細（最新在上）──", is_str=True)])
-    hdr = ["日期", "00631L 收盤", "00631L 漲跌%", "00663L 收盤",
-           "00663L 漲跌%", "差異 (pp)"]
+    hdr = ["日期", f"{A} 收盤", f"{A} 漲跌%", f"{B} 收盤",
+           f"{B} 漲跌%", "差異 (pp)"]
     row(17, [_lev2_cell(f"{c}17", st_hdr, h, is_str=True)
              for c, h in zip("ABCDEF", hdr)])
     for i, x in enumerate(reversed(d)):
@@ -2196,7 +2198,7 @@ def full_refresh(path_in, path_out, date_str):
         dxml = re.sub(rf"<{tag}[ >].*?</{tag}>", "", dxml, flags=re.S)
         dxml = dxml.replace("<drawing ", block + "<drawing ")
 
-    # 00_正二分析:由 TWSE 抓 00631L/00663L 收盤重建整張 sheetData
+    # 00_正二分析:由 TWSE 抓 00631L/00685L 收盤重建整張 sheetData
     lev2_part, lev2_xml = _refresh_lev2(zin)
     # 06_阿良資產負債表:03 現值 + 12_設定 參數整張重建
     bal_part, bal_xml, bal = (_refresh_lev2bal(zin, wb, S, date_str) if LEV2BAL_ENABLED
