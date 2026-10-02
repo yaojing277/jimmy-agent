@@ -1858,7 +1858,9 @@ def full_refresh(path_in, path_out, date_str):
     hi = cat.get('高股息ETF', 0) / F27; lev = cat.get('正二ETF', 0) / F27
     mkt = cat.get('市值ETF', 0) / F27; oth = cat.get('其他ETF', 0) / F27
     stk = cat.get('個股', 0) / F27
-    mx_d = max(S, key=lambda d: d['F']); mx = mx_d['F'] / F27
+    # 單一持股集中度排除正二(與 15_安全指數 B8、18_投資規則檢查 B9 的 MAXIFS 同口徑);
+    # 正二另有 B13 占股票市值上限與 B21 曝險上限把關,配置方向本就是逐步加碼正二
+    mx_d = max((d for d in S if d['cat'] != '正二ETF'), key=lambda d: d['F']); mx = mx_d['F'] / F27
     # 全部參數與門檻讀 11_設定(唯一事實來源)
     cfg = read_settings(wb)
     cash, house = cfg["cash"], cfg["house"]
@@ -1953,7 +1955,7 @@ def full_refresh(path_in, path_out, date_str):
         # 曝險是另一個口徑(正二x2÷總曝險),與上面的「占股票市值」併成同一行,不另占摘要欄位
         + f"；曝險 {lev_exp:.1%}" + (f"，已超過 {cfg['lev_exp_max']:.0%} 上限"
                                      if lev_exp > cfg["lev_exp_max"] else f"，低於 {cfg['lev_exp_max']:.0%} 上限"),
-        f"最大單一持股 {mx_d['name']}({mx:.1%})" + (f"，超過 {cfg['single_max']:.0%} 上限，留意集中度"
+        f"最大單一持股(不含正二) {mx_d['name']}({mx:.1%})" + (f"，超過 {cfg['single_max']:.0%} 上限，留意集中度"
                                                 if mx > cfg["single_max"] else ""),
         f"安全指數 {safety} 分;現金池 {cash:,.0f}(預留目標 {cfg['cash_target']:,.0f})",
     ]
@@ -2041,7 +2043,7 @@ def full_refresh(path_in, path_out, date_str):
                    ("B8", b8x), ("B9", b9x)):
         C(p, ref, v)
     C(p, "D2", stars, True)
-    setstr(p, "D8", f"最大單一持股為 {mx_d['name']}(約 {mx:.1%})")
+    setstr(p, "D8", f"不含正二,最大單一持股為 {mx_d['name']}(約 {mx:.1%})")
 
     # 16_重複曝險
     p = tabs["17_重複曝險"]
