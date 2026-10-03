@@ -57,7 +57,9 @@
     但 `check_reminders.py`、`youtube_notify.py`、`reminders.json` 放在 `stock_notify_tmp/` **根目錄**。
   - **雲端執行**：`wealth_sync.yml` workflow，認證走 Service Account（Secret `GOOGLE_SA_JSON`，永不過期），跑完 LINE 通知。
     - **每日自動排程**（2026-07-25 起）：每天台北 14:30（cron `30 6 * * *`）觸發，跑「更新股價＋同步＋全分頁」；
-      有「交易日守衛」步驟——當日無 TWSE 收盤資料（週末/國定假日）自動跳過，週六補班盤仍會執行。
+      有「交易日守衛」步驟——**純粹依 TWSE 當日是否有收盤資料判斷**，無資料（週末/國定假日/颱風假）就跳過。
+      ⚠ 先前此處與 workflow 註解寫「週六補班盤（如 2026/07/11）確有資料仍會執行」**是錯的**：2026-10-03 健檢實測
+      TWSE 在 07/10、07/11 皆無交易，`Jimmy_260711` 快照與 `16_資產歷史` 的 07/11 列都是假資料（已刪除）。
     - **手動觸發**：手機瀏覽器開 `github.com/yaojing277/stock-notify/actions/workflows/wealth_sync.yml` →
       Run workflow 選模式（手機 GitHub App 無 Run 按鈕）；或 API `workflow_dispatch`。
     - **排程執行紀錄＋專案總覽自動發佈**（2026-09-03 起）：每次跑完（含失敗，`always()`）由
