@@ -94,7 +94,7 @@
 | `price_source.py` | 共用即時報價模組（TWSE 官方為主、yfinance 備援） |
 | `update_close_price.py` | 「Jimmy_YYMMDD」持股月結分頁維護：`inspect`/`fill`/`fill-row`/`audit`；「更新 K欄」觸發語見 memory |
 | `update_stock_price.py` | 「**更新股價**」月度快照滾動：複製最新分頁為當天新分頁後 H~K 左移、K 欄重抓收盤；`update`/`--yes`/`--dry-run`/`--in-place`/`--skip-if-exists`（當天快照已存在時 exit 0 而非中止，**排程專用**；手動執行不帶此參數仍會大聲中止） |
-| `update_wealth_os.py` | 「**同步股價**」（＝更新 Wealth OS；注意與「更新股價」不同）：把最新 `Jimmy_YYMMDD` 分頁同步到雲端 `Jimmy_Wealth_OS_Master_V4.4_Google.xlsm` 的「02_持股總表」，並自動在「15_資產歷史」附加當日凍結快照（同日重跑覆寫不重複）、偵測持股變動自動補登「10_投資日誌」（均價由成本差回推）；加 `--full` 連同 Dashboard/03/04/13/14/安全指數/規則檢查等分頁的公式快取與模板文字一起刷新（「**更新所有分頁**」＝ `update --yes --full`）；Drive API 就地覆蓋、檔案 ID 不變；`update`/`--yes`/`--dry-run`/`--full`；另提供 `delete_stock_rows()` 供**全出清**整列刪除（自動位移全檔跨表引用，2026-10-01 抽成正式函式）；需 token 含 Drive 權限，細節見 memory |
+| `update_wealth_os.py` | 「**同步股價**」（＝更新 Wealth OS；注意與「更新股價」不同）：把最新 `Jimmy_YYMMDD` 分頁同步到雲端 `Jimmy_Wealth_OS_Master_V4.4_Google.xlsm` 的「02_持股總表」，並自動在「15_資產歷史」附加當日凍結快照（同日重跑覆寫不重複）、**每次同步依「股價試算／股票買賣紀錄」整張重建「11_投資日誌」**（2026-10-04 起，2026/01/01 後一張委託一列、金額＝實際扣款／實收；人寫的原因依日期＋代號＋買賣對回；偵測到的股數變動在買賣紀錄找不到才補「⚠ 買賣紀錄缺」列）；加 `--full` 連同 Dashboard/03/04/13/14/安全指數/規則檢查等分頁的公式快取與模板文字一起刷新（「**更新所有分頁**」＝ `update --yes --full`）；Drive API 就地覆蓋、檔案 ID 不變；`update`/`--yes`/`--dry-run`/`--full`；另提供 `delete_stock_rows()` 供**全出清**整列刪除（自動位移全檔跨表引用，2026-10-01 抽成正式函式）；需 token 含 Drive 權限，細節見 memory |
 | `lev2_balance.py` | 阿良「正二人生資產負債表」計算引擎（純計算）：三桶（原型β1／正二β2／防守β0＝現金＋債券）、本金槓桿（只計信貸）、總曝險、生活費倍數→建議配置代號（703…073）、5 年預期報酬、00631L 跌幅加碼梯；原本 `--full` 時由 `update_wealth_os.py` 整張重建「06_阿良資產負債表」，**2026-09-16 起以 `LEV2BAL_ENABLED = False` 停用**（06 改回手動範本，D9 引用 `03_持股總表` 合計），計算引擎保留可 `--xlsm` 離線試算。參數讀 `12_設定` B22~B32＋D2:G10 對照表，缺格只警告跳過；`--xlsm <本機檔>` 可離線印報表 |
 | `stock_notify.py` / `stock_alert.py` / `stock_alert_v2.py` / `stock_notify_gmail.py` / `youtube_notify.py` | LINE/Gmail 通知類，實際跑在 `stock-notify` repo 的 GitHub Actions（見上方同步規則），金鑰走環境變數 |
 | `sheets_writer.py` | 「股票買賣紀錄」分頁匯入（交割明細擷圖 → 寫入） |
@@ -168,6 +168,9 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   賣出列只有 B（`=TODAY()-K`），C~E 留空；少數舊列 Q 為特例公式（如上銀 `=(N-20)`），批次改公式時勿一律套 `=(N-O-P)`。
 - 對帳單是「交割日（T+2）」、分頁記的是「成交日」，匯入買賣紀錄時勿混淆（見 `README_股票買賣紀錄匯入.md`）。
 - 深入文件都在 `jimmy_scripts/`：`README_sheet_tools.md`（Sheets 工具細節）、`SHEETS_API_SETUP.md`（API 初始設定）、`換電腦環境還原指南.md`（環境重建）。
+- **交易事實來源＝「股價試算／股票買賣紀錄」（2026-10-04 起）**：`11_投資日誌` 每次同步由它重建，
+  **要改日誌數字請改買賣紀錄**（直接改日誌下次同步會被蓋回），日誌只保留 G 原因／H 欄。
+  記帳時除了併入 `Jimmy_YYMMDD` 持股，**也要把該筆寫進買賣紀錄**，否則日誌會出現「⚠ 買賣紀錄缺」。
 - **`04_ETF分析` 列10~14 是 Jimmy 手動維護的公式，腳本不得覆寫**（2026-10-02 定案）：
   B10/C10/D10＝`金額`／`曝險比例`／`成本比例`；B12 存**未加倍**的正二市值、B14 才乘 2；
   **C 欄（曝險，分母 B14）與 D 欄（成本，分母 SUM(B11:B13)）是兩種口徑、各自加總 100%，

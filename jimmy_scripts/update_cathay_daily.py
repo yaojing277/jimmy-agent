@@ -33,7 +33,8 @@ _rebuild_daily_and_calendar() 每次執行都會強制套用,不管資料怎麼�
      (uwo._ensure_readable_text_style),不用「無填色＋主題相對字色」
   7. 報酬日曆由本月往回堆疊到最早有完整資料的月份(uwo._month_seq_desc,最早那筆若不是
      1 號才排除該零碎月份);月曆數量隨歷史資料增長自動變多,不用手動加
-  8. 每月報酬日曆標題儲存格:黃底(FFFFFF00)＋黑字＋粗體(uwo._highlight_calendar_titles)
+  8. 每月報酬日曆標題儲存格:淡琥珀底(uwo.CAL_TITLE_FILL=FFF3C4)＋深藍字(CAL_TITLE_FONT=1E3A8A)
+     ＋粗體(uwo._highlight_calendar_titles);2026-10-03 由純黃＋黑字改成這組,對比 9.3:1、暗色主題同樣清楚
   9. 報酬日曆的漲跌百分比(日/週/月):固定用「0.0%」(四捨五入到小數點第一位),
      跟每日表 G 欄的百分比格式分開處理(cal_pct_base,不受規則 4 影響)
  10. 每月「逐日損益(長條圖)」左上角固定對齊該月報酬日曆的標題列、H 欄;折線圖錨點跟著

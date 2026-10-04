@@ -102,8 +102,17 @@ LEV2BAL_TAB = "06_阿良資產負債表"
 # 2026-09-16 起停用:Jimmy 改回手動維護範本版面(D9 改引用 03_持股總表 合計),重建會覆蓋手動公式
 LEV2BAL_ENABLED = False
 
-# 10_投資日誌:同步時偵測股數變動,自動補登買賣紀錄(均價由成本差回推,含手續費)
+# 11_投資日誌:2026-10-04 起每次同步由「股價試算/股票買賣紀錄」整張重建(一張委託一列、實際成交價、
+# 金額＝實際扣款/實收)。買賣紀錄才是事實來源——要改日誌數字請改買賣紀錄;日誌只保留人寫的 G 原因/H 欄。
+# 同步偵測到的股數變動若在買賣紀錄找不到,才照舊以含費均價補一列並標 LOG_MISSING_TAG,補上後下次同步自動消失。
 LOG_TAB = "11_投資日誌"
+TRADE_REC_TAB = "股票買賣紀錄"
+TRADE_LOG_SINCE = "2026/01/01"          # 日誌收錄起點(更早的紀錄格式混雜,不收)
+LOG_MISSING_TAG = "⚠ 買賣紀錄缺"
+LOG_ORPHAN_TAG = "⚠ 買賣紀錄無此筆"
+LOG_SAME = "(同上)"
+# 買賣紀錄 A 欄的名稱→代號補充對照(ALIAS 沒有的)
+REC_ALIAS = {"穎崴": "6515", "台積電": "2330", "統一超": "2912", "寶成": "9904", "940": "00940"}
 
 # 15_資產歷史:每次同步附加一列凍結快照(同日期重跑則覆寫該列)
 HIST_TAB = "16_資產歷史"
@@ -405,9 +414,9 @@ def _append_trade_log(lxml, date_str, trades):
                 f'<c r="A{n}" s="{st.get("A", "0")}"><v>{ser}</v></c>'
                 f'<c r="B{n}" s="{st.get("B", "0")}" t="inlineStr">{inl(t["label"])}</c>'
                 f'<c r="C{n}" s="{st.get("C", "0")}" t="inlineStr">{inl(t["act"])}</c>'
-                f'<c r="D{n}" s="{st.get("D", "0")}"><v>{t["qty"]:g}</v></c>'
-                f'<c r="E{n}" s="{st.get("E", "0")}"><v>{t["px"]:g}</v></c>'
-                f'<c r="F{n}" s="{st.get("F", "0")}"><v>{t["amt"]:g}</v></c>'
+                f'<c r="D{n}" s="{st.get("D", "0")}"><v>{_xnum(t["qty"])}</v></c>'
+                f'<c r="E{n}" s="{st.get("E", "0")}"><v>{_xnum(t["px"])}</v></c>'
+                f'<c r="F{n}" s="{st.get("F", "0")}"><v>{_xnum(t["amt"])}</v></c>'
                 f'<c r="G{n}" s="{st.get("G", "0")}" t="inlineStr">{inl("同步自動記錄(含費均價)")}</c>'
                 f'<c r="H{n}" s="{st.get("H", "0")}" t="inlineStr">{inl("✅")}</c>'
                 f'</row>')
@@ -420,7 +429,246 @@ def _append_trade_log(lxml, date_str, trades):
     return lxml
 
 
-def surgical_write(orig_path, out_path, num_cells, str_cells, hist=None, trades=None):
+def _xnum(v):
+    """數值寫進 <v>:整數不帶小數點,也不能用 :g(超過 6 位有效數字會變科學記號,4268468→4.26847e+06)。"""
+    v = float(v)
+    return str(int(v)) if v.is_integer() else repr(round(v, 4))
+
+
+def _parse_rec_date(s):
+    """買賣紀錄日期:2026/10/01、2026/9/29、2026-07-01;兩位數年(24/07/26)與缺年(7/27)只出現在
+    2024 以前的舊列,回傳 None 讓呼叫端略過。"""
+    import datetime as _dt
+    parts = re.split(r"[/-]", str(s).strip())
+    if len(parts) != 3 or len(parts[0]) != 4:
+        return None
+    try:
+        return _dt.date(int(parts[0]), int(parts[1]), int(parts[2]))
+    except ValueError:
+        return None
+
+
+def _rec_code(name):
+    name = str(name).strip()
+    return REC_ALIAS.get(name) or ALIAS_XLSM.get(name, name)
+
+
+def read_trade_records(creds, since=TRADE_LOG_SINCE):
+    """讀「股價試算/股票買賣紀錄」,回傳 since 之後的逐筆成交(依日期、列號由舊到新)。
+    欄位:A股票 F買進日 G價 H股數 I手續費 J買進成本 | K賣出日 L價 M股數 N價金 O手續費 P交易稅 Q應收付 | Z備註。
+    金額口徑:買進＝J(含手續費的實際扣款),賣出＝Q(扣費稅後的實收)。"""
+    since_d = _parse_rec_date(since)
+    svc = build("sheets", "v4", credentials=creds)
+    rows = svc.spreadsheets().values().get(
+        spreadsheetId=SPREADSHEET_ID, range=f"{TRADE_REC_TAB}!A1:Z1000",
+        valueRenderOption="UNFORMATTED_VALUE",
+        dateTimeRenderOption="FORMATTED_STRING").execute().get("values", [])
+
+    def f(v):
+        try:
+            return float(str(v).replace(",", ""))
+        except ValueError:
+            return None
+
+    out = []
+    for i, r in enumerate(rows, start=1):
+        r = list(r) + [""] * (26 - len(r))
+        name = str(r[0]).strip()
+        if not name or name.endswith("_刪"):
+            continue
+        if str(r[5]).strip():
+            d, act, px, qty = _parse_rec_date(r[5]), "買進", f(r[6]), f(r[7])
+            gross = (px or 0) * (qty or 0)
+            amt = f(r[9])
+            if amt is None and px and qty:
+                amt = round(gross + (f(r[8]) or 0))
+            no_fee = f(r[8]) is None and amt is not None and abs(amt - gross) < 1
+        elif str(r[10]).strip():
+            d, act, px, qty = _parse_rec_date(r[10]), "賣出", f(r[11]), f(r[12])
+            gross = f(r[13]) or (px or 0) * (qty or 0)
+            amt = f(r[16])
+            if amt is None and px and qty:
+                amt = round(gross - (f(r[14]) or 0) - (f(r[15]) or 0))
+            no_fee = f(r[14]) is None and f(r[15]) is None and amt is not None and abs(amt - gross) < 1
+        else:
+            continue                       # 「開始質押」「從這開始」等註記列
+        if d is None or d < since_d or not qty or px is None or amt is None:
+            continue
+        out.append({"row": i, "date": d, "name": name, "code": _rec_code(name), "act": act,
+                    "qty": qty, "px": px, "amt": amt, "note": str(r[25]).strip(), "no_fee": no_fee})
+    out.sort(key=lambda t: (t["date"], t["row"]))
+    return out
+
+
+def _rec_default_reason(t):
+    """買賣紀錄本身沒有「原因」;只把需要提醒的狀態帶進日誌。"""
+    note = t["note"]
+    if "【待確認】" in note:
+        return note[note.index("【待確認】"):]
+    if "員工認股" in note:
+        return "員工認股贖回(非一般市場買進)"
+    if t["no_fee"]:
+        return "原始紀錄未列手續費" if t["act"] == "買進" else "原始紀錄未扣手續費與交易稅"
+    return ""
+
+
+def _clean_log_reason(text):
+    """舊日誌原因的清理:同步自動記錄的機器字樣丟掉;2026-10-03 的補費/更正註記已被買賣紀錄的實際金額取代。"""
+    t = str(text or "").strip()
+    if t.startswith("同步自動記錄"):
+        return ""
+    if t.startswith(LOG_ORPHAN_TAG):           # 買賣紀錄後來補上了,拿掉警示外框
+        t = t[len(LOG_ORPHAN_TAG):].strip().removeprefix("(").removesuffix(")")
+    return re.split(r"。?2026-10-03 (?:依 Jimmy 提供|補入手續費)", t)[0].strip()
+
+
+def read_trade_log(wb):
+    """讀目前 11_投資日誌 的資料列(列4起)。"""
+    ws = wb[LOG_TAB]
+    out = []
+    for r in range(4, ws.max_row + 1):
+        a = ws.cell(r, 1).value
+        if a in (None, ""):
+            continue
+        d = a.date() if hasattr(a, "date") else _parse_rec_date(a)
+        if d is None:
+            continue
+        g = lambda c: ws.cell(r, c).value
+        out.append({"date": d, "label": str(g(2)).strip(), "code": _rec_code(g(2)), "act": str(g(3)).strip(),
+                    "qty": float(g(4) or 0), "px": float(g(5) or 0), "amt": float(g(6) or 0),
+                    "reason": str(g(7) or "").strip(), "ok": str(g(8) or "").strip()})
+    return out
+
+
+def build_trade_log(records, existing, held_labels, detected=None, prev_date=None, date_str=None):
+    """以買賣紀錄重建日誌列。
+    records: read_trade_records();existing: read_trade_log();held_labels: {代號: 03 的顯示名稱}。
+    detected: 本次同步偵測到的股數變動 [{"code","label","act","qty","px","amt"}](px 為含費均價)。
+    人寫的 G 原因/H 欄依 (日期, 代號, 買賣) 分組、按順序對回;一筆拆成多筆時,後面幾列寫「(同上)」。
+    回傳 (rows, stats)。"""
+    import datetime as _dt
+    from collections import defaultdict
+    since_d = _parse_rec_date(TRADE_LOG_SINCE)
+    label_of = lambda code, name: held_labels.get(code) or ("00940" if name == "940" else name)
+
+    old = defaultdict(list)
+    missing_old = []
+    for e in existing:
+        if e["reason"].startswith(LOG_MISSING_TAG):
+            missing_old.append(e)
+        elif e["date"] >= since_d:
+            old[(e["date"], e["code"], e["act"])].append(e)
+
+    rows, rec_keys, used = [], set(), defaultdict(int)
+    for t in records:
+        key = (t["date"], t["code"], t["act"])
+        rec_keys.add(key)
+        i = used[key]
+        used[key] += 1
+        prev = old.get(key, [])
+        default = _rec_default_reason(t)
+        if i < len(prev):
+            reason = _clean_log_reason(prev[i]["reason"]) or default
+            ok = prev[i]["ok"] or "—"
+        elif prev and len(prev) == 1:     # 舊日誌把多張委託合併成一列 → 拆開後沿用
+            first = _clean_log_reason(prev[0]["reason"])
+            reason = LOG_SAME if first else default
+            ok = prev[0]["ok"] or "—"
+        else:
+            reason, ok = default, ("⚠" if "【待確認】" in t["note"] else "—")
+        if "【待確認】" in t["note"] and "待確認" not in reason:
+            reason = f"{default};{reason}" if reason else default
+        rows.append({"date": t["date"], "label": label_of(t["code"], t["name"]), "act": t["act"],
+                     "qty": t["qty"], "px": t["px"], "amt": t["amt"], "reason": reason, "ok": ok,
+                     "_k": (0, t["row"])})
+
+    # 舊日誌有、買賣紀錄卻完全沒有的列:不默默刪掉,保留並標記讓人檢查
+    orphans = 0
+    for key, lst in old.items():
+        if key in rec_keys:
+            continue
+        for e in lst:
+            orphans += 1
+            reason = e["reason"] if e["reason"].startswith(LOG_ORPHAN_TAG) else \
+                f"{LOG_ORPHAN_TAG}({e['reason']})" if e["reason"] else LOG_ORPHAN_TAG
+            rows.append({**e, "reason": reason, "_k": (1, 0)})
+
+    def covered(code, act, d):
+        return any(t["code"] == code and t["act"] == act and
+                   d - _dt.timedelta(days=14) <= t["date"] <= d + _dt.timedelta(days=3)
+                   for t in records)
+
+    # 舊的「買賣紀錄缺」列:買賣紀錄補上了就移除,否則保留
+    kept_missing = [e for e in missing_old if not covered(e["code"], e["act"], e["date"])]
+    for e in kept_missing:
+        rows.append({**e, "_k": (2, 0)})
+
+    # 本次偵測:扣掉買賣紀錄在 (上一個歷史日, 本次日期] 已記的淨股數,剩下的才補登
+    new_missing = []
+    if detected and date_str:
+        d_now = _parse_rec_date(date_str)
+        d_prev = prev_date or (d_now - _dt.timedelta(days=7))
+        for x in detected:
+            net = sum((t["qty"] if t["act"] == "買進" else -t["qty"]) for t in records
+                      if t["code"] == x["code"] and d_prev < t["date"] <= d_now)
+            dq = x["qty"] if x["act"] == "買進" else -x["qty"]
+            resid = dq - net
+            if abs(resid) < 1:
+                continue
+            if any(e["code"] == x["code"] and e["date"] == d_now for e in kept_missing):
+                continue                   # 同日重跑,已補過
+            qty = abs(resid)
+            row = {"date": d_now, "label": x["label"], "code": x["code"],
+                   "act": "買進" if resid > 0 else "賣出", "qty": qty, "px": x["px"],
+                   "amt": round(x["px"] * qty), "ok": "⚠",
+                   "reason": f"{LOG_MISSING_TAG}:同步偵測股數變動,價格為含費均價;請補進股票買賣紀錄",
+                   "_k": (2, 1)}
+            new_missing.append(row)
+            rows.append(row)
+
+    rows.sort(key=lambda x: (x["date"], x["_k"]))
+    stats = {"records": len(records), "orphans": orphans, "missing_kept": len(kept_missing),
+             "missing_new": new_missing, "missing_dropped": len(missing_old) - len(kept_missing)}
+    return rows, stats
+
+
+def _write_trade_log(lxml, rows):
+    """整張重寫 11_投資日誌 列4以後:資料列依 rows,其後原有資料位置補回空白樣板列,更下面的列原封不動。"""
+    import datetime as _dt
+    row_re = re.compile(r'<row r="(\d+)"(?:[^>]*/>|[^>]*>.*?</row>)', re.S)
+    found = [(int(m.group(1)), m) for m in row_re.finditer(lxml)]
+    st = {"A": "75", "B": "42", "C": "42", "D": "23", "E": "22", "F": "23", "G": "42", "H": "42"}
+    r4 = next((m.group(0) for n, m in found if n == 4), "")
+    st.update({c: s for c, _r, s in re.findall(r'<c r="([A-H])(\d+)" s="(\d+)"', r4)})
+    old_last = max([n for n, m in found if n >= 4 and re.search(rf'<c r="A{n}"[^>]*><v>', m.group(0))],
+                   default=3)
+    keep = {n: m.group(0) for n, m in found if n > old_last}
+    inl = lambda c, n, t: f'<c r="{c}{n}" s="{st[c]}" t="inlineStr"><is><t>{escape(t)}</t></is></c>'
+    num = lambda c, n, v: f'<c r="{c}{n}" s="{st[c]}"><v>{_xnum(v)}</v></c>'
+    out = []
+    for i, x in enumerate(rows):
+        n = 4 + i
+        ser = (x["date"] - _dt.date(1899, 12, 30)).days
+        out.append(f'<row r="{n}">' + num("A", n, ser) + inl("B", n, x["label"]) + inl("C", n, x["act"])
+                   + num("D", n, x["qty"]) + num("E", n, x["px"]) + num("F", n, x["amt"])
+                   + inl("G", n, x["reason"]) + inl("H", n, x["ok"]) + '</row>')
+    last_new = 3 + len(rows)
+    for n in range(last_new + 1, old_last + 1):          # 舊資料多出來的位置 → 空白樣板列
+        out.append(f'<row r="{n}" ht="15.75" customHeight="1"><c r="A{n}" s="{st["A"]}"/>'
+                   f'<c r="D{n}" s="{st["D"]}"/><c r="E{n}" s="{st["E"]}"/><c r="F{n}" s="{st["F"]}"/></row>')
+    out += [keep[n] for n in sorted(keep) if n > last_new]
+    first4 = next((m for n, m in found if n >= 4), None)
+    if first4 is None:
+        start = end = lxml.index("</sheetData>")
+    else:
+        start, end = first4.start(), found[-1][1].end()
+    new = lxml[:start] + "".join(out) + lxml[end:]
+    nums = [int(n) for n in re.findall(r'<row r="(\d+)"', new)]
+    assert nums == sorted(set(nums)), f"{LOG_TAB} 列號重複或亂序,中止!"
+    return new
+
+
+def surgical_write(orig_path, out_path, num_cells, str_cells, hist=None, trades=None, log_rows=None):
     """只重寫 worksheet XML / sharedStrings / workbook.xml(/資產歷史),其餘元件原樣複製。
     num_cells: {ref: 數值或 None}; str_cells: {ref: 文字}; hist: (日期字串, metrics)。"""
     zin = zipfile.ZipFile(orig_path)
@@ -458,12 +706,13 @@ def surgical_write(orig_path, out_path, num_cells, str_cells, hist=None, trades=
         hxml = zin.read(hist_part).decode("utf-8")
         hxml, hist_note = _update_history(hxml, sis, date_str, metrics)
 
-    # 10_投資日誌:自動補登偵測到的買賣
+    # 11_投資日誌:有 log_rows 就依買賣紀錄整張重建;讀不到買賣紀錄時退回舊行為(只附加偵測到的買賣)
     log_part = None
-    if trades:
+    if log_rows is not None or trades:
         log_part = _locate_sheet_part(zin, LOG_TAB)
         lxml = zin.read(log_part).decode("utf-8")
-        lxml = _append_trade_log(lxml, hist[0], trades)
+        lxml = (_write_trade_log(lxml, log_rows) if log_rows is not None
+                else _append_trade_log(lxml, hist[0], trades))
 
     # 公式快取值已過期 → 開檔強制重算
     if "fullCalcOnLoad" not in wbxml:
@@ -988,6 +1237,14 @@ def _month_calendar_grid(hist, year=None, month=None):
 CAL_GRID_COLOR = "FFD1D5DB"           # 上月(次要)報酬日曆格線:細灰
 CAL_GRID_COLOR_CURRENT = "FF000000"   # 本月(主要)報酬日曆格線:黑色(2026-08-22 Jimmy 要求加強本月可視性)
 CAL_AMT_FMT = "#,##0"                 # 報酬日曆金額格數字格式:千分位(2026-09-30 Jimmy 要求,負值顯示 -1,234)
+# 報酬日曆標題列(「YYYY年M月報酬日曆」那格,A:C 合併)的配色。2026-10-03 由純黃 FFFF00＋黑字改成這組:
+#   FFF3C4 淡琥珀(亮度 0.893) + 1E3A8A 深藍(黃的補色) → 對比度 9.3:1,WCAG AAA。
+# ⚠ 「更淡」反而更刺眼的反直覺點:純黃亮度已 0.928,再往白走(如 FFF8E1 為 0.938)在 iPhone
+#   暗色主題下會變成更亮的白斑。所以這裡是**降飽和、略降亮度**,不是單純提高明度。
+#   兩色都明確指定,暗色主題不會改寫(暗色只影響沒設顏色的儲存格),故亮/暗模式外觀一致。
+CAL_TITLE_FILL = "FFFFF3C4"
+CAL_TITLE_FONT = "FF1E3A8A"
+CAL_TITLE_SIZE = 12        # 標題字級(原沿用內文的 10);2026-10-03 Jimmy 要求稍微放大
 
 
 def _ensure_calendar_border(styles_xml, color=CAL_GRID_COLOR):
@@ -1063,7 +1320,9 @@ def _build_calendar_rows(cal, start_row, style_map):
 
     title_row, header_row = start_row, start_row + 1
     rows = [f'<row r="{title_row}">'
-            + cell(f"A{title_row}", ST_TITLE, f"{cal['year']}年{cal['month']}月報酬日曆", is_str=True)
+            + cell(f"A{title_row}", ST_TITLE,
+                   # 2026-10-03 Jimmy 指定格式:月份補零,例「2026/09_報酬日曆」
+                   f"{cal['year']}/{cal['month']:02d}_報酬日曆", is_str=True)
             + cell(f"D{title_row}", ST_TXT, "月損益", is_str=True)
             + cell(f"E{title_row}", ST_NUM, f"{cal['month_amt']:.0f}" if cal["month_amt"] is not None else None)
             + cell(f"F{title_row}", ST_PCT, f"{cal['month_pct']:.10g}" if cal["month_pct"] is not None else None)
@@ -1238,8 +1497,9 @@ def _get_xf_font_id(styles_xml, xf_id):
     return int(fm.group(1)) if fm else 0
 
 
-def _ensure_font_color(styles_xml, base_font_id, rgb, bold=True):
-    """複製 fonts[base_font_id],把文字顏色換成 rgb、視需要加粗,append-only、冪等。"""
+def _ensure_font_color(styles_xml, base_font_id, rgb, bold=True, size=None):
+    """複製 fonts[base_font_id],把文字顏色換成 rgb、視需要加粗,append-only、冪等。
+    size 給值時一併改字級(有 <sz> 就換、沒有就插在最前面);不給則沿用原字級。"""
     m = re.search(r'(<fonts count=")(\d+)(">)(.*?)(</fonts>)', styles_xml, re.S)
     count, body = int(m.group(2)), m.group(4)
     fonts = re.findall(r'<font>.*?</font>|<font/>', body, re.S)
@@ -1252,6 +1512,11 @@ def _ensure_font_color(styles_xml, base_font_id, rgb, bold=True):
         target = base.replace('<font>', f'<font><color rgb="{rgb}"/>', 1)
     if bold and '<b/>' not in target:
         target = target.replace('<font>', '<font><b/>', 1)
+    if size is not None:
+        if re.search(r'<sz [^/]*/>', target):
+            target = re.sub(r'<sz [^/]*/>', f'<sz val="{size}"/>', target, count=1)
+        else:
+            target = target.replace('<font>', f'<font><sz val="{size}"/>', 1)
     for i, f in enumerate(fonts):
         if f == target:
             return styles_xml, i
@@ -1352,15 +1617,20 @@ def _fix_daily_value_style(daily_sheetdata, hist_rows, styles_xml, rgb="FF000000
     return daily_sheetdata, styles_xml
 
 
-def _highlight_calendar_titles(daily_sheetdata, title_slots, styles_xml, fill_rgb="FFFFFF00"):
-    """把報酬日曆標題儲存格(A欄,「YYYY年M月報酬日曆」那一格)填滿黃色、文字改黑色加粗。
+def _highlight_calendar_titles(daily_sheetdata, title_slots, styles_xml,
+                               fill_rgb=CAL_TITLE_FILL, font_rgb=CAL_TITLE_FONT):
+    """把報酬日曆標題儲存格(A欄,「YYYY年M月報酬日曆」那一格)填色＋改字色加粗。
     title_slots: [(title_style_id, start_row), ...]。回傳(新 sheetdata, 新 styles_xml)。"""
     styles_xml, fill_id = _ensure_solid_fill(styles_xml, fill_rgb)
     for title_style_id, start_row in title_slots:
         base_font_id = _get_xf_font_id(styles_xml, title_style_id)
-        styles_xml, black_font_id = _ensure_font_color(styles_xml, base_font_id, "FF000000", bold=True)
+        styles_xml, black_font_id = _ensure_font_color(styles_xml, base_font_id, font_rgb,
+                                                      bold=True, size=CAL_TITLE_SIZE)
         styles_xml, yellow_id = _ensure_style_variant(styles_xml, title_style_id,
                                                         fill_id=fill_id, font_id=black_font_id)
+        # 2026-10-03 Jimmy 要求標題在合併格(A:C)內水平置中。沿用每日表格標題用的同一支
+        # _ensure_centered_style(),串接在填色/字型變體之後,避免再寫一份對齊邏輯。
+        styles_xml, yellow_id = _ensure_centered_style(styles_xml, yellow_id)
         daily_sheetdata = daily_sheetdata.replace(
             f'<c r="A{start_row}" s="{title_style_id}" t="inlineStr">',
             f'<c r="A{start_row}" s="{yellow_id}" t="inlineStr">', 1)
@@ -2370,6 +2640,48 @@ def sync(args):
     if only_xl:
         print(f"⚠ 只在 xlsm、股價試算已無(不自動刪除,請人工處理):{', '.join(only_xl)}")
 
+    date_str = getattr(args, "date", None) or f"{datetime.now():%Y/%m/%d}"
+
+    # 偵測持股變動 → 自動補登投資日誌(均價=成本差/股數差,即含手續費均價)
+    trades = []
+    for code in common:
+        s, r = src[code], xl_rows[code]
+        old_sh = num(str(ws.cell(r, 4).value or 0)) or 0
+        old_buy = num(str(ws.cell(r, 3).value or 0)) or 0
+        dq = (s["shares"] or 0) - old_sh
+        if abs(dq) < 1:
+            continue
+        dcost = (s["buy"] or 0) * (s["shares"] or 0) - old_buy * old_sh
+        px = round(abs(dcost / dq), 2) if dq else 0
+        trades.append({"label": s["label"], "code": code, "act": "買進" if dq > 0 else "賣出",
+                       "qty": abs(dq), "px": px, "amt": round(abs(dcost))})
+    if trades:
+        for t in trades:
+            print(f"[日誌] 偵測 {t['label']} {t['act']} {t['qty']:,.0f} 股 @ {t['px']}(含費)")
+
+    # 11_投資日誌:依「股票買賣紀錄」整張重建;偵測到的變動有對應紀錄就不另補
+    log_rows = None
+    try:
+        records = read_trade_records(creds)
+        held = {to_code(ws.cell(r, 1).value): str(ws.cell(r, 1).value).strip() for r in xl_rows.values()}
+        hdates = [_parse_rec_date(_hist_sort_key(v)) for (v,) in
+                  wb[HIST_TAB].iter_rows(min_row=2, max_col=1, values_only=True) if v]
+        d_now = _parse_rec_date(date_str)
+        prev_date = max((d for d in hdates if d and d < d_now), default=None)
+        existing = read_trade_log(wb)
+        log_rows, lst = build_trade_log(records, existing, held, trades, prev_date, date_str)
+        print(f"[日誌] 依{TRADE_REC_TAB}重建 {LOG_TAB}:{len(existing)} → {len(log_rows)} 列"
+              f"(買賣紀錄 {lst['records']} 筆,自 {TRADE_LOG_SINCE})")
+        for m in lst["missing_new"]:
+            print(f"  ⚠ {m['label']} {m['act']} {m['qty']:,.0f} 股 買賣紀錄找不到,先以含費均價 {m['px']} 補登")
+        if lst["missing_kept"] or lst["missing_dropped"]:
+            print(f"  舊的「買賣紀錄缺」列:保留 {lst['missing_kept']}、已補上而移除 {lst['missing_dropped']}")
+        if lst["orphans"]:
+            print(f"  ⚠ 日誌有 {lst['orphans']} 列在買賣紀錄找不到,已保留並標「{LOG_ORPHAN_TAG}」")
+    except Exception as e:                  # 讀不到買賣紀錄不能讓每日排程掛掉 → 退回舊的附加模式
+        print(f"⚠ 讀取「{TRADE_REC_TAB}」失敗({e}),日誌改用舊方式只附加偵測到的變動")
+        log_rows = None
+
     if args.dry_run:
         print("\n[dry-run] 未寫入。")
         return
@@ -2408,30 +2720,11 @@ def sync(args):
         "debt":  cfg["mortgage"] + cfg["loan"],
         "house": cfg["house"],
     }
-    date_str = getattr(args, "date", None) or f"{datetime.now():%Y/%m/%d}"
-
-    # 偵測持股變動 → 自動補登投資日誌(均價=成本差/股數差,即含手續費均價)
-    trades = []
-    for code in common:
-        s, r = src[code], xl_rows[code]
-        old_sh = num(str(ws.cell(r, 4).value or 0)) or 0
-        old_buy = num(str(ws.cell(r, 3).value or 0)) or 0
-        dq = (s["shares"] or 0) - old_sh
-        if abs(dq) < 1:
-            continue
-        dcost = (s["buy"] or 0) * (s["shares"] or 0) - old_buy * old_sh
-        px = round(abs(dcost / dq), 2) if dq else 0
-        trades.append({"label": s["label"], "act": "買進" if dq > 0 else "賣出",
-                       "qty": abs(dq), "px": px, "amt": round(abs(dcost))})
-    if trades:
-        for t in trades:
-            print(f"[日誌] 偵測 {t['label']} {t['act']} {t['qty']:,.0f} 股 @ {t['px']}(含費)")
-
     out = os.path.join(workdir, "updated.xlsm")
     sheet_part, hist_part, hist_note, log_part = surgical_write(
-        path, out, num_cells, str_cells, hist=(date_str, metrics), trades=trades)
+        path, out, num_cells, str_cells, hist=(date_str, metrics), trades=trades, log_rows=log_rows)
     print(f"[歷史] {hist_note};市值 {metrics['mv']:,.0f} 成本 {metrics['cost']:,.0f}")
-    if log_part:
+    if log_part and log_rows is None:
         print(f"[日誌] 已自動補登 {len(trades)} 筆至 {LOG_TAB}")
 
     first = common[0]
