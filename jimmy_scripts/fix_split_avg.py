@@ -31,8 +31,9 @@ def new_formulas(r):
     lo = LO.format(s=SPLIT_SHEET, r=r)
     return [
         f"=AVERAGE(FILTER(G{r}:G, A{r}:A=A{r}, F{r}:F<=(TODAY()-B{r}), F{r}:F>={lo}))",
-        f"=AVERAGE(FILTER(G{r}:G, A{r}:A=A{r}, F{r}:F>=(TODAY()-180), F{r}:F>={lo}))",
-        f"=AVERAGE(FILTER(G{r}:G, A{r}:A=A{r}, F{r}:F>=(TODAY()-365), F{r}:F>={lo}))",
+        # D／E：以「該筆交易日」往前推半年／一年（2026-10-04 起；原本以 TODAY() 推算，舊列會變 #N/A）
+        f"=AVERAGE(FILTER(G{r}:G, A{r}:A=A{r}, F{r}:F<=F{r}, F{r}:F>=(F{r}-180), F{r}:F>={lo}))",
+        f"=AVERAGE(FILTER(G{r}:G, A{r}:A=A{r}, F{r}:F<=F{r}, F{r}:F>=(F{r}-365), F{r}:F>={lo}))",
     ]
 
 
