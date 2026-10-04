@@ -288,7 +288,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-03</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-04</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -957,6 +957,10 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-04</td>
+          <td>📒 <b>股票買賣紀錄補登 79 筆＋均價公式改為只算分割後</b>：<code>backfill_trade_records.py</code> 依日期把 7/13 後 58 筆與 7/13 前缺漏 21 筆插回原位（先建備份分頁、【待確認】4 列黃底、賣出列 N/Q 沿用公式，原有 374 列逐列比對無變動）。<code>fix_split_avg.py</code> 新增「股票分割」分頁（0050 2025/06/18 1拆4、00631L 2026/03/31 1拆22、00685L 2026/07/07 1拆25，皆以 TWSE 收盤驗證），C~E 均價的 FILTER 加上 <code>MAXIFS</code> 取最近分割日為下限，00685L 均價由 56.47 修正為 11.37；比對確認只有這三檔數值改變、錯誤格數不變。日後再分割只需在分頁加一列</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-03</td>
           <td>⌨️ <b>MouseSideKey 新增選用模組：Claude 快捷鍵 ⌥Q</b>：一鍵切到 Claude App → 點擊輸入框 → 送出 → 方向鍵 → 0.3 秒後 Enter（本體 <code>claude_hotkey.lua</code> 收進 <code>mouse-side-key</code> repo，<code>install.command</code> 一併安裝；延遲調為切換 0.2 秒、→ 與 Enter 間 0.3 秒，全程約 0.7 秒）。<code>init.lua</code> 改為<b>檔案存在才載入</b>、<code>pcall</code> 隔離錯誤，不影響側鍵功能，重裝不再遺失。踩坑：<code>hs.timer.doAfter</code> 未保留參照會被 GC 回收而不觸發；按鍵改送前景視窗（Electron 收不到 <code>postToApplication</code>）</td>
