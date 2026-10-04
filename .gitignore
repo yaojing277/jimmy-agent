@@ -22,3 +22,6 @@ jimmy_scripts/drop_stats_*.html
 # 個人資產數字(公開 repo 不放):改公式前的數值快照、加碼損益報告
 jimmy_scripts/.value_snapshots/
 jimmy_scripts/investment_since_*_report.html
+
+# KeySilk 小鍵盤設定匯出（含 PP 巨集數字，勿進公開 repo）
+*.ckf

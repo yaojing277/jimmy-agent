@@ -288,7 +288,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-04</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-05</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -963,6 +963,10 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-05</td>
+          <td>🖱️ <b>MouseSideKey：DFM80 前側鍵改由 Karabiner-Elements 處理</b>：原 Hammerspoon「監聽器 3」以 keyCode 126＋keyboardType 40 攔截 ↑ 改送 ←，連 16 鍵 KeySilk 小鍵盤的 ↑ 也被誤改（實測 14 次全中，兩者事件層無法分辨）；改用 Karabiner 依硬體 ID（VID 0x2717／PID 0x32B0）只改 DFM80，規則備份 <code>karabiner_dfm80.json</code>。踩坑：Karabiner 預設不接管滑鼠類裝置，需在 devices 明列；接管後 keyboardType 一律變 46。同場把 16 鍵小鍵盤「停止所有宏」鍵改為 Magnet 最大化（⌃⌥↩）</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-04</td>
           <td>📓 <b>投資日誌改由「股票買賣紀錄」重建</b>：<code>update_wealth_os.py</code> 每次同步都把 Wealth OS 的 <code>11_投資日誌</code> 整張重建——資料來自「股價試算／股票買賣紀錄」2026/01/01 起的每一筆成交，<b>一張委託一列、實際成交價、金額＝實際扣款或實收</b>，取代原本由股數差反推的「合併一列＋含費均價」。日誌由 36 列擴充為 203 列：補回 07/01~07/07 的 9 組交易與漏記的 07/28 寶雅賣出；19 組四捨五入誤差（−177～+319 元，含 08/31 00631L 的 70,000→70,319）一次消除。人寫的原因與是否符合規則依（日期、代號、買賣）對回，拆成多筆的後面幾列標「(同上)」；【待確認】4 筆標 ⚠。同步偵測到的股數變動<b>若在買賣紀錄找不到才補一列「⚠ 買賣紀錄缺」</b>，買賣紀錄補上後下次同步自動消失；日誌有、買賣紀錄卻沒有的列會保留並標記，不會默默刪掉。讀不到買賣紀錄時退回舊行為，不影響每日排程。順手修正數值寫入用 <code>:g</code> 格式、金額超過 6 位有效數字會變成科學記號的潛在 bug</td>
