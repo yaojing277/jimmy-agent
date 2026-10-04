@@ -965,6 +965,10 @@
       <tbody>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-05</td>
+          <td>⌨️ <b>新增 KeySilk 小鍵盤設定頁 <code>keysilk_config.html</code></b>：單一本機 HTML，開啟 KeySilk 匯出的 <code>.ckf</code> 後點鍵改功能（Magnet／Claude 預設組合、自訂 ⌃⌥⇧⌘ 組合鍵、基礎按鍵、系統功能、媒體、場景切換），列出修改清單、可逐格還原，下載新 <code>.ckf</code> 後在 KeySilk「导入配置→下载到设备」即可。組合鍵編碼與已在裝置上實測的 Max／Left／Right／NextDisplay／⌥Q 逐位元一致；PP 等打字巨集只顯示步數不揭露內容，檔案不離開瀏覽器</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-05</td>
           <td>🖱️ <b>MouseSideKey：DFM80 前側鍵改由 Karabiner-Elements 處理</b>：原 Hammerspoon「監聽器 3」以 keyCode 126＋keyboardType 40 攔截 ↑ 改送 ←，連 16 鍵 KeySilk 小鍵盤的 ↑ 也被誤改（實測 14 次全中，兩者事件層無法分辨）；改用 Karabiner 依硬體 ID（VID 0x2717／PID 0x32B0）只改 DFM80，規則備份 <code>karabiner_dfm80.json</code>。踩坑：Karabiner 預設不接管滑鼠類裝置，需在 devices 明列；接管後 keyboardType 一律變 46。同場重排 16 鍵小鍵盤場景十：Max（⌃⌥↩）／Left（⌃⌥←）／Right（⌃⌥→）對應 Magnet 最大化與左右半邊；另新增 Hammerspoon 熱鍵 <code>⌃⌥⌘N</code>，與滑鼠側鍵共用 <code>moveToNextScreen()</code>，供小鍵盤 NextDisplay 在兩螢幕間循環（Magnet 的 Next Display ⌃⌥⌘→ 不循環，視窗在最右螢幕時按了不動）</td>
         </tr>
         <tr>

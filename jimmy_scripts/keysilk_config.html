@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KeySilk 小鍵盤設定</title>
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --panel2:#f0f2f5; --line:#d9dde3; --text:#1d2330; --text2:#5b6474; --text3:#8a93a3;
+  --accent:#2f6fed; --accent-weak:#e6eefc; --warn:#c2410c; --warn-weak:#fff1e8; --ok:#15803d; --ok-weak:#e8f6ec;
+  --key:#ffffff; --key-line:#c9ced6; --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14161a; --panel:#1c1f25; --panel2:#23272e; --line:#323843; --text:#e7eaf0; --text2:#a7afbd; --text3:#737c8c;
+    --accent:#6b9bff; --accent-weak:#1f2a40; --warn:#fb923c; --warn-weak:#33231a; --ok:#4ade80; --ok-weak:#16291d;
+    --key:#262a31; --key-line:#3a404b; --shadow:0 1px 2px rgba(0,0,0,.4);
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 -apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC",sans-serif}
+header{padding:20px 16px 8px;max-width:1180px;margin:0 auto;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+h1{font-size:20px;margin:0}
+.sub{color:var(--text2);font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:8px 16px 40px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px}
+button,select,input[type=text]{font:inherit;color:var(--text)}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+select,input[type=text]{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+#drop{border:2px dashed var(--line);border-radius:12px;padding:28px 16px;text-align:center;color:var(--text2);cursor:pointer}
+#drop.over{border-color:var(--accent);background:var(--accent-weak)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;margin-top:16px}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+.scenes{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.scenes button{padding:5px 10px;font-size:13px}
+.scenes button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.scenes button .n{color:var(--text3);font-size:11px;margin-left:4px}
+.scenes button.on .n{color:#dbe6ff}
+.pad{display:grid;gap:10px;max-width:520px;margin:0 auto;padding:16px;border:1px solid var(--line);border-radius:18px;background:var(--panel2)}
+.key{position:relative;aspect-ratio:1;background:var(--key);border:1px solid var(--key-line);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px;cursor:pointer;min-width:0}
+.key:hover{border-color:var(--accent)}
+.key.sel{outline:2px solid var(--accent);outline-offset:1px}
+.key.changed{background:var(--ok-weak);border-color:var(--ok)}
+.key .no{position:absolute;top:4px;left:7px;font-size:10px;color:var(--text3)}
+.key .nm{font-weight:600;font-size:13px;word-break:break-all;line-height:1.25}
+.key .ds{font-size:11px;color:var(--text2);margin-top:3px;word-break:break-all}
+.key.empty .nm{color:var(--text3);font-weight:400}
+.side h2{font-size:15px;margin:0 0 10px}
+.tabs{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0}
+.tabs button{font-size:12px;padding:4px 9px}
+.tabs button.on{background:var(--accent-weak);border-color:var(--accent);color:var(--accent)}
+.list{max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.list div{padding:6px 10px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+.list div:last-child{border-bottom:0}
+.list div:hover{background:var(--accent-weak)}
+.list .r{color:var(--text3);font-size:12px;white-space:nowrap}
+.mods{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}
+.mods label{display:flex;align-items:center;gap:4px;cursor:pointer}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.preview{font-size:22px;font-weight:600;letter-spacing:1px;margin:6px 0}
+.note{font-size:12px;color:var(--text2)}
+.warn{background:var(--warn-weak);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:12px;margin-top:10px}
+.cur{background:var(--panel2);border-radius:8px;padding:8px 10px;margin-bottom:6px}
+.cur b{font-size:15px}
+.changes{margin-top:16px}
+.changes table{width:100%;border-collapse:collapse;font-size:13px}
+.changes td,.changes th{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+.changes th{color:var(--text2);font-weight:500}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.steps{counter-reset:s;margin:6px 0 0;padding-left:18px;color:var(--text2);font-size:13px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>KeySilk 小鍵盤設定</h1>
+    <div class="sub">開啟 .ckf → 點鍵改功能 → 下載新的 .ckf → KeySilk「导入配置」→「下载到设备」。檔案只在本機瀏覽器處理，不會上傳。</div>
+  </div>
+  <div class="toolbar">
+    <button id="btnReset" disabled>全部還原</button>
+    <button id="btnExport" class="primary" disabled>下載 .ckf</button>
+  </div>
+</header>
+<main>
+  <div class="card">
+    <div id="drop">把 <b>.ckf</b> 拖到這裡，或點此選擇檔案（建議用上一次下載到設備的那份）
+      <input type="file" id="file" accept=".ckf,application/json" class="hidden">
+      <div id="fileInfo" class="note" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <div class="layout hidden" id="app">
+    <div class="card">
+      <div class="scenes" id="scenes"></div>
+      <div class="pad" id="pad"></div>
+      <div class="changes">
+        <h2 style="font-size:15px;margin:0 0 6px">本次修改 <span id="chgCount" class="note"></span></h2>
+        <table><thead><tr><th>場景</th><th>鍵</th><th>原本</th><th>改成</th><th></th></tr></thead><tbody id="chgBody"></tbody></table>
+      </div>
+    </div>
+
+    <div class="card side">
+      <h2 id="edTitle">選一個鍵</h2>
+      <div id="editor" class="hidden">
+        <div class="cur">目前：<b id="curName"></b> <span id="curDesc" class="note"></span></div>
+        <div class="tabs" id="tabs"></div>
+        <div id="pane"></div>
+        <div class="row" style="margin-top:12px">
+          <button id="btnRevert">還原此鍵</button>
+          <button id="btnClear">清空此鍵</button>
+        </div>
+      </div>
+      <ol class="steps">
+        <li>上方選場景，點小鍵盤上的鍵</li>
+        <li>右側挑功能：預設組合（Magnet／Claude）最常用</li>
+        <li>按「下載 .ckf」</li>
+        <li>KeySilk →「导入配置」選這份 →「下载到设备」</li>
+      </ol>
+    </div>
+  </div>
+</main>
+
+<script>
+const LISTS = {"base": ["数字0,1,0,0,39", "数字1,1,1,0,30", "数字2,1,2,0,31", "数字3,1,3,0,32", "数字4,1,4,0,33", "数字5,1,5,0,34", "数字6,1,6,0,35", "数字7,1,7,0,36", "数字8,1,8,0,37", "数字9,1,9,0,38", "字母A,1,10,0,4", "字母B,1,11,0,5", "字母C,1,12,0,6", "字母D,1,13,0,7", "字母E,1,14,0,8", "字母F,1,15,0,9", "字母G,1,16,0,10", "字母H,1,17,0,11", "字母I,1,18,0,12", "字母J,1,19,0,13", "字母K,1,20,0,14", "字母L,1,21,0,15", "字母M,1,22,0,16", "字母N,1,23,0,17", "字母O,1,24,0,18", "字母P,1,25,0,19", "字母Q,1,26,0,20", "字母R,1,27,0,21", "字母S,1,28,0,22", "字母T,1,29,0,23", "字母U,1,30,0,24", "字母V,1,31,0,25", "字母W,1,32,0,26", "字母X,1,33,0,27", "字母Y,1,34,0,28", "字母Z,1,35,0,29", "),1,36,2,39", "!,1,37,2,30", "@,1,38,2,31", "#,1,39,2,32", "$,1,40,2,33", "%,1,41,2,34", "^,1,42,2,35", "&,1,43,2,36", "*,1,44,2,37", "(,1,45,2,38", "-,1,46,0,45", "=,1,47,0,46", "_,1,48,2,45", "+,1,49,2,46", "\\ ,1,50,0,49", "',1,51,0,52", ";,1,52,0,51", "`,1,53,0,53", "，,1,54,0,54", ".,1,55,0,55", "/,1,56,0,56", "],1,57,0,48", "[,1,58,0,47", "|,1,59,2,49", "\",1,60,2,52", ":,1,61,2,51", "~,1,62,2,53", "<,1,63,2,54", ">,1,64,2,55", "?,1,65,2,56", "},1,66,2,48", "{,1,67,2,47", "F1,1,68,0,58", "F2,1,69,0,59", "F3,1,70,0,60", "F4,1,71,0,61", "F5,1,72,0,62", "F6,1,73,0,63", "F7,1,74,0,64", "F8,1,75,0,65", "F9,1,76,0,66", "F10,1,77,0,67", "F11,1,78,0,68", "F12,1,79,0,69", "Home,1,80,0,74", "Ins,1,81,0,73", "Del,1,82,0,76", "End,1,83,0,77", "Pgup,1,84,0,75", "Pgdn,1,85,0,78", "Esc,1,86,0,41", "Capslk,1,87,0,57", "Tab,1,88,0,43", "Scrlk,1,89,0,71", "Prtsc,1,90,0,70", "Pause,1,91,0,72", "Backspace,1,92,0,42", "回车Enter,1,93,0,40", "空格Space,1,94,0,44", "向上↑,1,95,0,82", "向左←,1,96,0,80", "向右→,1,97,0,79", "向下↓,1,98,0,81", "Num,1,99,0,83", "Ctrl,1,100,1,0", "Shift,1,101,2,0", "Opt,1,102,4,0", "Cmd,1,103,8,0", "小键盘0,1,104,0,98", "小键盘1,1,105,0,89", "小键盘2,1,106,0,90", "小键盘3,1,107,0,91", "小键盘4,1,108,0,92", "小键盘5,1,109,0,93", "小键盘6,1,110,0,94", "小键盘7,1,111,0,95", "小键盘8,1,112,0,96", "小键盘9,1,113,0,97", "小键盘/,1,114,0,84", "小键盘*,1,115,0,85", "小键盘-,1,116,0,86", "小键盘+,1,117,0,87", "小键盘.,1,118,0,99", "小键盘Enter,1,119,0,88", "PrtSc,1,120,0,70", "F13,1,121,0,104", "F14,1,122,0,105", "F15,1,123,0,106", "F16,1,124,0,107", "F17,1,125,0,108", "F18,1,126,0,109", "F19,1,127,0,110", "F20,1,128,0,111", "F21,1,129,0,112", "F22,1,130,0,113", "F23,1,131,0,114", "F24,1,132,0,115", "右Ctrl,1,133,16,0", "右Shift,1,134,32,0", "右Opt,1,135,64,0", "右Cmd,1,136,128,0", "空白,1,137,0,0"], "sys": ["关机,2,3,13,102,0", "打开/关闭应用全屏,2,4,9,9,0", "切换输入法,2,5,8,44,0", "截取全部屏幕到文件,2,6,10,32,0", "隐藏最前面App,2,7,8,11,0", "查看最前面的App,2,8,12,11,0", "当前窗口最小化,2,9,8,16,0", "查找,2,10,8,9,0", "关闭当前窗口,2,11,8,26,0", "退出当前App,2,12,8,20,0", "锁定计算机,2,13,9,20,0", "撤销,2,14,8,29,0", "剪切,2,15,8,27,0", "拷贝,2,16,8,6,0", "粘贴,2,17,8,25,0", "全选,2,18,8,4,0", "保存,2,19,8,22,0"], "sysLabel": ["Command+Option+Pwr", "Ctrl+Command+F", "Command+空格", "Command+Shift+3", "Command+H", "Command+Option+H", "Command+M", "Command+F", "Command+W", "Command+Q", "Ctrl+Command+Q", "Command+Z", "Command+X", "Command+C", "Command+V", "Command+A", "Command+S"], "media": ["静音,6,0,226,0", "音量-,6,1,234,0", "音量+,6,2,233,0", "播放暂停,6,3,205,0", "停止,6,4,183,0", "上一曲,6,5,182,0", "下一曲,6,6,181,0", "屏幕亮度+,6,7,111,0", "屏幕亮度-,6,8,112,0", "手机锁屏,6,9,50,0"], "layer": ["下一场景,10,0,0,0", "上一场景,10,1,1,0", "场景一,10,2,2,0", "场景二,10,3,2,1", "场景三,10,4,2,2", "场景四,10,5,2,3", "场景五,10,6,2,4", "场景六,10,7,2,5", "场景七,10,8,2,6", "场景八,10,9,2,7", "场景九,10,10,2,8", "场景十,10,11,2,9"]};
+
+// ── 編碼常數 ──────────────────────────────────────────────
+// 組合鍵巨集（type 7）：name,7,idx,0,步數, 每步 9 個數字 [modifier位元, HID usage, 0×6, 旗標]
+// HID modifier 位元：Ctrl=1 Shift=2 Opt=4 Cmd=8
+const MOD = [{k:'ctrl',bit:1,sym:'⌃',label:'Control'},{k:'opt',bit:4,sym:'⌥',label:'Option'},
+             {k:'shift',bit:2,sym:'⇧',label:'Shift'},{k:'cmd',bit:8,sym:'⌘',label:'Command'}];
+const SYM = {40:'↩',79:'→',80:'←',81:'↓',82:'↑',42:'⌫',44:'Space',43:'⇥',41:'Esc',76:'⌦'};
+const BASE = LISTS.base.map(s=>{const p=s.split(',');return {raw:s,name:p[0],mod:+p[3],usage:+p[4]}});
+const USAGE_NAME = {};
+BASE.forEach(b=>{ if(b.mod===0 && b.usage>0 && !(b.usage in USAGE_NAME)) USAGE_NAME[b.usage]=b.name.replace(/^(字母|数字)/,'') });
+const keyLabel = u => SYM[u] || USAGE_NAME[u] || ('#'+u);
+const comboText = (mods,u) => MOD.filter(m=>mods&m.bit).map(m=>m.sym).join('') + keyLabel(u);
+
+const PRESETS = [
+  {name:'Max',      mods:1|4,   usage:40, desc:'Magnet 最大化 ⌃⌥↩'},
+  {name:'Left',     mods:1|4,   usage:80, desc:'Magnet 左半邊 ⌃⌥←'},
+  {name:'Right',    mods:1|4,   usage:79, desc:'Magnet 右半邊 ⌃⌥→'},
+  {name:'Top',      mods:1|4,   usage:82, desc:'Magnet 上半邊 ⌃⌥↑'},
+  {name:'Bottom',   mods:1|4,   usage:81, desc:'Magnet 下半邊 ⌃⌥↓'},
+  {name:'Center',   mods:1|4,   usage:6,  desc:'Magnet 置中 ⌃⌥C'},
+  {name:'Restore',  mods:1|4,   usage:42, desc:'Magnet 還原 ⌃⌥⌫'},
+  {name:'NextDisplay', mods:1|4|8, usage:17, desc:'下一個螢幕（循環）⌃⌥⌘N，Hammerspoon'},
+  {name:'Command+q',   mods:4,  usage:20, desc:'Claude 快捷鍵 ⌥Q（Hammerspoon）'},
+];
+
+function buildCombo(name, mods, usage, idx){
+  const order = MOD.filter(m=>mods&m.bit);
+  const steps=[]; let cur=0;
+  order.forEach(m=>{cur|=m.bit; steps.push([cur,0])});       // 依序按下修飾鍵
+  steps.push([cur,usage]); steps.push([cur,0]);               // 按下、放開主鍵
+  [...order].reverse().slice(0,-1).forEach(m=>{cur&=~m.bit; steps.push([cur,0])}); // 依序放開修飾鍵
+  steps.push([0,0],[0,0]);                                    // 全部放開（沿用既有巨集的結尾）
+  const body = steps.flatMap(([m,k])=>[m,k,0,0,0,0,0,0,(m||k)?2:0]);
+  return [name,7,idx,0,steps.length,...body].join(',');
+}
+
+// 解析一格的內容，回傳顯示用資訊（不揭露 PP 之類打字巨集的內容）
+function describe(raw){
+  if(!raw) return {name:'（空）',desc:'',empty:true};
+  const p = raw.split(','); let name = p[0]; const type=+p[1];
+  const clean = s => /^[\p{L}\p{N}\p{P}\p{S} ]+$/u.test(s) ? s : null;
+  if(type===1){ const u=+p[4], m=+p[3]; const n=clean(name) || (BASE.find(b=>b.usage===u&&b.mod===m)||{}).name || keyLabel(u);
+    return {name:n,desc:'按鍵'+(m?'（'+comboText(m,u)+'）':'')} }
+  if(type===2){ const i=LISTS.sys.findIndex(s=>s.split(',')[2]===p[2]); return {name:clean(name)||'系統功能',desc:i>=0?LISTS.sysLabel[i].replace(/Command/g,'⌘').replace(/Option/g,'⌥').replace(/Ctrl/g,'⌃').replace(/Shift/g,'⇧').replace(/\+/g,''):'系統功能'} }
+  if(type===6) return {name:clean(name)||'媒體',desc:'媒體鍵'};
+  if(type===10) return {name:clean(name)||'場景切換',desc:'切換場景'};
+  if(type===11) return {name:clean(name)||'停止所有宏',desc:'停止巨集'};
+  if(type===7){
+    const n=+p[4], body=p.slice(5).map(Number); let mods=0, keys=[];
+    for(let i=0;i<n;i++){ const m=body[i*9]||0,k=body[i*9+1]||0; mods|=m; if(k) keys.push(k) }
+    const uniq=[...new Set(keys)];
+    if(uniq.length===1 && keys.length===1) return {name:clean(name)||'巨集',desc:'組合鍵 '+comboText(mods,uniq[0])};
+    return {name:clean(name)||'巨集',desc:'巨集 '+n+' 步（內容保留不變）'};
+  }
+  return {name:clean(name)||('類型 '+type),desc:'未知類型，保留原內容'};
+}
+
+// ── 狀態 ──────────────────────────────────────────────────
+let orig=null, data=null, fileName='', scene='S9', selKey=null, tab='preset', cols=4;
+const SCENE_NAMES=['场景一','场景二','场景三','场景四','场景五','场景六','场景七','场景八','场景九','场景十'];
+const $=id=>document.getElementById(id);
+
+function loadText(text, name){
+  let d; try{ d=JSON.parse(text.replace(/^﻿/,'')) }catch(e){ alert('不是有效的 .ckf（JSON 解析失敗）：'+e.message); return }
+  if(!d.S0 && !d.S9){ alert('檔案裡找不到場景資料（S0~S9）'); return }
+  for(let i=0;i<10;i++) d['S'+i] = d['S'+i] || {};
+  orig=JSON.parse(JSON.stringify(d)); data=d; fileName=name;
+  const maxN=Math.max(...Object.values(d).map(s=>Math.max(0,...Object.keys(s).map(Number))));
+  cols = maxN>9 ? 4 : 3;
+  const firstUsed = ['S9','S0','S1','S7','S8'].find(s=>Object.keys(d[s]).length) || 'S0';
+  scene = firstUsed; selKey=null;
+  $('fileInfo').textContent = `已載入：${name}（${cols===4?'16 鍵':'9 鍵'}）`;
+  $('app').classList.remove('hidden'); $('btnExport').disabled=false; $('btnReset').disabled=false;
+  render();
+}
+
+function render(){
+  // 場景列
+  $('scenes').innerHTML = SCENE_NAMES.map((n,i)=>{ const s='S'+i, c=Object.keys(data[s]).length;
+    return `<button data-s="${s}" class="${s===scene?'on':''}">${n}<span class="n">${c||'空'}</span></button>` }).join('');
+  $('scenes').querySelectorAll('button').forEach(b=>b.onclick=()=>{scene=b.dataset.s; selKey=null; render()});
+  // 小鍵盤
+  const pad=$('pad'); pad.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  let html='';
+  for(let k=1;k<=cols*cols;k++){
+    const raw=data[scene][k], d=describe(raw), ch=(orig[scene][k]||'')!==(raw||'');
+    html+=`<div class="key ${d.empty?'empty':''} ${ch?'changed':''} ${selKey==k?'sel':''}" data-k="${k}">
+      <span class="no">${k}</span><div class="nm">${esc(d.name)}</div><div class="ds">${esc(d.desc)}</div></div>`;
+  }
+  pad.innerHTML=html;
+  pad.querySelectorAll('.key').forEach(el=>el.onclick=()=>{selKey=+el.dataset.k; render()});
+  renderEditor(); renderChanges();
+}
+
+function renderEditor(){
+  if(!selKey){ $('editor').classList.add('hidden'); $('edTitle').textContent='選一個鍵'; return }
+  $('editor').classList.remove('hidden');
+  $('edTitle').textContent = `${SCENE_NAMES[+scene.slice(1)]} · 第 ${selKey} 鍵（第 ${Math.ceil(selKey/cols)} 列第 ${(selKey-1)%cols+1} 格）`;
+  const d=describe(data[scene][selKey]); $('curName').textContent=d.name; $('curDesc').textContent=d.desc;
+  const TABS=[['preset','預設組合'],['combo','自訂組合鍵'],['base','基礎按鍵'],['sys','系統功能'],['media','媒體'],['layer','場景切換']];
+  $('tabs').innerHTML=TABS.map(([k,n])=>`<button data-t="${k}" class="${k===tab?'on':''}">${n}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=b.dataset.t; renderEditor()});
+  const pane=$('pane');
+  if(tab==='preset'){
+    pane.innerHTML='<div class="list">'+PRESETS.map((p,i)=>`<div data-i="${i}"><span><b>${p.name}</b></span><span class="r">${p.desc}</span></div>`).join('')+'</div>'
+      +'<div class="note" style="margin-top:6px">Magnet 快捷鍵依你目前 Magnet 的設定；NextDisplay 需 MouseSideKey 的 ⌃⌥⌘N 熱鍵。</div>';
+    pane.querySelectorAll('[data-i]').forEach(el=>el.onclick=()=>{const p=PRESETS[+el.dataset.i]; setKey(buildCombo(p.name,p.mods,p.usage,macroIdx(p.mods,p.usage)))});
+  } else if(tab==='combo'){
+    const keys=BASE.filter(b=>b.mod===0&&b.usage>0&&b.name!=='空白');
+    pane.innerHTML=`<div class="mods">${MOD.map(m=>`<label><input type="checkbox" data-b="${m.bit}"> ${m.sym} ${m.label}</label>`).join('')}</div>
+      <div class="row"><select id="cKey">${keys.map(b=>`<option value="${b.usage}">${esc(b.name)}</option>`).join('')}</select>
+      <input type="text" id="cName" placeholder="顯示名稱（英數較穩）" style="flex:1;min-width:120px"></div>
+      <div class="preview" id="cPrev"></div><button class="primary" id="cApply">套用到此鍵</button>`;
+    const upd=()=>{ const m=[...pane.querySelectorAll('[data-b]')].filter(x=>x.checked).reduce((a,x)=>a|+x.dataset.b,0);
+      $('cPrev').textContent=comboText(m,+$('cKey').value); return m };
+    pane.querySelectorAll('input,select').forEach(x=>x.oninput=upd); upd();
+    $('cApply').onclick=()=>{ const m=upd(), u=+$('cKey').value; if(!m){alert('請至少勾一個修飾鍵；單一按鍵請用「基礎按鍵」');return}
+      const nm=($('cName').value.trim()||comboText(m,u)).replace(/,/g,' '); setKey(buildCombo(nm,m,u,macroIdx(m,u))) };
+  } else {
+    const src = tab==='base'?LISTS.base : tab==='sys'?LISTS.sys : tab==='media'?LISTS.media : LISTS.layer;
+    pane.innerHTML=`<input type="text" id="flt" placeholder="篩選…" style="width:100%;margin-bottom:6px"><div class="list" id="lst"></div>`;
+    const draw=()=>{ const q=$('flt').value.trim();
+      $('lst').innerHTML=src.map((s,i)=>({s,i})).filter(o=>!q||o.s.split(',')[0].includes(q)).map(({s,i})=>{
+        const r = tab==='sys'?LISTS.sysLabel[i] : tab==='base'?describe(s).desc : '';
+        return `<div data-i="${i}"><span>${esc(s.split(',')[0])}</span><span class="r">${esc(r)}</span></div>`}).join('');
+      $('lst').querySelectorAll('[data-i]').forEach(el=>el.onclick=()=>setKey(src[+el.dataset.i])) };
+    $('flt').oninput=draw; draw();
+  }
+  $('btnRevert').onclick=()=>{ const o=orig[scene][selKey]; if(o===undefined) delete data[scene][selKey]; else data[scene][selKey]=o; render() };
+  $('btnClear').onclick=()=>{ delete data[scene][selKey]; render() };
+}
+
+// 同一組合重複用同一個巨集編號；新組合取全檔最大編號 + 1
+function macroIdx(mods,usage){
+  let max=15, hit=null;
+  for(const s of Object.values(data)) for(const raw of Object.values(s)){ const p=raw.split(','); if(p[1]!=='7') continue;
+    const idx=parseInt(p[2]); if(!isNaN(idx)) max=Math.max(max,idx);
+    const d=describe(raw); if(d.desc==='組合鍵 '+comboText(mods,usage)) hit=idx }
+  return hit ?? max+1;
+}
+
+function setKey(raw){ data[scene][selKey]=raw; render() }
+
+function renderChanges(){
+  const rows=[];
+  for(let i=0;i<10;i++){ const s='S'+i; const ks=new Set([...Object.keys(orig[s]),...Object.keys(data[s])]);
+    [...ks].sort((a,b)=>a-b).forEach(k=>{ if((orig[s][k]||'')!==(data[s][k]||'')) rows.push({s,k,a:describe(orig[s][k]),b:describe(data[s][k])}) }) }
+  $('chgCount').textContent = rows.length?`（${rows.length} 格）`:'（尚無）';
+  $('chgBody').innerHTML = rows.map(r=>`<tr><td>${SCENE_NAMES[+r.s.slice(1)]}</td><td>${r.k}</td><td>${esc(r.a.name)} <span class="note">${esc(r.a.desc)}</span></td>
+    <td><b>${esc(r.b.name)}</b> <span class="note">${esc(r.b.desc)}</span></td><td><button data-s="${r.s}" data-k="${r.k}">還原</button></td></tr>`).join('');
+  $('chgBody').querySelectorAll('button').forEach(b=>b.onclick=()=>{ const o=orig[b.dataset.s][b.dataset.k];
+    if(o===undefined) delete data[b.dataset.s][b.dataset.k]; else data[b.dataset.s][b.dataset.k]=o; render() });
+}
+
+function exportCkf(){
+  // 依鍵號排序輸出，格式與 KeySilk 匯出一致（JSON、4 格縮排）
+  const out={}; for(let i=0;i<10;i++){ const s='S'+i, o={}; Object.keys(data[s]).sort((a,b)=>a-b).forEach(k=>o[k]=data[s][k]); out[s]=o }
+  const d=new Date(), ts=String(d.getFullYear()).slice(2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'_'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0');
+  const base=fileName.replace(/\.ckf$/i,'').replace(/_改_\d{6}_\d{4}$/,'');
+  const blob=new Blob([JSON.stringify(out,null,4)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${base}_改_${ts}.ckf`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ── 檔案載入 ──────────────────────────────────────────────
+const drop=$('drop'), file=$('file');
+drop.onclick=e=>{ if(e.target!==file) file.click() };
+file.onchange=()=>{ const f=file.files[0]; if(f) f.text().then(t=>loadText(t,f.name)); file.value='' };
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) f.text().then(t=>loadText(t,f.name)) });
+$('btnExport').onclick=exportCkf;
+$('btnReset').onclick=()=>{ if(confirm('放棄所有修改，回到剛載入的內容？')){ data=JSON.parse(JSON.stringify(orig)); render() } };
+window.addEventListener('beforeunload',e=>{ if(data && JSON.stringify(data)!==JSON.stringify(orig)){ e.preventDefault(); e.returnValue='' } });
+</script>
+</body>
+</html>
