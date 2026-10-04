@@ -101,6 +101,7 @@
 | `sheet_value_guard.py` | 改公式前後的安全網：`snapshot`/`diff` 比對計算值 |
 | `trade_entry_server.py` / `trade_entry_appscript.gs` | 買進紀錄輸入網頁（localhost:8765）與 Apps Script 後端橋接 |
 | `etf_ex_dividend_calendar.py` | ETF 除息日／發放日同步 Google 日曆：`sync`（Service Account 全自動，排程用）／`check`+`mark`（本機無 SA 時，搭配 Calendar MCP 手動建） |
+| `since_date_pnl.py` | 「**7/3 起加碼損益**」每日結算（2026-10-04 起隨 `wealth_sync.yml` 每個交易日跑）：讀「股票買賣紀錄」依「股票分割」換算後逐代號 FIFO，對起算日（`SINCE`，含）後買進的批次算已實現＋未實現（以結算日收盤價、扣假設賣出的手續費 0.1425%×6 折與證交稅 ETF 0.1%／個股 0.3%）＋期間配息（上市 TWT49U、上櫃櫃買 exDailyQ）；整張重寫「股價試算」分頁 `加碼損益_0703`（右側 M:P 為每日走勢、由新到舊、同日覆寫），並以 `--line-file` 輸出一行摘要併進每日 LINE 通知；`--dry-run`／`--date`。**金額屬個人資料，刻意不發佈到公開 GitHub Pages** |
 | `publish_projects.py` | 排程跑完把執行結果寫進 `yaojing277/projects` 的 `runlog.json`（同交易日重跑覆蓋、留 90 天），並同步 `projects.html`/`index.html`/兩份 devlog/`schedule_runlog.html`；需 secret `PAGES_PAT` |
 | `check_reminders.py` | 日期到期提醒（讀 `reminders.json`，需環境變數 `LINE_TOKEN`/`LINE_USER_ID`） |
 | `auth_sheets.py` / `reauth_sheets.py` | Google Sheets OAuth 授權／重授權（token 約 7 天過期）；`reauth_sheets.py --drive` 可加授 Google Drive 權限 |
