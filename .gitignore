@@ -19,3 +19,6 @@ jimmy_scripts/drop_site/
 # ⚠ drop_stats_web.html 是手機查詢頁的「模板原始碼」，必須保留在版控內，故排除於外
 jimmy_scripts/drop_stats_*.html
 !jimmy_scripts/drop_stats_web.html
+# 個人資產數字(公開 repo 不放):改公式前的數值快照、加碼損益報告
+jimmy_scripts/.value_snapshots/
+jimmy_scripts/investment_since_*_report.html
