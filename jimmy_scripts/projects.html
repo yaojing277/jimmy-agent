@@ -957,6 +957,10 @@
       <tbody>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-06</td>
+          <td>🧹 <b>AudioTabHighlighter 停止開發＋版控瘦身</b>：Safari 擴充「音訊分頁高亮」停止開發，<code>AudioTabHighlighter</code>（Xcode 專案）與 <code>audio-tab-highlighter</code>（擴充本體）共 3,404 檔移出版控——兩者本就綁在一起，Xcode 專案以相對路徑 <code>../../audio-tab-highlighter/*</code> 直接引用 manifest／background／content，專案本身沒有副本。順勢全 repo 掃描同類問題，發現 <code>chess_mahjong_server/node_modules</code>（999 檔、6.9 MB）與 <code>HelloWorld</code> 的 <code>obj</code>／<code>bin</code>（24 檔）也被提交進版控，以 <code>git rm --cached</code> <b>取消追蹤但保留磁碟檔案</b>（node_modules 跑 server 還要用），並在 <code>.gitignore</code> 補上 <code>node_modules/</code>、<code>obj/</code>、<code>bin/</code>、<code>build/</code>、<code>DerivedData/</code>、<code>*.xcuserstate</code> 等規則避免重演。原始碼（<code>package-lock.json</code>／<code>server.js</code>／<code>.csproj</code>）全數保留，刪除的檔案仍可由 git 歷史取回</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-06</td>
           <td>⏱ <b>查明排程遲到原因並調整 cron</b>：用 GitHub API 把「建立執行／排隊／實際執行」三段時間拆開，發現近 11 次排程一律遲到 <b>5h08m～8h35m</b>，但<b>排隊 0 分、實際執行只 0.4～4.5 分</b>——非交易日只跑 0.7 分照樣遲到 7h47m，證實<b>遲到與工作量無關</b>，瓶頸在 GitHub 的 cron 派發（best effort、不保證準時，公開 repo 優先權最低）。確認遲到<b>不影響資料正確性</b>：「交易日守衛」算出最近有收盤資料的交易日再以 <code>--date</code> 傳給每一步，跨午夜也不會記錯日期；唯一影響是 LINE 通知晚幾小時到。cron 由 <code>30 6 * * *</code> 改為 <code>17 6 * * *</code>（台北 14:17），避開整點／半點的擁塞時段觀察效果；若仍不準，解法是改由外部打 API 觸發 <code>workflow_dispatch</code>（實測秒級啟動）</td>
         </tr>
         <tr>

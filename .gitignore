@@ -25,3 +25,11 @@ jimmy_scripts/investment_since_*_report.html
 
 # KeySilk 小鍵盤設定匯出（含 PP 巨集數字，勿進公開 repo）
 *.ckf
+# 建置產物與相依套件（可由 npm install / dotnet build / Xcode 重新產生，勿進版控）
+node_modules/
+obj/
+bin/
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
