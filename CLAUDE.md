@@ -151,7 +151,7 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 
 ### 其他獨立小專案
 
-`HelloWorld`／`HelloMaui`（C#/.NET 練習專案）、`AudioTabHighlighter`（Safari extension，Xcode 專案）、`BetterDisplay`（macOS 工具安裝檔）——彼此獨立、非主線自動化工作，不互相依賴。
+`HelloWorld`（C#/.NET 練習專案；`HelloMaui` 已於 2026-10-06 由 Jimmy 刪除）、`AudioTabHighlighter`（Safari extension，Xcode 專案）、`BetterDisplay`（macOS 工具安裝檔）——彼此獨立、非主線自動化工作，不互相依賴。
 
 `MouseSideKey`（Hammerspoon lua，滑鼠側鍵視窗管理）已升格獨立專案：`jimmy_scripts/MouseSideKey/` 本身是 git repo，
 推送至私人 repo `yaojing277/mouse-side-key`（remote 內嵌 PAT，與 stock-notify 同組）；另有 Google Drive zip 快照。
