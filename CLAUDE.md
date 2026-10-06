@@ -56,7 +56,7 @@
     `update_stock_price.py`、`update_wealth_os.py`、`twse_hist.py`、`etf_ex_dividend_calendar.py`、`drop_stats_publish.py`、`drop_stats_web.html`），
     但 `check_reminders.py`、`youtube_notify.py`、`reminders.json` 放在 `stock_notify_tmp/` **根目錄**。
   - **雲端執行**：`wealth_sync.yml` workflow，認證走 Service Account（Secret `GOOGLE_SA_JSON`，永不過期），跑完 LINE 通知。
-    - **每日自動排程**（2026-07-25 起）：每天台北 14:30（cron `30 6 * * *`）觸發，跑「更新股價＋同步＋全分頁」；
+    - **每日自動排程**（2026-07-25 起）：每天台北 **14:17**（cron `17 6 * * *`；2026-10-06 由 14:30 改為 :17，避開整點／半點的擁塞時段）觸發，跑「更新股價＋同步＋全分頁」；
       有「交易日守衛」步驟——**純粹依 TWSE 當日是否有收盤資料判斷**，無資料（週末/國定假日/颱風假）就跳過。
       ⚠ 先前此處與 workflow 註解寫「週六補班盤（如 2026/07/11）確有資料仍會執行」**是錯的**：2026-10-03 健檢實測
       TWSE 在 07/10、07/11 皆無交易，`Jimmy_260711` 快照與 `16_資產歷史` 的 07/11 列都是假資料（已刪除）。
@@ -69,6 +69,9 @@
       需 secret `PAGES_PAT`（可寫 `projects` 與 `leverage-etf` 的 PAT）；缺了整步安靜跳過不算失敗。
       本機改完 `projects.html`／devlog 想立刻上線，仍可直接跑 `deploy_projects.sh`。
     - 本機改完 `update_stock_price.py`/`update_wealth_os.py`/`twse_hist.py`/`etf_ex_dividend_calendar.py` 記得同步到 `stock_notify_tmp/jimmy_scripts/` 並 push。
+    - **排程遲到是 GitHub 端的問題，與工作量無關（2026-10-06 查明）**：近 11 次「建立執行」一律遲到 **5h08m～8h35m**，但**排隊 0m、實際執行只 0.4～4.5m**；非交易日只跑 0.7m 照樣遲到 7h47m，兩者毫無相關性。GitHub cron 是 best effort、不保證準時，公開 repo 優先權最低。
+      **遲到不影響資料正確性**——「交易日守衛」算出最近有收盤資料的交易日再以 `--date` 傳給每一步，跨午夜也不會記錯（2026-08-29 踩過的坑已修）；唯一影響是 LINE 通知晚幾小時到。
+      想真正準時只能改由外部觸發 `workflow_dispatch`（Mac launchd 或 cron-job.org 打 API，實測秒級啟動），代價是多依賴一個常開的觸發源。
     - 注意：GitHub 排程在 repo 連續 60 天無活動會自動停用；PAT 內嵌於 remote（與到期日綁定）。
     - **ETF 除息日／發放日同步日曆**（`etf_ex_dividend_calendar.py sync`，2026-08-24 起隨每日排程跑）：
       抓 TWSE 官方「ETF 收益分配彙整表」（`etfDiv` API，已公告的除息交易日／發放日／金額，

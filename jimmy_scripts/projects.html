@@ -288,7 +288,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-05</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-06</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -963,6 +963,10 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-06</td>
+          <td>⏱ <b>查明排程遲到原因並調整 cron</b>：用 GitHub API 把「建立執行／排隊／實際執行」三段時間拆開，發現近 11 次排程一律遲到 <b>5h08m～8h35m</b>，但<b>排隊 0 分、實際執行只 0.4～4.5 分</b>——非交易日只跑 0.7 分照樣遲到 7h47m，證實<b>遲到與工作量無關</b>，瓶頸在 GitHub 的 cron 派發（best effort、不保證準時，公開 repo 優先權最低）。確認遲到<b>不影響資料正確性</b>：「交易日守衛」算出最近有收盤資料的交易日再以 <code>--date</code> 傳給每一步，跨午夜也不會記錯日期；唯一影響是 LINE 通知晚幾小時到。cron 由 <code>30 6 * * *</code> 改為 <code>17 6 * * *</code>（台北 14:17），避開整點／半點的擁塞時段觀察效果；若仍不準，解法是改由外部打 API 觸發 <code>workflow_dispatch</code>（實測秒級啟動）</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-05</td>
           <td>⌨️ <b>新增 KeySilk 小鍵盤設定頁 <code>keysilk_config.html</code></b>：單一本機 HTML，開啟 KeySilk 匯出的 <code>.ckf</code> 後點鍵改功能（Magnet／Claude 預設組合、自訂 ⌃⌥⇧⌘ 組合鍵、基礎按鍵、系統功能、媒體、場景切換），列出修改清單、可逐格還原，下載新 <code>.ckf</code> 後在 KeySilk「导入配置→下载到设备」即可。組合鍵編碼與已在裝置上實測的 Max／Left／Right／NextDisplay／⌥Q 逐位元一致；PP 等打字巨集只顯示步數不揭露內容，檔案不離開瀏覽器</td>
