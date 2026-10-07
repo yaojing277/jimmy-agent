@@ -76,6 +76,90 @@ if [ -z "$PAT" ]; then
   exit 1
 fi
 
+# ── 2.5 偵測最近有沒有漏掉的交易日(只警示,不自動補) ──────────
+# ⚠ 為什麼只警示不自動補:workflow_dispatch **只有 `job` 一個 input**,而守衛是用
+#   datetime.date.today() 算目標日,所以「觸發」永遠只能處理今天,無法指定補跑過去某天。
+#   (2026-10-07 00:11 那次之所以補到 10/06,是因為當時 TWSE 還沒有 10/07 資料、
+#    守衛才算出 10/06——那是時間湊巧,不是能重複的機制。)
+#   真要補跑過去某天,得先給 workflow 加 target_date input,而且 `更新股價` 那步
+#   的快照滾動假設「日期往前推進」,倒著建快照會讓分頁順序與 H~K 欄位錯亂,
+#   必須另外處理。所以這裡只負責讓漏掉的日子不會被默默忽略。
+check_recent_gaps() {
+  "$PY" - "$PROBE_CODE" <<'PY' 2>/dev/null
+import sys, json, datetime, urllib.request
+code = sys.argv[1]
+UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0"}
+
+def roc(s):
+    s = str(s).strip().replace("年", "/").replace("月", "/").replace("日", "")
+    p = [x for x in s.split("/") if x]
+    if len(p) != 3:
+        return None
+    try:
+        y, m, d = (int(x) for x in p)
+        return datetime.date(y + 1911, m, d)
+    except ValueError:
+        return None
+
+def month_days(y, m):
+    for path in ("rwd/zh/afterTrading", "exchangeReport"):
+        url = (f"https://www.twse.com.tw/{path}/STOCK_DAY"
+               f"?date={y}{m:02d}01&stockNo={code}&response=json")
+        try:
+            d = json.load(urllib.request.urlopen(
+                urllib.request.Request(url, headers=UA), timeout=20))
+        except Exception:
+            continue
+        if d.get("stat") != "OK":
+            continue
+        out = []
+        for row in d.get("data", []):
+            dt = roc(row[0])
+            try:
+                px = float(str(row[6]).replace(",", ""))
+            except (ValueError, IndexError):
+                px = 0
+            if dt and px:
+                out.append(dt)
+        if out:
+            return out
+    return []
+
+t = datetime.date.today()
+days = month_days(t.year, t.month)
+if t.day <= 10:                       # 月初時往前補上個月,才湊得出 5 個交易日
+    py, pm = (t.year - 1, 12) if t.month == 1 else (t.year, t.month - 1)
+    days = month_days(py, pm) + days
+# 只看「今天之前」的交易日,今天本身由主流程負責
+past = sorted(d for d in days if d < t)[-5:]
+if not past:
+    sys.exit(1)
+
+try:
+    log = json.load(urllib.request.urlopen(
+        "https://yaojing277.github.io/projects/runlog.json", timeout=20))
+except Exception:
+    print("RUNLOG_UNAVAILABLE")
+    sys.exit(0)
+done = {r.get("target_date") for r in log if r.get("status") == "success"}
+missing = [d for d in past if d.strftime("%Y/%m/%d") not in done]
+if missing:
+    print(" ".join(d.strftime("%Y-%m-%d") for d in missing))
+sys.exit(0)
+PY
+}
+
+gaps=$(check_recent_gaps)
+if [ "$gaps" = "RUNLOG_UNAVAILABLE" ]; then
+  log "⚠ 讀不到線上 runlog,略過漏跑偵測"
+elif [ -n "$gaps" ]; then
+  log "⚠⚠ 最近 5 個交易日中,這些日子沒有成功的執行紀錄:$gaps"
+  log "   (可能是 Mac 關機且 GitHub cron 也被丟掉。無法自動補——dispatch 只能處理今天;"
+  log "    請找 Jimmy 確認要不要人工補,或看 https://yaojing277.github.io/projects/schedule_runlog.html)"
+else
+  log "✓ 最近 5 個交易日都有成功紀錄,無漏跑"
+fi
+
 # ── 3. 確認 TWSE 今天有收盤資料(含國定假日/颱風假判斷) ───────
 # 回傳碼:0=今天有資料(交易日) / 1=今天無資料 / 2=查詢失敗(連線或解析)
 check_trading_day() {

@@ -82,6 +82,12 @@
       ⚠ 腳本**必須自己判斷交易日**：workflow 的守衛對 `workflow_dispatch` 一律 `run=yes`（manual 旗標），
       週末照打會拿最近一個交易日重跑、覆寫 runlog 並多推 LINE。另有「今天已有成功執行就不重複觸發」保護。
       日誌 `~/Library/Logs/wealth_sync_trigger.log`；兩邊都觸發時後到那次會 `[skip]` 快照、結果一致，只多一則 LINE。
+      腳本每次執行會比對「最近 5 個交易日」與線上 `runlog.json`，**漏跑的日子會印警示**（不自動補，原因見下）。
+    - **⚠ 無法用 `workflow_dispatch` 補跑過去某一天**：dispatch 只有 `job` 一個 input，守衛固定用
+      `datetime.date.today()` 算目標日，所以觸發永遠只處理今天。（2026-10-07 00:11 那次補到 10/06，
+      是因為當時 TWSE 還沒有 10/07 資料、守衛才算出 10/06——**時間湊巧，不是可重複的機制**。）
+      真要補跑得先給 workflow 加 `target_date` input，而且「更新股價」的快照滾動假設日期往前推進，
+      倒著建快照會讓分頁順序與 H~K 欄錯亂，必須另外處理。目前策略：**只偵測警示，人工決定怎麼補**。
     - 注意：GitHub 排程在 repo 連續 60 天無活動會自動停用；PAT 內嵌於 remote（與到期日綁定）。
     - **ETF 除息日／發放日同步日曆**（`etf_ex_dividend_calendar.py sync`，2026-08-24 起隨每日排程跑）：
       抓 TWSE 官方「ETF 收益分配彙整表」（`etfDiv` API，已公告的除息交易日／發放日／金額，
