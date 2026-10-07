@@ -45,6 +45,80 @@ pre{background:#0f172a;color:#e2e8f0;padding:12px 16px;border-radius:8px;overflo
 <code>wealth_sync.yml</code> 排程在這段期間的開發、修 bug 與持股維護操作。維護的雲端檔案是
 <code>Jimmy_Wealth_OS_Master_V4.4_Google.xlsm</code>（Google Drive，就地覆蓋、檔案 ID 不變）。</div>
 
+<h2>2026-10-08　排程改由本機 launchd 觸發：先證明「不是我們的錯」，再換掉觸發源</h2>
+<p><b>需求：</b>Jimmy 問「這次排程怎麼延遲這麼久？跟處理的事情份量有關係嗎」。
+當天（10/05）排程遲到 8h35m，而那次剛好是投資日誌重建上線後第一次跑、工作量變大，
+直覺上很容易歸因到「事情變多所以跑比較久」。</p>
+<p><b>實作：</b>用 GitHub API 把一次執行拆成<b>三段時間</b>來看——
+<code>created_at</code>（GitHub 決定建立這次執行）、<code>run_started_at</code>（runner 接手）、
+<code>updated_at</code>（跑完）。近 11 次的結果：<b>排隊一律 0 分、實際執行只 0.4~4.5 分、
+但「建立執行」遲到 5h08m~8h35m</b>。決定性的一筆是 09/28——守衛判定非交易日、整個 job 只跑
+<b>0.7 分鐘</b>，照樣遲到 <b>7h47m</b>。工作量與遲到幅度<b>毫無相關性</b>，瓶頸完全在 GitHub 的 cron 派發。
+確認後改由本機 <code>launchd</code>（<code>com.jimmy.wealthsync</code>，每天 14:30）打 API 觸發
+<code>workflow_dispatch</code>（實測秒級啟動），GitHub cron 保留當備援。</p>
+<p><b>踩坑與解法：</b></p>
+<ul>
+<li><b>先改 cron 時段是無效的猜測，而且害了一天。</b>第一步只把 cron 從 <code>:30</code> 改成
+<code>:17</code>（想避開整點／半點擁塞）。結果<b>隔天（10/06）排程整次被丟掉</b>，當天的國泰漲跌／
+除息日曆／跌幅查詢頁／加碼損益全缺，需人工補跑；10/07 又遲到 7h04m。
+<b>改 cron 沒有改善，而且 10/06 很可能是改動造成的一次性副作用。</b>
+教訓：在沒有機制性證據前就動設定，等於拿正式排程做實驗。</li>
+<li><b>launchd 讀不到 <code>~/Downloads</code>——macOS TCC。</b>plist 一開始直接指向
+<code>jimmy_scripts/trigger_wealth_sync.sh</code>，launchd 回
+<code>/bin/bash: …: Operation not permitted</code>。launchd 叫起的程序沒有完全取用磁碟權限，
+<b>專案整個放在 ~/Downloads 底下就全都讀不到</b>——不只腳本，連 <code>import twse_hist</code>、
+<code>source _load_pat.sh</code> 也一樣。解法：腳本改成<b>完全自足</b>（內建 TWSE 交易日判斷含主／備端點
+fallback、自行讀 PAT），安裝到 <code>~/Library/Application Support/wealth-sync/</code>；
+<code>jimmy_scripts/</code> 的那份降為版控母本，<b>改完要重跑安裝指令</b>。</li>
+<li><b>手動觸發一律被守衛放行，週末會重跑前一個交易日。</b>workflow 的「交易日守衛」是
+<code>run = manual or (target == t)</code>——<code>workflow_dispatch</code> 的 <code>manual</code> 永遠為真。
+週末照打的話它會拿「最近一個有收盤資料的交易日」再跑一次，覆寫 runlog 並多推一則 LINE。
+所以觸發腳本<b>必須自己判斷交易日</b>，另加「今天已有成功執行就不重複觸發」的保護。</li>
+<li><b>「讓它自己補漏跑的日子」這個提議是錯的，查了才發現做不到。</b>原本打算讓腳本偵測到漏跑就自動補，
+實查 workflow 才發現 <code>workflow_dispatch</code> <b>只有 <code>job</code> 一個 input</b>、守衛固定用
+<code>datetime.date.today()</code>，<b>觸發永遠只能處理今天</b>。
+（10/07 00:11 那次能補到 10/06，是因為當時 TWSE 還沒有 10/07 資料、守衛才算出 10/06——
+<b>時間湊巧，不是可重複的機制</b>，我一度把它當成機制來推論。）
+要能指定日期得先給 workflow 加 <code>target_date</code>，而且「更新股價」的快照滾動
+<b>假設日期往前推進</b>，倒著建快照會讓分頁順序與 H~K 欄錯亂。
+故降級為<b>只偵測警示、不自動補</b>：每次執行比對「最近 5 個交易日」與線上 <code>runlog.json</code>。</li>
+<li><b>TWSE 收盤資料不保證 14:30 就上架。</b>原本的 cron 因為永遠遲到數小時，從來沒驗證過這件事。
+launchd 準時跑就會碰到，故腳本在判定非交易日前<b>重試 6 次 × 10 分鐘</b>（等到約 15:30）。</li>
+</ul>
+<p><b>驗證結果：</b>shell 語法、plist <code>plutil -lint</code>、模式字串與 workflow choice 選項逐字比對
+（全形＋）皆通過；四條分支實測正確（非交易日安靜結束、<code>--now --dry-run</code> 正常載入 PAT、
+未知參數 exit 2、launchd 實際叫起腳本後 stderr 為空）。
+重複保護以真實 runlog 驗證：模擬「今天是 10/07」→ 找到成功執行、不觸發；「今天是 10/06」→ 會觸發。
+漏跑偵測同樣以真實資料驗證不是空轉：現況回報「最近 5 個交易日都有成功紀錄」，
+模擬 runlog 缺 10/06 時正確抓出該日。
+<b>尚未驗證的是「交易日當天準時觸發」這條路徑</b>——安裝時是凌晨、當天尚未開盤，
+已排定 14:50 自動檢查回報。另確認 Mac 接電源時 <code>pmset sleep=0</code>（永不睡眠），
+僅電池模式為 1 分鐘，故只需保持插電。</p>
+
+<h2>2026-10-08　投資日誌重建機制首次實戰：穎崴零股買進，重複補登沒有發生</h2>
+<p><b>需求：</b>Jimmy 貼 10/07 穎崴（6515）盤中零股買進 10 股 @5560、應收付 55,647 的截圖，要求更新所有分頁。
+這是 10-04 投資日誌改由「股票買賣紀錄」重建後，<b>第一次有真實新交易</b>走完整條路徑。</p>
+<p><b>實作：</b>依慣例三步：①「股票買賣紀錄」插入第 3 列（用 <code>copyPaste</code> 從既有買進列帶
+<code>PASTE_FORMULA</code>，確保 C~E 均價公式含分割 <code>MAXIFS</code> 下限）；
+② 併入最新快照 <code>Jimmy_261007</code> 的 B／C 欄；③ 跑
+<code>update --yes --full --date 2026/10/07</code>。</p>
+<p><b>踩坑與解法：</b></p>
+<ul>
+<li><b>這次要驗的正是「會不會重複記兩筆」。</b>同步時股數偵測必然會發現 +10 股並回推含費均價
+<b>5,564.65</b>，而買賣紀錄已經有同一筆的真實成交價 <b>5,560</b>。
+若兩者都寫進日誌就是重複計算。實際結果：日誌 <b>203 → 204 列（只 +1）</b>、
+<code>⚠ 買賣紀錄缺</code> 列數為 <b>0</b>、日誌記的是 <b>5,560</b> 而非 5,564.65——
+<code>build_trade_log()</code> 的「扣掉買賣紀錄已記淨股數」那段如預期生效。</li>
+<li><b>金額口徑再次自我驗證。</b>價金 5,560×10＝55,600，手續費
+<code>int(55600×0.1425%×6折)</code>＝47，合計 <b>55,647</b>，與截圖應收付分毫不差——
+可當作「這筆沒抄錯」的獨立佐證。</li>
+</ul>
+<p><b>驗證結果：</b>雲端版本 2649。穎崴 280→<b>290 股</b>、含費均價 1,167.09→<b>1,318.73</b>、
+成本 326,785→<b>382,432</b>（＝舊成本＋55,647）。
+<code>16_資產歷史</code> 10/07 列覆寫為市值 17,405,535／成本 11,267,313。
+配置比例（自 B4:B9 重算，不讀列 11~14 快取）曝險 <b>49:40:11</b>、成本 <b>61:25:13</b>，
+與 10/06 相同——5.5 萬相對 1,740 萬不足以移動百分點。安全指數 75。</p>
+
 <h2>2026-10-04　投資日誌改由「股票買賣紀錄」重建：一張委託一列、金額對到元大</h2>
 <p><b>需求：</b>Jimmy 問「股價試算」的「股票買賣紀錄」能不能拿來補充 <code>11_投資日誌</code>。
 選定範圍：2026/01/01 起、一張委託一列、【待確認】照登並標記、之後的同步規則改成以買賣紀錄為準。</p>

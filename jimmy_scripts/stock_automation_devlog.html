@@ -76,6 +76,30 @@ pre{background:#0f172a;color:#e2e8f0;padding:12px 16px;border-radius:8px;overflo
 （2026-07-25 分頁重編號後成為長期陷阱）</li>
 </ol></div>
 
+<h2>2026-10-08　排程觸發源換成本機 launchd：GitHub cron 降級為備援<span class="tag">排程</span><span class="tag">基礎設施</span></h2>
+<p><b>需求：</b>10-02 那次（見下一則）只處理了「排程遲到造成的連坐失敗」，沒有處理遲到本身。
+10/06 排程<b>整次被丟掉</b>——不是遲到，是整天沒跑，當天國泰漲跌／除息日曆／跌幅查詢頁／加碼損益全缺，
+需人工補跑。到了必須換掉觸發源的時候。</p>
+<p><b>實作：</b>先用 GitHub API 把執行拆成「建立／排隊／實際執行」三段，證明<b>排隊 0 分、執行 0.4~4.5 分，
+遲到 5h08m~8h35m 全發生在 GitHub 決定建立執行之前</b>，與工作量無關（非交易日只跑 0.7 分照樣遲到 7h47m）。
+改由本機 <code>launchd</code> 每天 14:30 執行 <code>trigger_wealth_sync.sh</code> 打 API 觸發
+<code>workflow_dispatch</code>（實測秒級啟動）；GitHub cron 保留當備援，Mac 沒開機那天退回原本的行為。
+細節與踩坑見 <a href="wealth_os_devlog.html">Wealth OS 開發紀錄</a> 同日條目。</p>
+<p><b>踩坑與解法：</b></p>
+<ul>
+<li><b>macOS TCC：launchd 讀不到 <code>~/Downloads</code>。</b>整個專案放在那底下，
+所以觸發腳本不能 <code>import twse_hist</code>／<code>source _load_pat.sh</code>，必須完全自足並安裝到
+<code>~/Library/Application Support/</code>。<b>這條對所有「本機排程跑專案腳本」的構想都成立</b>，
+日後要再加 launchd 工作（例如 YouTube 自動摘要）會同樣撞到。</li>
+<li><b>兩次把猜測當結論。</b>①先改 cron 時段想避開擁塞，無效且疑似害 10/06 整次被丟；
+②提議「讓腳本自動補漏跑的日子」，查了才發現 <code>workflow_dispatch</code> 只有 <code>job</code> 一個 input、
+守衛固定用 <code>today()</code>，<b>根本無法指定過去日期</b>。
+共同點都是<b>在查證機制之前就先給方案</b>。</li>
+</ul>
+<p><b>驗證結果：</b>四條分支與兩道保護（自判交易日、今天已成功不重複觸發）皆以真實資料實測通過；
+漏跑偵測模擬 runlog 缺 10/06 時正確抓出。「交易日當天準時觸發」待 10/08 14:30 首次真實執行驗證。
+<b>預期效果：準時 14:35 完成（原本 20:00~23:10）</b>；Mac 關機那天退回 GitHub cron，不會更差。</p>
+
 <h2>2026-10-02　排程遲到引發的連坐失敗：新增 --skip-if-exists<span class="tag">排程</span><span class="tag">基礎設施</span></h2>
 <p><b>需求：</b>當天排程遲到 6.5 小時未觸發，手動補跑後排程才姍姍來遲，
 結果整個 workflow 顯示 <b>failure</b>、LINE 推失敗通知，但資料其實是正確的。要讓這種情況不再誤報。</p>
