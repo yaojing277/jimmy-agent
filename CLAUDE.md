@@ -71,7 +71,17 @@
     - 本機改完 `update_stock_price.py`/`update_wealth_os.py`/`twse_hist.py`/`etf_ex_dividend_calendar.py` 記得同步到 `stock_notify_tmp/jimmy_scripts/` 並 push。
     - **排程遲到是 GitHub 端的問題，與工作量無關（2026-10-06 查明）**：近 11 次「建立執行」一律遲到 **5h08m～8h35m**，但**排隊 0m、實際執行只 0.4～4.5m**；非交易日只跑 0.7m 照樣遲到 7h47m，兩者毫無相關性。GitHub cron 是 best effort、不保證準時，公開 repo 優先權最低。
       **遲到不影響資料正確性**——「交易日守衛」算出最近有收盤資料的交易日再以 `--date` 傳給每一步，跨午夜也不會記錯（2026-08-29 踩過的坑已修）；唯一影響是 LINE 通知晚幾小時到。
-      想真正準時只能改由外部觸發 `workflow_dispatch`（Mac launchd 或 cron-job.org 打 API，實測秒級啟動），代價是多依賴一個常開的觸發源。
+      想真正準時只能改由外部觸發 `workflow_dispatch`（實測秒級啟動）→ **2026-10-08 已改用本機 launchd，見下一條**。
+    - **本機 launchd 當主要觸發源（2026-10-08 起）**：`jimmy_scripts/trigger_wealth_sync.sh`
+      ＋`com.jimmy.wealthsync.plist`，每天 **14:30** 打 API 觸發 `workflow_dispatch`（秒級啟動）。
+      GitHub cron（14:17）**保留當備援**——Mac 沒開機那天仍會跑，只是晚幾小時（＝原本的現狀）。
+      ⚠ **腳本必須完全自足、且安裝到 `~/Library/Application Support/wealth-sync/`**：launchd 叫起的
+      程序受 macOS TCC 限制，**讀不到 `~/Downloads` 底下任何檔案**（實測 `Operation not permitted`），
+      所以不能 `import twse_hist` 或 `source _load_pat.sh`，交易日判斷與 PAT 讀取都內建。
+      `jimmy_scripts/` 那兩份是版控母本，**改完要重跑安裝指令**（指令見 plist 檔頭）。
+      ⚠ 腳本**必須自己判斷交易日**：workflow 的守衛對 `workflow_dispatch` 一律 `run=yes`（manual 旗標），
+      週末照打會拿最近一個交易日重跑、覆寫 runlog 並多推 LINE。另有「今天已有成功執行就不重複觸發」保護。
+      日誌 `~/Library/Logs/wealth_sync_trigger.log`；兩邊都觸發時後到那次會 `[skip]` 快照、結果一致，只多一則 LINE。
     - 注意：GitHub 排程在 repo 連續 60 天無活動會自動停用；PAT 內嵌於 remote（與到期日綁定）。
     - **ETF 除息日／發放日同步日曆**（`etf_ex_dividend_calendar.py sync`，2026-08-24 起隨每日排程跑）：
       抓 TWSE 官方「ETF 收益分配彙整表」（`etfDiv` API，已公告的除息交易日／發放日／金額，

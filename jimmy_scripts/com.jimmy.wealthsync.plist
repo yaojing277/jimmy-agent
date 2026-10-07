@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.jimmy.wealthsync — 每天 14:30(台北)由本機觸發 wealth_sync.yml
+
+  這份是「版控用的母本」,實際生效的是 ~/Library/LaunchAgents/ 下的副本。
+
+  ⚠ 腳本也必須安裝到 ~/Library/Application Support/wealth-sync/,不能直接指向
+    repo 裡的 jimmy_scripts/：launchd 叫起的程序受 macOS TCC 限制,讀不到
+    ~/Downloads 底下任何檔案(實測 `Operation not permitted`)。
+
+  安裝(改完 plist 或 trigger_wealth_sync.sh 都要重跑一次):
+    mkdir -p ~/Library/LaunchAgents "$HOME/Library/Application Support/wealth-sync"
+    cp jimmy_scripts/trigger_wealth_sync.sh "$HOME/Library/Application Support/wealth-sync/"
+    chmod +x "$HOME/Library/Application Support/wealth-sync/trigger_wealth_sync.sh"
+    cp jimmy_scripts/com.jimmy.wealthsync.plist ~/Library/LaunchAgents/
+    launchctl bootout  gui/$(id -u)/com.jimmy.wealthsync 2>/dev/null
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.jimmy.wealthsync.plist
+  確認已載入:
+    launchctl print gui/$(id -u)/com.jimmy.wealthsync | head -20
+  立刻跑一次(測試用):
+    launchctl kickstart -p gui/$(id -u)/com.jimmy.wealthsync
+  卸載:
+    launchctl bootout gui/$(id -u)/com.jimmy.wealthsync
+    rm ~/Library/LaunchAgents/com.jimmy.wealthsync.plist
+
+  時間為什麼挑 14:30:台股 13:30 收盤,TWSE 收盤資料通常 14:00~14:30 之間上架。
+  腳本本身會重試最多 6 次 x 10 分鐘,所以就算 TWSE 晚上架也等得到(最晚約 15:30)。
+  Mac 在 14:30 處於睡眠時,launchd 會在喚醒後補跑這一次;完全關機那天不會跑,
+  由 GitHub cron 當備援(晚幾小時,就是改用 launchd 之前的現狀)。
+  日誌:~/Library/Logs/wealth_sync_trigger.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.jimmy.wealthsync</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <!-- 不可指向 ~/Downloads：launchd 受 TCC 限制讀不到那裡(見檔頭) -->
+        <string>/Users/jimmy/Library/Application Support/wealth-sync/trigger_wealth_sync.sh</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>14</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <!-- 載入時不要馬上執行,只等排定時間(避免每次 bootstrap 都打一次 API) -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/jimmy/Library/Logs/wealth_sync_trigger.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/jimmy/Library/Logs/wealth_sync_trigger.err.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- launchd 不繼承登入 shell 的 PATH,curl/date/seq 都在這兩個目錄 -->
+        <key>PATH</key>
+        <string>/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <!-- 腳本最長會跑約 60 分鐘(等 TWSE 資料上架的重試),給足夠餘裕 -->
+    <key>ExitTimeOut</key>
+    <integer>4200</integer>
+</dict>
+</plist>

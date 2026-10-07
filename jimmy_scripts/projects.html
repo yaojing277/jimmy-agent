@@ -288,7 +288,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-06</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-08</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -955,6 +955,10 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-08</td>
+          <td>⏰ <b>排程改由本機 launchd 觸發</b>：GitHub cron 對 <code>stock-notify</code> 實測不可靠——10/06 整次被丟掉（當天國泰漲跌／除息日曆／跌幅查詢頁／加碼損益全缺，需人工補跑）、10/07 遲到 7h04m，把 cron 從 <code>:30</code> 改到 <code>:17</code> 避開擁塞也無效。改用 <code>trigger_wealth_sync.sh</code>＋<code>com.jimmy.wealthsync.plist</code>，每天 14:30 由本機打 API 觸發 <code>workflow_dispatch</code>（實測秒級啟動），GitHub cron 保留當備援（Mac 沒開機那天照舊跑，只是晚幾小時）。<b>踩到 macOS TCC</b>：launchd 叫起的程序讀不到 <code>~/Downloads</code> 底下任何檔案（<code>Operation not permitted</code>），所以腳本改成完全自足——交易日判斷內建 TWSE <code>STOCK_DAY</code>（含主／備端點 fallback）、PAT 自己讀，並安裝到 <code>~/Library/Application Support/wealth-sync/</code>。另有兩道保護：<b>自己判斷交易日</b>（workflow 守衛對 dispatch 一律放行，週末照打會重跑前一交易日並多推 LINE）與<b>今天已成功就不重複觸發</b>；TWSE 資料晚上架時重試 6×10 分鐘</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-06</td>
           <td>🧹 <b>AudioTabHighlighter 停止開發＋版控瘦身</b>：Safari 擴充「音訊分頁高亮」停止開發，<code>AudioTabHighlighter</code>（Xcode 專案）與 <code>audio-tab-highlighter</code>（擴充本體）共 3,404 檔移出版控——兩者本就綁在一起，Xcode 專案以相對路徑 <code>../../audio-tab-highlighter/*</code> 直接引用 manifest／background／content，專案本身沒有副本。順勢全 repo 掃描同類問題，發現 <code>chess_mahjong_server/node_modules</code>（999 檔、6.9 MB）與 <code>HelloWorld</code> 的 <code>obj</code>／<code>bin</code>（24 檔）也被提交進版控，以 <code>git rm --cached</code> <b>取消追蹤但保留磁碟檔案</b>（node_modules 跑 server 還要用），並在 <code>.gitignore</code> 補上 <code>node_modules/</code>、<code>obj/</code>、<code>bin/</code>、<code>build/</code>、<code>DerivedData/</code>、<code>*.xcuserstate</code> 等規則避免重演。原始碼（<code>package-lock.json</code>／<code>server.js</code>／<code>.csproj</code>）全數保留，刪除的檔案仍可由 git 歷史取回</td>
