@@ -380,17 +380,21 @@ def _update_history(hxml, sis, date_str, metrics):
     if same_day:
         new_row = _hist_row_xml(same_day[0], styles, date_str, metrics)
         return hxml.replace(same_day[3], new_row, 1), f"同日重跑,覆寫列{same_day[0]}({date_str})"
-    # 新的一天插進最上面(列2),既有資料列整批往下推一列
+    # 新日期與既有列一起依日期由新到舊重排(每日同步時新日期最新→落在列2,與舊行為相同;
+    # 補登過去缺漏的交易日時則落在正確位置。2026-10-09 補 07/03、07/07、07/08 時改成通用排序)
     if any(r[2] for r in data_rows):
         sys.exit(f"「{HIST_TAB}」還有含公式的資料列,不能重編號,請先人工處理。")
-    ordered = sorted(data_rows, key=lambda r: _hist_sort_key(r[1]), reverse=True)
+    entries = [(r[1], r[3]) for r in data_rows] + [(date_str, None)]
+    ordered = sorted(entries, key=lambda e: _hist_sort_key(e[0]), reverse=True)
     doc_order = sorted(data_rows, key=lambda r: r[0])
     start = hxml.index(doc_order[0][3])
     end = hxml.index(doc_order[-1][3]) + len(doc_order[-1][3])
-    block = _hist_row_xml(2, styles, date_str, metrics) + "".join(
-        _renumber_row_xml(r[3], i) for i, r in enumerate(ordered, start=3))
+    block = "".join(_hist_row_xml(i, styles, date_str, metrics) if xml is None
+                    else _renumber_row_xml(xml, i)
+                    for i, (_d, xml) in enumerate(ordered, start=2))
+    pos = next(i for i, (_d, xml) in enumerate(ordered, start=2) if xml is None)
     return (hxml[:start] + block + hxml[end:],
-            f"插入 {date_str} 至列2(最新在最上面),其餘 {len(ordered)} 列往下推一列")
+            f"插入 {date_str} 至列{pos}(日期由新到舊),其後 {len(ordered) - pos + 1} 列往下推一列")
 
 
 def _append_trade_log(lxml, date_str, trades):

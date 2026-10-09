@@ -121,6 +121,7 @@
 | `trade_entry_server.py` / `trade_entry_appscript.gs` | 買進紀錄輸入網頁（localhost:8765）與 Apps Script 後端橋接 |
 | `etf_ex_dividend_calendar.py` | ETF 除息日／發放日同步 Google 日曆：`sync`（Service Account 全自動，排程用）／`check`+`mark`（本機無 SA 時，搭配 Calendar MCP 手動建） |
 | `since_date_pnl.py` | 「**7/3 起加碼損益**」每日結算（2026-10-04 起隨 `wealth_sync.yml` 每個交易日跑）：讀「股票買賣紀錄」依「股票分割」換算後逐代號 FIFO，對起算日（`SINCE`，含）後買進的批次算已實現＋未實現（以結算日收盤價、扣假設賣出的手續費 0.1425%×6 折與證交稅 ETF 0.1%／個股 0.3%）＋期間配息（上市 TWT49U、上櫃櫃買 exDailyQ）；整張重寫「股價試算」分頁 `加碼損益_0703`（右側 M:P 為每日走勢、由新到舊、同日覆寫），並以 `--line-file` 輸出一行摘要併進每日 LINE 通知；`--dry-run`／`--date`。**金額屬個人資料，刻意不發佈到公開 GitHub Pages** |
+| `patch_asset_history.py` | 「16_資產歷史」補登／更正指定日期（`rows.json`：`{"YYYY/MM/DD": [總市值, 成本]}`），沿用 `surgical_write`／`_update_history`（2026-10-09 起依日期排序插入，補過去日期會落在正確位置）＋`full_refresh` 重建 02_每日漲跌；預設只預覽並驗證日期順序，`--yes` 才上傳 |
 | `publish_projects.py` | 排程跑完把執行結果寫進 `yaojing277/projects` 的 `runlog.json`（同交易日重跑覆蓋、留 90 天），並同步 `projects.html`/`index.html`/兩份 devlog/`schedule_runlog.html`；需 secret `PAGES_PAT` |
 | `check_reminders.py` | 日期到期提醒（讀 `reminders.json`，需環境變數 `LINE_TOKEN`/`LINE_USER_ID`） |
 | `auth_sheets.py` / `reauth_sheets.py` | Google Sheets OAuth 授權／重授權（token 約 7 天過期）；`reauth_sheets.py --drive` 可加授 Google Drive 權限 |
@@ -211,7 +212,7 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 
 ## 進行中專案與背景
 
-- [2026-10-03] **Wealth OS 全分頁健檢**（✅ 完成；⚠ 尚有 1 項待辦）
+- [2026-10-03] **Wealth OS 全分頁健檢**（✅ 完成；2026-10-09 待辦已結案）
   - 23 張分頁＋63 張快照逐一檢查：錯誤字串 0、03 持股總表與 Dashboard／05／13 全對齊、04 手動公式完好。
     問題集中在**歷史資料正確性**，靠「快照 K 欄逐檔比對 TWSE 官方收盤」才抓得到。
   - 已修 `16_資產歷史` 5 列：07/09 快照建於盤中（真收盤藏在週六 07/11 快照裡）→ 改用官方收盤；
@@ -219,8 +220,11 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
     `02_每日漲跌` 隨之重建，07/09 由 −208,600 改為 −220,742（原本消失在週六的 −12,142 歸位）。
   - 已修 `11_投資日誌`：刪 2 筆範本殘留（00662 @70 不可能成交）、07/14 手動 4 筆補手續費。
     ⚠ 「金額＝股數×價格」**不能**判斷是否含費——自動補登的價格本身是含費均價，照公式補會重複計算。
-  - **待辦：補 `16_資產歷史` 缺漏的 07/03、07/07、07/08**——當時沒建快照，且 07/03~07/06 有賣出、
-    07/07~07/09 除禾伸堂外另有約 30 萬買進日期不明，**等 Jimmy 提供交易／扣款紀錄再補，不要硬猜持股**。
+  - ✅ **[2026-10-09] 已補 `16_資產歷史` 07/03、07/07、07/08**，並更正 5 列（`patch_asset_history.py`）：
+    持股以前後快照為錨點＋10/04 補登進買賣紀錄的元大交割資料重建，兩組交叉驗證全符（7/06＋7/07 交易＝7/09 快照）。
+    更正：07/02（快照提前含 7/03 買的 00631L 2,000 股）、**07/06（00685L 分割停牌、快照 K 欄空白，1,300 股漏計 397,800）**、
+    08/25／08/26（聯電 8/25 已賣仍計入）、09/01（緯創 9/01 已賣仍計入）。驗算口徑＝收盤持股×官方收盤（停牌取停牌前最後收盤）。
+    ⚠ 00685L 分割比例是 **1拆24**（參考價 12.75＝306÷24），10/04 誤登 1拆25 已更正，買賣紀錄推算持股因此與快照完全一致。
   - 2026-07-25 改 14:30 排程後 59 張快照全是官方收盤，盤中問題是手動年代遺留。細節見 memory（[[feedback-update-wealth-os]]）
 
 - [2026-10-03] **禾伸堂（3026）買進紀錄還原｜9,444 元差額已結案**（✅ 完成；該股 2026-10-01 全出清）

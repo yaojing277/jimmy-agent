@@ -288,7 +288,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-08</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-09</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -955,6 +955,10 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-09</td>
+          <td>🧩 <b>16_資產歷史補齊 07/03、07/07、07/08＋更正 5 列</b>：健檢留下的待辦結案。持股以前後快照為錨點、套 10/04 補登的元大交割資料重建，兩組交叉驗證全符；新增 <code>patch_asset_history.py</code> 補登／更正指定日期並重建 02_每日漲跌（69 天）。更正 07/02（快照提前含 7/03 買進）、<b>07/06（00685L 分割停牌、K 欄空白致 1,300 股漏計 39.8 萬，讓 7/06 看似多跌、7/09 多漲）</b>、08/25／08/26／09/01（當日已賣出的聯電、緯創仍計入）。<code>_update_history</code> 改為依日期排序插入（每日同步行為不變）。並更正 00685L 分割比例為 <b>1拆24</b>（10/04 誤登 1拆25），買賣紀錄推算持股與快照從差 1,300 股變為完全一致</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-08</td>
           <td>⏰ <b>排程改由本機 launchd 觸發</b>：GitHub cron 對 <code>stock-notify</code> 實測不可靠——10/06 整次被丟掉（當天國泰漲跌／除息日曆／跌幅查詢頁／加碼損益全缺，需人工補跑）、10/07 遲到 7h04m，把 cron 從 <code>:30</code> 改到 <code>:17</code> 避開擁塞也無效。改用 <code>trigger_wealth_sync.sh</code>＋<code>com.jimmy.wealthsync.plist</code>，每天 14:30 由本機打 API 觸發 <code>workflow_dispatch</code>（實測秒級啟動），GitHub cron 保留當備援（Mac 沒開機那天照舊跑，只是晚幾小時）。<b>踩到 macOS TCC</b>：launchd 叫起的程序讀不到 <code>~/Downloads</code> 底下任何檔案（<code>Operation not permitted</code>），所以腳本改成完全自足——交易日判斷內建 TWSE <code>STOCK_DAY</code>（含主／備端點 fallback）、PAT 自己讀，並安裝到 <code>~/Library/Application Support/wealth-sync/</code>。另有兩道保護：<b>自己判斷交易日</b>（workflow 守衛對 dispatch 一律放行，週末照打會重跑前一交易日並多推 LINE）與<b>今天已成功就不重複觸發</b>；TWSE 資料晚上架時重試 6×10 分鐘。另加<b>漏跑偵測</b>：每次執行比對「最近 5 個交易日」與線上 <code>runlog.json</code>，有成功紀錄缺漏就印警示（例如 Mac 關機那天 GitHub cron 也被丟掉）。<b>刻意不自動補跑</b>——實查確認 <code>workflow_dispatch</code> 只有 <code>job</code> 一個 input、守衛固定用 <code>today()</code>，所以觸發永遠只能處理今天；10/07 那次能補到 10/06 是時間湊巧而非機制。要能指定日期得先改 workflow，且快照滾動假設日期往前推進、倒著建會錯亂，故先只偵測不代勞</td>
