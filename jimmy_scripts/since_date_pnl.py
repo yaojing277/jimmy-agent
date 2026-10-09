@@ -24,6 +24,7 @@ import json
 import math
 import re
 import sys
+import time
 import urllib.request
 import warnings
 
@@ -131,23 +132,40 @@ def _json(url):
         return json.loads(r.read().decode("utf-8"))
 
 
+def _json_retry(url, what, tries=3):
+    """抓 JSON，失敗重試；全部失敗就中止。
+    配息資料抓不到時寧可整步失敗、不寫入，也不要拿缺漏的資料照算——2026-10-08 雲端排程
+    TWT49U 靜默失敗（twse_hist._fetch_exright 吞例外回空清單），0050 配息 1,800 被漏算卻照常寫入。"""
+    last = None
+    for i in range(tries):
+        try:
+            return _json(url)
+        except Exception as e:
+            last = e
+            time.sleep(3 * (i + 1))
+    sys.exit(f"✗ {what}取得失敗（重試 {tries} 次）：{last}；未寫入，避免漏算配息")
+
+
 def cash_dividends(start, end):
-    """{code: [(ex_date, 每股現金股利)]}，上市＋上櫃。"""
+    """{code: [(ex_date, 每股現金股利)]}，上市（TWT49U 權值+息值）＋上櫃（櫃買 exDailyQ 息值）。"""
     out = collections.defaultdict(set)
-    for d, code, kind, val in th._fetch_exright(start, end):
-        if "息" in kind:
-            out[code].add((d, val))
-    try:
-        j = _json("https://www.tpex.org.tw/www/zh-tw/bulletin/exDailyQ?response=json"
-                  f"&startDate={start:%Y/%m/%d}&endDate={end:%Y/%m/%d}")
-        for t in j.get("tables", []):
-            for r in t.get("data", []):
-                y, m, d = (int(x) for x in str(r[0]).split("/"))
-                cash = float(str(r[6]).replace(",", "") or 0)
-                if cash > 0:
-                    out[str(r[1]).strip()].add((dt.date(y + 1911, m, d), cash))
-    except Exception as e:
-        print(f"⚠ 櫃買除息資料取得失敗（上櫃配息未計入）：{e}")
+    j = _json_retry("https://www.twse.com.tw/rwd/zh/exRight/TWT49U?response=json"
+                    f"&startDate={start:%Y%m%d}&endDate={end:%Y%m%d}", "TWSE 除權息資料")
+    if j.get("stat") == "OK":
+        for r in j.get("data", []):
+            d, val = th._roc_date(r[0]), th._f(r[5])
+            if d and val is not None and "息" in str(r[6]):
+                out[str(r[1]).strip()].add((d, val))
+    elif "沒有符合條件" not in str(j.get("stat")):     # 期間內確實沒資料是正常，其餘一律視為失敗
+        sys.exit(f"✗ TWSE 除權息資料回應異常：{j.get('stat')}；未寫入")
+    j = _json_retry("https://www.tpex.org.tw/www/zh-tw/bulletin/exDailyQ?response=json"
+                    f"&startDate={start:%Y/%m/%d}&endDate={end:%Y/%m/%d}", "櫃買除息資料")
+    for t in j.get("tables", []):
+        for r in t.get("data", []):
+            y, m, d = (int(x) for x in str(r[0]).split("/"))
+            cash = float(str(r[6]).replace(",", "") or 0)
+            if cash > 0:
+                out[str(r[1]).strip()].add((dt.date(y + 1911, m, d), cash))
     return {k: sorted(v) for k, v in out.items()}
 
 
@@ -373,7 +391,8 @@ def main():
     asof = dt.date.fromisoformat(a.date.replace("/", "-")) if a.date else dt.date.today()
 
     svc = get_service()
-    tx = read_trades(svc)
+    # 只計入結算日（含）以前的交易：補算過去某天時，不能把之後才發生的買賣算進去
+    tx = [t for t in read_trades(svc) if t["d"] <= asof]
     tracked = fifo(tx, read_splits(svc))
     per, divs = compute(tracked, asof)
     s = summary(per)
