@@ -121,7 +121,7 @@
 | `trade_entry_server.py` / `trade_entry_appscript.gs` | 買進紀錄輸入網頁（localhost:8765）與 Apps Script 後端橋接 |
 | `etf_ex_dividend_calendar.py` | ETF 除息日／發放日同步 Google 日曆：`sync`（Service Account 全自動，排程用）／`check`+`mark`（本機無 SA 時，搭配 Calendar MCP 手動建） |
 | `since_date_pnl.py` | 「**7/3 起加碼損益**」每日結算（2026-10-04 起隨 `wealth_sync.yml` 每個交易日跑）：讀「股票買賣紀錄」依「股票分割」換算後逐代號 FIFO，對起算日（`SINCE`，含）後買進的批次算已實現＋未實現（以結算日收盤價、扣假設賣出的手續費 0.1425%×6 折與證交稅 ETF 0.1%／個股 0.3%）＋期間配息（上市 TWT49U、上櫃櫃買 exDailyQ）；整張重寫「股價試算」分頁 `加碼損益_0703`（右側 M:P 為每日走勢、由新到舊、同日覆寫），並以 `--line-file` 輸出一行摘要併進每日 LINE 通知；`--dry-run`／`--date`。**金額屬個人資料，刻意不發佈到公開 GitHub Pages** |
-| `patch_asset_history.py` | 「16_資產歷史」補登／更正指定日期（`rows.json`：`{"YYYY/MM/DD": [總市值, 成本]}`），沿用 `surgical_write`／`_update_history`（2026-10-09 起依日期排序插入，補過去日期會落在正確位置）＋`full_refresh` 重建 02_每日漲跌；預設只預覽並驗證日期順序，`--yes` 才上傳 |
+| `patch_asset_history.py` | 「16_資產歷史」補登／更正指定日期（寫完一併依買賣紀錄重寫 I 欄淨投入）（`rows.json`：`{"YYYY/MM/DD": [總市值, 成本]}`），沿用 `surgical_write`／`_update_history`（2026-10-09 起依日期排序插入，補過去日期會落在正確位置）＋`full_refresh` 重建 02_每日漲跌；預設只預覽並驗證日期順序，`--yes` 才上傳 |
 | `cathay_since_pnl.py` | 「**國泰 6/8 起報酬**」（2026-10-09 起隨 `wealth_sync.yml` 每個交易日跑，排在國泰漲跌之後、該步成功才跑）：讀雲端 xlsm 的 `03_國泰漲跌` 每日表，算淨損益（期末−基準−淨投入，與單日損益加總雙向驗算）、簡單／Modified Dietz／TWR 三種報酬、各月貢獻、資金投入與單日極值；`--sheet` 整張重寫「股價試算」分頁 `國泰報酬_0608`（M:P 每日走勢、由新到舊、同日覆寫）、`--line-file` 併入每日 LINE 第三行、`--expect-date` 防呆（xlsm 最新日期不是今天就中止不寫）、`--no-files` 不產報告。本機不帶參數則產 Markdown＋HTML 報告（不進版控）；含帳戶金額的人工註記放 `cathay_report_notes.json`（不進版控，缺檔照常產出）。⚠ 帳戶市值口徑、**未扣假設賣出成本**，與「加碼損益_0703」口徑不同、不可直接相加 |
 | `publish_projects.py` | 排程跑完把執行結果寫進 `yaojing277/projects` 的 `runlog.json`（同交易日重跑覆蓋、留 90 天），並同步 `projects.html`/`index.html`/兩份 devlog/`schedule_runlog.html`；需 secret `PAGES_PAT` |
 | `check_reminders.py` | 日期到期提醒（讀 `reminders.json`，需環境變數 `LINE_TOKEN`/`LINE_USER_ID`） |
@@ -187,6 +187,11 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   分割事件登記在「股價試算」的 `股票分割` 分頁（目前 0050／00631L／00685L），**日後再有分割只加一列，不改公式**。新增買進列時 C~E 要沿用含 MAXIFS 的新公式。
   **D／E 欄＝以「該筆交易日」往前推 180／365 天的平均買進價**（`F#:F<=F#, F#:F>=(F#-180)`；2026-10-04 起，原本以 TODAY() 推算會讓舊列隨時間變 #N/A）。
   賣出列只有 B（`=TODAY()-K`），C~E 留空；少數舊列 Q 為特例公式（如上銀 `=(N-20)`），批次改公式時勿一律套 `=(N-O-P)`。
+- **`02_每日漲跌` 單日損益＝市值變化 − 淨投入（2026-10-10 起）**：`16_資產歷史` 新增 **I 欄「淨投入」**（買進實際扣款 − 賣出實收；
+  員工認股以當日收盤價計入），**每次同步都依「股票買賣紀錄」整欄重算**（交易晚登錄，下次同步自動更正）。
+  舊算法用「成本變化」當淨投入，賣出時把已實現獲利算成下跌（2026/4 穎崴大賣，被算成 −43 萬、實際 +274 萬）。
+  國泰 `03_國泰漲跌` 沒有淨投入欄，**自動維持舊算法**（新舊 XML 位元組相同）。`16_資產歷史` 已回補到 **2025/12/31 起**
+  （1～6 月以 12/31 快照＋買賣紀錄逐日重建、官方收盤；員工認股成本依快照口徑回推每股 804.16；房屋／負債／現金沿用 7/01 值，只影響淨資產）。
 - 對帳單是「交割日（T+2）」、分頁記的是「成交日」，匯入買賣紀錄時勿混淆（見 `README_股票買賣紀錄匯入.md`）。
 - 深入文件都在 `jimmy_scripts/`：`README_sheet_tools.md`（Sheets 工具細節）、`SHEETS_API_SETUP.md`（API 初始設定）、`換電腦環境還原指南.md`（環境重建）。
 - **交易事實來源＝「股價試算／股票買賣紀錄」（2026-10-04 起）**：`11_投資日誌` 每次同步由它重建，

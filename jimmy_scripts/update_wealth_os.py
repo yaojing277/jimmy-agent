@@ -504,6 +504,54 @@ def read_trade_records(creds, since=TRADE_LOG_SINCE):
     return out
 
 
+HIST_FLOW_COL = "I"            # 16_資產歷史 淨投入欄(2026-10-10 起,每次同步依買賣紀錄整欄重寫)
+HIST_FLOW_HEADER = "淨投入"
+
+
+def compute_daily_flows(records):
+    """{"YYYY/MM/DD": 當日淨投入} ＝ Σ買進實際扣款(J) − Σ賣出實收(Q)。
+    02_每日漲跌 的「單日損益(真實)」＝ 市值變化 − 淨投入。舊算法用「成本變化」當淨投入,
+    賣出時只扣掉平均成本、把已實現獲利算成下跌(2026 上半年穎崴賣出約 250 萬,4 月被算成 −43 萬,
+    實際 +274 萬);改用現金流就不受成本口徑影響。
+    員工認股(備註含「員工認股」)不是用錢買的,以當日收盤價計入,讓當天不被算成上漲。"""
+    import twse_hist as _th
+    out = {}
+    for t in records:
+        if "員工認股" in t.get("note", ""):
+            px, _note = _th.close_on(t["code"], t["date"])
+            amt = (px or t["px"]) * t["qty"]
+        else:
+            amt = t["amt"] if t["act"] == "買進" else -t["amt"]
+        k = f"{t['date']:%Y/%m/%d}"
+        out[k] = out.get(k, 0.0) + amt
+    return out
+
+
+def _write_hist_flows(hxml, sis, flows):
+    """16_資產歷史 I 欄整欄重寫:表頭「淨投入」,每個資料列填該日淨投入(無交易＝0)。
+    以買賣紀錄為準每次重算,交易晚一天登錄也會在下次同步自動更正。"""
+    col = HIST_FLOW_COL
+
+    def put(row_xml, rn, cell_xml):
+        row_xml = re.sub(rf'<c r="{col}{rn}"[^>]*?(?:/>|>.*?</c>)', "", row_xml, flags=re.S)
+        return row_xml.replace("</row>", cell_xml + "</row>")
+
+    def fix(m):
+        rn, row = int(m.group(1)), m.group(0)
+        if rn == 1:
+            return put(row, 1, f'<c r="{col}1" t="inlineStr"><is><t>{HIST_FLOW_HEADER}</t></is></c>')
+        a = re.search(rf'<c r="A{rn}"[^>]*?(?:t="s"[^>]*>.*?<v>(\d+)</v>|t="inlineStr"[^>]*>.*?<t>(.*?)</t>)',
+                      row, re.S)
+        if not a:
+            return row
+        d = _hist_sort_key(sis[int(a.group(1))] if a.group(1) else a.group(2))
+        st = re.search(rf'<c r="C{rn}" s="(\d+)"', row)
+        style = f' s="{st.group(1)}"' if st else ""
+        return put(row, rn, f'<c r="{col}{rn}"{style}><v>{flows.get(d, 0.0):.0f}</v></c>')
+
+    return re.sub(r'<row r="(\d+)"[^>]*>.*?</row>', fix, hxml, flags=re.S)
+
+
 def _rec_default_reason(t):
     """買賣紀錄本身沒有「原因」;只把需要提醒的狀態帶進日誌。"""
     note = t["note"]
@@ -672,7 +720,8 @@ def _write_trade_log(lxml, rows):
     return new
 
 
-def surgical_write(orig_path, out_path, num_cells, str_cells, hist=None, trades=None, log_rows=None):
+def surgical_write(orig_path, out_path, num_cells, str_cells, hist=None, trades=None, log_rows=None,
+                   flows=None):
     """只重寫 worksheet XML / sharedStrings / workbook.xml(/資產歷史),其餘元件原樣複製。
     num_cells: {ref: 數值或 None}; str_cells: {ref: 文字}; hist: (日期字串, metrics)。"""
     zin = zipfile.ZipFile(orig_path)
@@ -709,6 +758,11 @@ def surgical_write(orig_path, out_path, num_cells, str_cells, hist=None, trades=
         hist_part = _locate_sheet_part(zin, HIST_TAB)
         hxml = zin.read(hist_part).decode("utf-8")
         hxml, hist_note = _update_history(hxml, sis, date_str, metrics)
+    if flows is not None:                   # 淨投入欄:依買賣紀錄整欄重寫
+        if hist_part is None:
+            hist_part = _locate_sheet_part(zin, HIST_TAB)
+            hxml = zin.read(hist_part).decode("utf-8")
+        hxml = _write_hist_flows(hxml, sis, flows)
 
     # 11_投資日誌:有 log_rows 就依買賣紀錄整張重建;讀不到買賣紀錄時退回舊行為(只附加偵測到的買賣)
     log_part = None
@@ -956,6 +1010,10 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
     H = f"'{HIST_TAB}'!"
     ST_TITLE, ST_TXT, ST_NUM, ST_PCT = "58", str(txt_style), "9", str(pct_style)
     N = len(hist)
+    # 有淨投入欄(16_資產歷史 I 欄)時:單日損益＝市值變化−淨投入、淨投入資金＝I 欄;
+    # 沒有(國泰 21_國泰資產歷史)時維持舊算法:損益變化／成本變化
+    flow_mode = N > 1 and all(len(h) > 4 and h[4] is not None for h in hist[1:])
+    FL = HIST_FLOW_COL
     # 歷史資料表(16_資產歷史／21_國泰資產歷史)自 2026-10-01 起也改成「新到舊」儲存:
     # 列2 = 最新一天、列 N+1 = 最早一天。hist 這個 list 本身仍維持「舊到新」
     # (hist[0]=最早),只有「換算成歷史表列號」這一步要倒過來,其餘邏輯完全不動。
@@ -1011,8 +1069,12 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
                      cell(f"B{agg_row}", ST_NUM, f=f"B{data_start}", v=f"{hist[-1][1]:.0f}"),
                      cell(f"C{agg_row}", ST_NUM, f=f"C{data_start}", v=f"{hist[-1][3]:.0f}")]
     if N > 1:
-        sD = sum(hist[j][3] - hist[j - 1][3] for j in range(1, N))
-        sE = sum(hist[j][2] - hist[j - 1][2] for j in range(1, N))
+        if flow_mode:
+            sD = sum(hist[j][1] - hist[j - 1][1] - hist[j][4] for j in range(1, N))
+            sE = sum(hist[j][4] for j in range(1, N))
+        else:
+            sD = sum(hist[j][3] - hist[j - 1][3] for j in range(1, N))
+            sE = sum(hist[j][2] - hist[j - 1][2] for j in range(1, N))
         sF = sum(hist[j][1] - hist[j - 1][1] for j in range(1, N))
         # G 欄的公式是 D{agg}/B{agg},而 B{agg} 是「歷史新高市值」(MAX),不是最早那天的
         # 市值。快取值要跟公式用同一個分母,否則試算表重算前/後會顯示兩個不同的數字
@@ -1033,7 +1095,7 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
         orig_idx = (N - 1) - k
         hr = hrow(orig_idx)        # 歷史資料表對應列號(新到舊:最新在列2)
         hrp = hrow(orig_idx - 1)    # 前一天在「下面」一列
-        dt, mv, cost, pl = hist[orig_idx]
+        dt, mv, cost, pl = hist[orig_idx][:4]
         A = f'IF({H}A{hr}="","",{H}A{hr})'
         B = f'IF({H}A{hr}="","",{H}B{hr})'
         C = f'IF({H}A{hr}="","",{H}D{hr})'
@@ -1043,6 +1105,12 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
         E = f'IF({H}A{hr}="","",{H}C{hr}-{H}C{hrp})'
         F = f'IF({H}A{hr}="","",{H}B{hr}-{H}B{hrp})'
         G = f'IF(OR({H}A{hr}="",{H}B{hrp}=0),"",({H}D{hr}-{H}D{hrp})/{H}B{hrp})'
+        if flow_mode:
+            buy = hist[orig_idx][4]
+            dpl = dmv - buy
+            D = f'IF({H}A{hr}="","",{H}B{hr}-{H}B{hrp}-{H}{FL}{hr})'
+            E = f'IF({H}A{hr}="","",{H}{FL}{hr})'
+            G = f'IF(OR({H}A{hr}="",{H}B{hrp}=0),"",({H}B{hr}-{H}B{hrp}-{H}{FL}{hr})/{H}B{hrp})'
         parts = [cell(f"A{dr}", ST_TXT, f=A, v=dt, is_str=True),
                  cell(f"B{dr}", ST_NUM, f=B, v=f"{mv:.0f}"),
                  cell(f"C{dr}", ST_NUM, f=C, v=f"{pl:.0f}"),
@@ -1055,7 +1123,7 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
     # base_row:最早一天(orig_idx=0)的原始資料,搬回它自己單獨一列(緊接在最舊逐日列下面),
     # D/E/F/G 留空(沒有前一天可比)。(2026-08-29 Jimmy 要求把 7/1 原始資料放回列表最底)
     base_row = data_end + 1
-    dt0, mv0, cost0, pl0 = hist[0]
+    dt0, mv0, cost0, pl0 = hist[0][:4]
     h0 = hrow(0)               # 最早一天:歷史表改新到舊後,它落在最後一列
     A0f = f'IF({H}A{h0}="","",{H}A{h0})'
     B0f = f'IF({H}A{h0}="","",{H}B{h0})'
@@ -1084,7 +1152,10 @@ def _build_daily_chart_xml_desc(hist, tab, header_row, data_start, data_end):
     dates = [hist[idx][0] for idx in order]
     tot   = [hist[idx][1] for idx in order]
     pnl   = [hist[idx][3] for idx in order]
-    dpl   = [hist[idx][3] - hist[idx - 1][3] for idx in order]
+    if N > 1 and all(len(h) > 4 and h[4] is not None for h in hist[1:]):   # 與表格 D 欄同口徑
+        dpl = [hist[idx][1] - hist[idx - 1][1] - hist[idx][4] for idx in order]
+    else:
+        dpl = [hist[idx][3] - hist[idx - 1][3] for idx in order]
 
     def numc(vals, fmt="General"):
         pts = "".join(f'<c:pt idx="{i}"><c:v>{v:.0f}</c:v></c:pt>' for i, v in enumerate(vals))
@@ -1205,8 +1276,11 @@ def _month_calendar_grid(hist, year=None, month=None):
         idx = by_date.get(d)
         if idx is None or idx == 0:
             return None, None
-        amt = hist[idx][3] - hist[idx - 1][3]
         pmv = hist[idx - 1][1]
+        if len(hist[idx]) > 4 and hist[idx][4] is not None:     # 有淨投入:市值變化 − 淨投入
+            amt = hist[idx][1] - pmv - hist[idx][4]
+        else:                                                   # 國泰等沒有淨投入欄:沿用損益變化
+            amt = hist[idx][3] - hist[idx - 1][3]
         return amt, (amt / pmv if pmv else None)
 
     weeks, all_days = [], []
@@ -2361,9 +2435,11 @@ def full_refresh(path_in, path_out, date_str):
         dt = hws.cell(r, 1).value
         if dt is None:
             continue
+        fl = hws.cell(r, 9).value                                      # 淨投入 I(可能沒有)
         hist_rows.append((str(dt)[:10], float(hws.cell(r, 2).value),   # 市值 B
                           float(hws.cell(r, 3).value),                 # 成本 C
-                          float(hws.cell(r, 4).value)))                # 損益 D
+                          float(hws.cell(r, 4).value),                 # 損益 D
+                          float(fl) if isinstance(fl, (int, float)) else None))
     # 歷史表自 2026-10-01 起是「新到舊」儲存,但程式內部一律用「舊到新」(hist[0]=最早),
     # 所以讀進來一定要重新排序;排序後就不受儲存順序影響,哪天再翻回去也不會壞
     hist_rows.sort(key=lambda r: _hist_sort_key(r[0]))
@@ -2664,9 +2740,10 @@ def sync(args):
             print(f"[日誌] 偵測 {t['label']} {t['act']} {t['qty']:,.0f} 股 @ {t['px']}(含費)")
 
     # 11_投資日誌:依「股票買賣紀錄」整張重建;偵測到的變動有對應紀錄就不另補
-    log_rows = None
+    log_rows, flows = None, None
     try:
         records = read_trade_records(creds)
+        flows = compute_daily_flows(records)
         held = {to_code(ws.cell(r, 1).value): str(ws.cell(r, 1).value).strip() for r in xl_rows.values()}
         hdates = [_parse_rec_date(_hist_sort_key(v)) for (v,) in
                   wb[HIST_TAB].iter_rows(min_row=2, max_col=1, values_only=True) if v]
@@ -2726,7 +2803,8 @@ def sync(args):
     }
     out = os.path.join(workdir, "updated.xlsm")
     sheet_part, hist_part, hist_note, log_part = surgical_write(
-        path, out, num_cells, str_cells, hist=(date_str, metrics), trades=trades, log_rows=log_rows)
+        path, out, num_cells, str_cells, hist=(date_str, metrics), trades=trades, log_rows=log_rows,
+        flows=flows)
     print(f"[歷史] {hist_note};市值 {metrics['mv']:,.0f} 成本 {metrics['cost']:,.0f}")
     if log_part and log_rows is None:
         print(f"[日誌] 已自動補登 {len(trades)} 筆至 {LOG_TAB}")

@@ -5,6 +5,8 @@
 要能指定日期與數字。寫入邏輯完全沿用 update_wealth_os 的 surgical_write／_update_history
 （同日覆寫、新日期依日期插入正確位置）與 full_refresh，不另造一套。
 
+寫完指定列後，一併依買賣紀錄重寫 I 欄「淨投入」（每日同步也會做同一件事）。
+
 數字口徑（與每日同步一致）：總市值＝Σ 收盤持股 × 當日官方收盤（停牌取停牌前最後收盤）、
 成本＝Σ 股數 × 快照 B 欄買進價。房屋／負債／現金：既有列沿用該列原值（現金由 H−B−F+G 回推），
 新增列沿用前一個較早日期的列。
@@ -65,6 +67,13 @@ def main():
         old = f"{r[1]:,.0f}／{r[2]:,.1f}" if date_str in before else "（新增）"
         print(f"[歷史] {date_str}：{old} → {mv:,.0f}／{cost:,.1f}；{note}")
         cur = out
+
+    # 淨投入欄(I):依股票買賣紀錄整欄重寫,02_每日漲跌 的單日損益＝市值變化−淨投入
+    flows = w.compute_daily_flows(w.read_trade_records(creds))
+    out = os.path.join(workdir, "flows.xlsm")
+    w.surgical_write(cur, out, {}, {}, flows=flows)
+    cur = out
+    print(f"[淨投入] 依買賣紀錄寫入 {len(flows)} 個交易日的淨投入")
 
     final = os.path.join(workdir, "final.xlsm")
     fchanged, fsum = w.full_refresh(cur, final, latest)
