@@ -957,6 +957,10 @@
       <tbody>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-09</td>
+          <td>📅 <b>國泰 6/8 起報酬掛進每日排程</b>：<code>cathay_since_pnl.py</code> 新增 <code>--sheet</code>（整張重寫「股價試算」分頁 <code>國泰報酬_0608</code>，保留每日走勢）、<code>--line-file</code>（每日 LINE 通知第三行）、<code>--expect-date</code>（國泰漲跌沒更新到今天就中止，不拿舊資料寫入）；<code>wealth_sync.yml</code> 新增一步，排在國泰漲跌之後、該步成功才執行，失敗不連坐其他步驟。樣式樣板改為用到才讀（雲端沒有那份不進版控的報告檔），並以服務帳號在無樣板、無註記檔的目錄模擬雲端實跑通過</td>
+        </tr>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-09</td>
           <td>🏦 <b>國泰帳戶「6/8 起報酬」結算</b>：新增 <code>cathay_since_pnl.py</code>，讀 Wealth OS <code>03_國泰漲跌</code> 每日表，仿「7/3 起加碼損益」產出 Markdown＋HTML 報告——淨損益（期末 − 基準 − 淨投入，並與單日損益加總雙向驗算）、三種報酬率口徑（簡單／Modified Dietz／時間加權 TWR）、累積損益走勢、各月貢獻、資金投入與單日極值，並逐日比對 <code>21_國泰資產歷史</code>。含帳戶金額的人工註記改放 <code>cathay_report_notes.json</code>、報告本身列入 <code>.gitignore</code>，<b>公開 repo 只留程式邏輯</b>；缺註記檔時報告照常產出</td>
         </tr>
         <tr>

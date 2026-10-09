@@ -14,6 +14,7 @@
 用法：
   python3 cathay_since_pnl.py                         # 從雲端下載 xlsm，起算 2026-06-08
   python3 cathay_since_pnl.py --xlsm 本機.xlsm --since 2026-06-08
+  python3 cathay_since_pnl.py --no-files --sheet --expect-date 2026/10/08 --line-file cathay_line.txt   # 每日排程
 """
 import argparse
 import datetime as dt
@@ -189,9 +190,7 @@ def build_md(R, since, src_time):
 
 
 # ───────────────────────── HTML ─────────────────────────
-CSS = open(os.path.join(OUT_DIR, "investment_since_0703_report.html"), encoding="utf-8").read()
-CSS = CSS[CSS.index("<style>"):CSS.index("</style>") + 8]
-CSS = CSS.replace("</style>", """
+CSS_EXTRA = """
 .kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:4px}
 .kpi .k{font-size:12px;color:var(--muted)} .kpi .v{font-family:var(--f-num);font-size:22px;font-weight:600}
@@ -200,7 +199,18 @@ CSS = CSS.replace("</style>", """
 .chart svg{display:block;width:100%;height:auto}
 .chart text{font-family:var(--f-num);font-size:11px;fill:var(--muted)}
 @media (max-width:640px){.kpis{grid-template-columns:1fr}}
-</style>""")
+</style>"""
+
+
+def get_css():
+    """樣式沿用 7/3 報告的 <style>。那份報告不進版控，雲端排程沒有這個檔——
+    排程用 --no-files 根本不產 HTML；本機缺檔時退回最簡樣式，不讓整支腳本在載入時就掛掉。"""
+    try:
+        src = open(os.path.join(OUT_DIR, "investment_since_0703_report.html"), encoding="utf-8").read()
+        css = src[src.index("<style>"):src.index("</style>") + 8]
+    except (OSError, ValueError):
+        css = "<style>body{font-family:sans-serif;margin:24px}table{border-collapse:collapse}td,th{padding:4px 8px}</style>"
+    return css.replace("</style>", CSS_EXTRA)
 
 
 def cls(v):
@@ -280,7 +290,7 @@ def build_html(R, since, src_time):
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>國泰 6/8 起報酬</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-{CSS}</head><body>
+{get_css()}</head><body>
 <div class="wrap">
 <header>
   <div class="eyebrow">Wealth OS V4.4 · {SHEET} · 結算日 {ymd(e["d"])} 收盤</div>
@@ -369,11 +379,125 @@ def build_html(R, since, src_time):
 """
 
 
+# ───────────────────────── 試算表分頁（每日排程用）─────────────────────────
+def sheet_name(since):
+    return f"國泰報酬_{since:%m%d}"
+
+
+def write_sheet(R, since, src_time):
+    """整張重寫「股價試算」分頁；右側 M:P 保留每日走勢（日期由新到舊、同日覆寫）。回傳較前一交易日變動。
+    與 since_date_pnl.py 的「加碼損益_0703」同一套版面慣例（台股紅漲綠跌）。"""
+    from update_stock_price import get_service, SPREADSHEET_ID
+    svc = get_service()
+    ss, v, tab = svc.spreadsheets(), svc.spreadsheets().values(), sheet_name(since)
+    meta = ss.get(spreadsheetId=SPREADSHEET_ID, fields="sheets(properties(sheetId,title),conditionalFormats)").execute()
+    sh = next((x for x in meta["sheets"] if x["properties"]["title"] == tab), None)
+    if sh is None:
+        r = ss.batchUpdate(spreadsheetId=SPREADSHEET_ID, body={"requests": [
+            {"addSheet": {"properties": {"title": tab}}}]}).execute()
+        sid, n_cf = r["replies"][0]["addSheet"]["properties"]["sheetId"], 0
+    else:
+        sid, n_cf = sh["properties"]["sheetId"], len(sh.get("conditionalFormats", []))
+
+    hist = []
+    for r in v.get(spreadsheetId=SPREADSHEET_ID, range=f"{tab}!M2:O400",
+                   valueRenderOption="UNFORMATTED_VALUE").execute().get("values", []) if sh else []:
+        if len(r) >= 3 and isinstance(r[0], (int, float)):
+            hist.append((dt.date(1899, 12, 30) + dt.timedelta(days=int(r[0])), r[1], r[2]))
+    b, e = R["base"], R["end"]
+    prev = next((n for d, n, _ in sorted(hist, reverse=True) if d < e["d"]), None)
+    delta = R["pnl"] - prev if prev is not None else None
+    now = dt.datetime.now(dt.timezone(dt.timedelta(hours=8)))
+
+    A = [[f"國泰帳戶 {since.month}/{since.day} 起報酬"],
+         [f"結算日 {ymd(e['d'])} 收盤｜更新 {now:%Y/%m/%d %H:%M}｜由 cathay_since_pnl.py 自動產生（資料來源 Wealth OS {SHEET}），手動修改會被覆蓋"],
+         [],
+         ["項目", "金額"],
+         [f"基準市值（{md_(b['d'])} 收盤）", round(b["mv"])],
+         ["期間淨投入（持有成本增加）", round(R["cf"])],
+         [f"期末市值（{md_(e['d'])} 收盤）", round(e["mv"])],
+         ["淨損益（期末 − 基準 − 淨投入）", round(R["pnl"])],
+         ["簡單報酬", R["simple"]],
+         ["Modified Dietz", R["dietz"]],
+         ["時間加權 TWR", R["twr"]],
+         ["較前一交易日", round(delta) if delta is not None else ""],
+         [],
+         ["月份", "交易日", "月初市值", "淨投入", "月底市值", "淨損益", "月報酬（TWR）", "上漲天數"]]
+    m0 = len(A) + 1
+    for m in R["months"]:
+        A.append([mlabel(m), m["n"], round(m["start"]), round(m["cf"]), round(m["end"]), round(m["pnl"]),
+                  m["twr"], f"'{m['up']}/{m['n']}"])   # ' 前綴：避免 10/16 被當成日期
+    A.append(["合計", len(R["period"]), round(b["mv"]), round(R["cf"]), round(e["mv"]), round(R["pnl"]),
+              R["twr"], f"'{R['up']}/{len(R['period'])}"])
+    m1 = len(A)
+    A += [[], ["期間資金投入（淨投入＝當日持有成本變動）"], ["日期", "淨投入", "當日市值", "當日損益"]]
+    f0_ = len(A) + 1
+    A += [[ymd(x["d"]), round(x["cf"]), round(x["mv"]), round(x["pnl"])] for x in R["flows"]]
+    f1 = len(A)
+    A += [[], ["單日極值"], ["最佳 5 日", "損益", "報酬", "最差 5 日", "損益", "報酬"]]
+    x0 = len(A) + 1
+    A += [[f"{ymd(a['d'])}（{WD[a['d'].weekday()]}）", round(a["pnl"]), a["r"],
+           f"{ymd(z['d'])}（{WD[z['d'].weekday()]}）", round(z["pnl"]), z["r"]]
+          for a, z in zip(R["best"], R["worst"])]
+    x1 = len(A)
+    A += [[], [f"上漲 {R['up']} 天／下跌 {R['down']} 天；累積損益最高 {sg(R['peak'])}，期間最大回落 {sg(R['mdd'])}"],
+          [], ["計算依據"],
+          [f"・取 Wealth OS {SHEET} 每日表（總市值、未實現損益、單日損益、淨投入），並與 {HIST_SHEET} 逐日比對"],
+          ["・淨損益＝期末市值 − 基準市值 − 淨投入，並與單日損益加總雙向驗算"],
+          ["・日報酬分母＝前日市值＋當日淨投入（假設投入當天開盤就買進）；未動用的現金不計入"],
+          ["・帳戶市值口徑：未扣假設賣出的手續費與證交稅（與「加碼損益_0703」不同，兩者不可直接相加）"]]
+
+    hist = [h for h in hist if h[0] != e["d"]] + [(e["d"], round(R["pnl"]), R["twr"])]
+    hist.sort(reverse=True)
+    H = [["日期", "淨損益", "TWR", "較前一筆"]] + [
+        [ymd(d), n, t, (n - hist[k + 1][1]) if k + 1 < len(hist) else ""] for k, (d, n, t) in enumerate(hist)]
+
+    v.clear(spreadsheetId=SPREADSHEET_ID, range=f"{tab}!A1:P1000").execute()
+    v.batchUpdate(spreadsheetId=SPREADSHEET_ID, body={"valueInputOption": "USER_ENTERED", "data": [
+        {"range": f"{tab}!A1", "values": A}, {"range": f"{tab}!M1", "values": H}]}).execute()
+
+    rng = lambda r0, r1, c0, c1: {"sheetId": sid, "startRowIndex": r0 - 1, "endRowIndex": r1,
+                                   "startColumnIndex": c0, "endColumnIndex": c1}
+    fmt = lambda r, p, t="NUMBER": {"repeatCell": {"range": r, "cell": {"userEnteredFormat": {
+        "numberFormat": {"type": t, "pattern": p}}}, "fields": "userEnteredFormat.numberFormat"}}
+    bold = lambda r: {"repeatCell": {"range": r, "cell": {"userEnteredFormat": {"textFormat": {"bold": True}}},
+                                     "fields": "userEnteredFormat.textFormat.bold"}}
+    S, P = "+#,##0;-#,##0;0", "+0.00%;-0.00%"
+    reqs = [{"repeatCell": {"range": rng(1, 1000, 0, 16), "cell": {"userEnteredFormat": {}}, "fields": "userEnteredFormat"}},
+            {"repeatCell": {"range": rng(1, 1, 0, 1), "cell": {"userEnteredFormat": {"textFormat": {"bold": True, "fontSize": 14}}},
+                            "fields": "userEnteredFormat.textFormat"}},
+            bold(rng(4, 4, 0, 2)), bold(rng(8, 8, 0, 2)), bold(rng(m0 - 1, m0 - 1, 0, 8)), bold(rng(m1, m1, 0, 8)),
+            bold(rng(f0_ - 1, f0_ - 1, 0, 4)), bold(rng(x0 - 1, x0 - 1, 0, 6)), bold(rng(1, 1, 12, 16)),
+            fmt(rng(5, 7, 1, 2), "#,##0"), fmt(rng(8, 8, 1, 2), S), fmt(rng(9, 11, 1, 2), P), fmt(rng(12, 12, 1, 2), S),
+            fmt(rng(m0, m1, 2, 3), "#,##0"), fmt(rng(m0, m1, 3, 4), S), fmt(rng(m0, m1, 4, 5), "#,##0"),
+            fmt(rng(m0, m1, 5, 6), S), fmt(rng(m0, m1, 6, 7), P),
+            fmt(rng(f0_, f1, 0, 1), "yyyy/mm/dd", "DATE"), fmt(rng(f0_, f1, 1, 2), S),
+            fmt(rng(f0_, f1, 2, 3), "#,##0"), fmt(rng(f0_, f1, 3, 4), S),
+            fmt(rng(x0, x1, 1, 2), S), fmt(rng(x0, x1, 2, 3), P), fmt(rng(x0, x1, 4, 5), S), fmt(rng(x0, x1, 5, 6), P),
+            fmt(rng(2, 400, 12, 13), "yyyy/mm/dd", "DATE"), fmt(rng(2, 400, 13, 14), S),
+            fmt(rng(2, 400, 14, 15), P), fmt(rng(2, 400, 15, 16), S),
+            {"autoResizeDimensions": {"dimensions": {"sheetId": sid, "dimension": "COLUMNS", "startIndex": 0, "endIndex": 16}}}]
+    reqs += [{"deleteConditionalFormatRule": {"sheetId": sid, "index": 0}} for _ in range(n_cf)]
+    areas = [rng(8, 12, 1, 2), rng(m0, m1, 5, 7), rng(f0_, f1, 3, 4), rng(x0, x1, 1, 3), rng(x0, x1, 4, 6),
+             rng(2, 400, 13, 16)]
+    for cond, color in (("NUMBER_GREATER", {"red": 0.78, "green": 0.06, "blue": 0.18}),
+                        ("NUMBER_LESS", {"red": 0.07, "green": 0.5, "blue": 0.29})):
+        reqs.append({"addConditionalFormatRule": {"index": 0, "rule": {"ranges": areas, "booleanRule": {
+            "condition": {"type": cond, "values": [{"userEnteredValue": "0"}]},
+            "format": {"textFormat": {"foregroundColor": color}}}}}})
+    ss.batchUpdate(spreadsheetId=SPREADSHEET_ID, body={"requests": reqs}).execute()
+    return delta
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since", default="2026-06-08")
     ap.add_argument("--xlsm")
     ap.add_argument("--out", default="cathay_since_0608_report")
+    ap.add_argument("--no-files", action="store_true", help="不產 Markdown／HTML（雲端排程用）")
+    ap.add_argument("--sheet", action="store_true", help="寫入「股價試算」分頁 國泰報酬_MMDD（含每日走勢）")
+    ap.add_argument("--line-file", help="輸出一行 LINE 摘要到此檔")
+    ap.add_argument("--expect-date", help="結算日必須等於此日（YYYY/MM/DD）；國泰漲跌那步沒更新到今天就中止，不寫舊資料")
     a = ap.parse_args()
     since = dt.date.fromisoformat(a.since)
     path, src = (a.xlsm, "本機檔") if a.xlsm else fetch_xlsm()
@@ -381,13 +505,26 @@ def main():
     if diff:
         print(f"⚠ {SHEET} 與 {HIST_SHEET} 不一致：{', '.join(map(str, diff))}", file=sys.stderr)
     R = compute(rows, since)
-    for ext, fn in (("md", build_md), ("html", build_html)):
+    if a.expect_date:
+        want = dt.date.fromisoformat(a.expect_date.replace("/", "-"))
+        if R["end"]["d"] != want:
+            sys.exit(f"✗ {SHEET} 最新日期 {R['end']['d']} ≠ 預期 {want}（國泰漲跌可能沒更新成功）；未寫入")
+    for ext, fn in (() if a.no_files else (("md", build_md), ("html", build_html))):
         p = os.path.join(OUT_DIR, f"{a.out}.{ext}")
         with open(p, "w", encoding="utf-8") as f:
             f.write(fn(R, since, src))
         print("寫入", p)
     print(f"比對 {HIST_SHEET} {nh} 列，不一致 {len(diff)} 列")
     print(f"淨損益 {sg(R['pnl'])}｜淨投入 {sg(R['cf'])}｜簡單 {pc(R['simple'])}｜Dietz {pc(R['dietz'])}｜TWR {pc(R['twr'])}")
+    if a.sheet:
+        delta = write_sheet(R, since, src)
+        print(f"✓ 已寫入分頁「{sheet_name(since)}」" + (f"，較前一交易日 {sg(delta)}" if delta is not None else ""))
+        if a.line_file:
+            line = f"國泰{since.month}/{since.day}起 {sg(R['pnl'])}（TWR {pc(R['twr'])}）"
+            if delta is not None:
+                line += f"，較前日 {sg(delta)}"
+            with open(a.line_file, "w", encoding="utf-8") as f:
+                f.write(line)
 
 
 if __name__ == "__main__":
