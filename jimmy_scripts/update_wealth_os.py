@@ -1139,6 +1139,157 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
                                 data_start=data_start, data_end=data_end, base_row=base_row)
 
 
+def _monthly_pnl(hist):
+    """由 hist(舊到新,每筆 (日期, 市值, 成本, 損益[, 淨投入]))彙總「每月損益」。
+
+    單日損益口徑必須與 02_每日漲跌 D 欄**完全一致**,否則月表加總對不上表格:
+      有淨投入欄(16_資產歷史 I 欄) → 市值變化 − 淨投入
+      沒有(國泰 21_國泰資產歷史)   → 損益(未實現)變化
+    判斷方式照抄 _build_daily_sheetdata_desc 的 flow_mode,兩邊要一起改。
+
+    ⚠ 最早一天(hist[0])沒有前一天可比,**不計入任何月份**——與每日表把它獨立放在
+      base_row、D~G 留空的處理一致。所以第一個月是「部分月份」(從第二天算起)。
+
+    月報酬率分母＝該月第一個資料日的**前一天**市值(＝上月月末市值,跨月銜接),
+    與每日 G 欄同口徑。表格是新到舊排序,所以**分母就是下一列的「月末市值」**,
+    使用者可以直接在表上對帳(2026-10-10 Jimmy 要求把欄位從月初市值改成月末市值,
+    理由:月初市值已含當月第一天漲跌、不是分母,擺在表上反而讓人以為對不上)。
+    回傳 [(y, m, pnl, flow, mv_end, ret), ...] **由新到舊**(配合全檔新到舊慣例)。
+    """
+    N = len(hist)
+    if N < 2:
+        return []
+    flow_mode = all(len(h) > 4 and h[4] is not None for h in hist[1:])
+    out = []          # 由舊到新累積,最後反轉
+    for j in range(1, N):
+        dt = str(hist[j][0]).replace("-", "/")
+        y, m = int(dt[0:4]), int(dt[5:7])
+        mv, prev_mv = hist[j][1], hist[j - 1][1]
+        if flow_mode:
+            flow = hist[j][4]
+            pnl = mv - prev_mv - flow
+        else:
+            flow = hist[j][2] - hist[j - 1][2]
+            pnl = hist[j][3] - hist[j - 1][3]
+        if out and out[-1][0] == y and out[-1][1] == m:
+            e = out[-1]
+            out[-1] = (y, m, e[2] + pnl, e[3] + flow, mv, e[5])
+        else:
+            out.append((y, m, pnl, flow, mv, prev_mv))    # 第6欄暫存報酬率分母
+    return [(y, m, pnl, flow, mv_end, (pnl / base if base else 0))
+            for (y, m, pnl, flow, mv_end, base) in reversed(out)]
+
+
+# 月損益表:放在「每日總市值與損益走勢」折線圖正下方。折線圖浮在 I 欄(col=8,0-indexed),
+# 所以這張表也從 I 欄開始;列號由折線圖底部動態算出,圖變高/每日表位移都會自動跟著走。
+MONTHLY_COL0 = 8            # I 欄(0-indexed),與折線圖同欄
+MONTHLY_GAP = 2             # 與折線圖底部之間空幾列
+EMU_PER_POINT = 12700       # OOXML:1pt = 12700 EMU
+
+
+def _chart_row_span(drawing_xml, rid, row_height_pt=15.0):
+    """量出 rId=rid 的圖表在預設列高下佔幾列(無條件進位)。
+    oneCellAnchor 的 <xdr:ext cy="..."> 是 EMU 高度,換算成列數才能把表格排在圖下方。
+    找不到該錨點或 ext 時回傳 None,呼叫端自行決定退路(不要猜一個數字硬排)。"""
+    m = re.search(rf'<xdr:oneCellAnchor>(?:(?!</xdr:oneCellAnchor>).)*?'
+                  rf'<c:chart[^>]*r:id="{rid}"/>.*?</xdr:oneCellAnchor>', drawing_xml, re.S)
+    if not m:
+        return None
+    ext = re.search(r'<xdr:ext[^>]*cy="(\d+)"', m.group(0))
+    if not ext:
+        return None
+    per_row = row_height_pt * EMU_PER_POINT
+    return int(-(-int(ext.group(1)) // per_row)) if per_row else None
+
+
+def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0):
+    """組「月損益」表的儲存格,回傳 {列號: 該列要補的 <c> 字串} 與 (first_row, last_row)。
+
+    欄位(自 col0 起 5 欄,預設 I~M):月份 / 月末市值 / 月損益 / 淨投入 / 月報酬率。
+    表格新到舊,所以**每列報酬率的分母就是下一列的「月末市值」**,可直接在表上對帳;
+    同時 本列月末 = 下一列月末 + 本列月損益 + 本列淨投入 也成立。
+    months 由 _monthly_pnl() 來,已是新到舊。最後補一列「合計」,其金額應等於每日表
+    加總列的 D 欄——兩邊同一套口徑,對不上就是哪邊算錯了,可當線上自我驗算。
+    全部寫死為數值(不寫公式):資料源是 16_資產歷史 的逐日列,要用公式得寫一長串
+    SUMPRODUCT 依年月篩選,每月還要換範圍;這張表每次 --full 都整張重建,寫值即可。
+    """
+    def cl(i):
+        """0-indexed 欄號 -> 欄名(只會用到 I~L,但照規矩處理進位)。"""
+        s = ""
+        n = i
+        while True:
+            s = chr(ord("A") + n % 26) + s
+            n = n // 26 - 1
+            if n < 0:
+                break
+        return s
+
+    ST_TITLE, ST_TXT, ST_NUM, ST_PCT = (styles["title"], styles["txt"],
+                                        styles["num"], styles["pct"])
+
+    def cell(ref, s, *, v=None, is_str=False):
+        if v is None:
+            return f'<c r="{ref}" s="{s}"/>'
+        if is_str:
+            return (f'<c r="{ref}" s="{s}" t="inlineStr"><is><t>{escape(str(v))}</t></is></c>')
+        return f'<c r="{ref}" s="{s}"><v>{v}</v></c>'
+
+    C = [cl(col0 + k) for k in range(5)]
+    out = {}
+    r = start_row
+    out[r] = cell(f"{C[0]}{r}", ST_TITLE, v="月損益", is_str=True)
+    r += 1
+    out[r] = "".join(cell(f"{c}{r}", ST_TXT, v=h, is_str=True)
+                     for c, h in zip(C, ["月份", "月末市值", "月損益", "淨投入", "月報酬率"]))
+    for (y, m, pnl, flow, mv_end, ret) in months:
+        r += 1
+        out[r] = (cell(f"{C[0]}{r}", ST_TXT, v=f"{y}/{m:02d}", is_str=True)
+                  + cell(f"{C[1]}{r}", ST_NUM, v=f"{mv_end:.0f}")
+                  + cell(f"{C[2]}{r}", ST_NUM, v=f"{pnl:.0f}")
+                  + cell(f"{C[3]}{r}", ST_NUM, v=f"{flow:.0f}")
+                  + cell(f"{C[4]}{r}", ST_PCT, v=f"{ret:.10g}"))
+    if months:
+        # 合計列:月末市值不可加總(是時點值不是流量),留空
+        r += 1
+        out[r] = (cell(f"{C[0]}{r}", ST_TXT, v="合計", is_str=True)
+                  + cell(f"{C[1]}{r}", ST_NUM)
+                  + cell(f"{C[2]}{r}", ST_NUM, v=f"{sum(x[2] for x in months):.0f}")
+                  + cell(f"{C[3]}{r}", ST_NUM, v=f"{sum(x[3] for x in months):.0f}")
+                  + cell(f"{C[4]}{r}", ST_PCT))
+    return out, (start_row, r)
+
+
+def _merge_cells_into_sheetdata(sheetdata, cells_by_row):
+    """把 {列號: <c>…} 併進既有 sheetData。
+
+    ⚠ 前提:要補的欄位一律在該列既有欄位的**右邊**(本用途是 I~L,既有只到 G),
+      所以直接接在 </row> 之前就符合 OOXML「同列儲存格欄號必須遞增」的規範。
+      若日後要插在中間欄位,必須改成依欄號排序插入,不能沿用這個捷徑。
+    該列不存在就新建,並插到第一個列號比它大的 <row> 前面(維持列號遞增)。"""
+    spans = [(int(m.group(1)), m.start(), m.end())
+             for m in re.finditer(r'<row r="(\d+)"(?:[^>]*/>|[^>]*>.*?</row>)', sheetdata, re.S)]
+    existing = {n: (s, e) for n, s, e in spans}
+    edits = []          # (插入位置, 要插入的字串, 取代長度)
+    for n in sorted(cells_by_row):
+        cells = cells_by_row[n]
+        if n in existing:
+            s, e = existing[n]
+            blk = sheetdata[s:e]
+            if blk.endswith("/>"):          # 自閉合空列 <row r="N"/> → 展開成一般列
+                new = blk[:-2] + ">" + cells + "</row>"
+            else:
+                new = blk[:-len("</row>")] + cells + "</row>"
+            edits.append((s, new, e - s))
+        else:
+            nxt = next((st for num, st, _ in spans if num > n), len(sheetdata))
+            edits.append((nxt, f'<row r="{n}">{cells}</row>', 0))
+    for pos, text, ln in sorted(edits, key=lambda t: -t[0]):
+        sheetdata = sheetdata[:pos] + text + sheetdata[pos + ln:]
+    nums = [int(x) for x in re.findall(r'<row r="(\d+)"', sheetdata)]
+    assert nums == sorted(set(nums)), "月損益表併入後列號重複或亂序,中止!"
+    return sheetdata
+
+
 def _build_daily_chart_xml_desc(hist, tab, header_row, data_start, data_end):
     """跟 _build_daily_chart_xml 邏輯一致(雙軸折線圖:總市值/未實現損益/單日損益漲跌),但配合
     _build_daily_sheetdata_desc 的新列序(由新到舊):資料範圍是 data_start..data_end,兩者
@@ -2510,6 +2661,30 @@ def full_refresh(path_in, path_out, date_str):
         _emit_calendar(marker, g)
 
     daily_sheetdata = "".join(blocks)
+
+    # 月損益表:排在「每日總市值與損益走勢」折線圖正下方(同 I 欄)。起始列由折線圖的
+    # 實際高度動態算出,圖改大小或每日表位移都會自動跟著走;量不到高度就整張跳過,
+    # 不硬猜列號(寧可沒有這張表,也不要疊在圖上面)。
+    monthly_info = None
+    _dw_probe = zin.read(_locate_chart_parts(zin, DAILY_TAB)["drawing_path"]).decode("utf-8")
+    _line_path = _find_chart_by_marker(
+        zin, _locate_chart_parts(zin, DAILY_TAB)["chart_by_rid"], "單日損益漲跌(真實)")
+    _line_rid = next((rid for rid, pth in _locate_chart_parts(zin, DAILY_TAB)["chart_by_rid"].items()
+                      if pth == _line_path), None)
+    _span = _chart_row_span(_dw_probe, _line_rid) if _line_rid else None
+    _months = _monthly_pnl(hist_rows)
+    if _span and _months:
+        cal_styles_xml, _m_pct_fmt = _ensure_numfmt(cal_styles_xml, "0.0%")
+        cal_styles_xml, _m_pct = _ensure_numfmt_style(cal_styles_xml, safe_pct_style, _m_pct_fmt)
+        cal_styles_xml, _m_amt_fmt = _ensure_numfmt(cal_styles_xml, CAL_AMT_FMT)
+        cal_styles_xml, _m_num = _ensure_numfmt_style(cal_styles_xml, safe_num_style, _m_amt_fmt)
+        m_cells, m_span = _build_monthly_pnl_cells(
+            _months, daily_title_row + _span + MONTHLY_GAP,
+            {"title": "58", "txt": safe_txt_style, "num": _m_num, "pct": _m_pct})
+        daily_sheetdata = _merge_cells_into_sheetdata(daily_sheetdata, m_cells)
+        monthly_info = {"rows": m_span, "months": len(_months),
+                        "total": sum(x[2] for x in _months)}
+
     daily_sheetdata, cal_styles_xml = _fix_daily_value_style(
         daily_sheetdata, hist_rows, cal_styles_xml,
         data_start=daily_info["agg_row"], data_end=daily_info["base_row"])
