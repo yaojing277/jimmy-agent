@@ -508,6 +508,74 @@ HIST_FLOW_COL = "I"            # 16_資產歷史 淨投入欄(2026-10-10 起,每
 HIST_FLOW_HEADER = "淨投入"
 
 
+HIST_DIV_COL = "J"             # 16_資產歷史 配息欄(2026-10-10 起)
+HIST_DIV_HEADER = "配息"
+DIV_BASE_SNAPSHOT = "Jimmy_251231"   # 回推歷史持股的起點快照(＝16_資產歷史 最早那天)
+
+
+def _hold_code(label):
+    """持股標籤 -> 代號。快照 A 欄的 0050/0052/0056 會被當數字吃掉前導零(存成 50/52/56),
+    所以純數字且不足 4 碼時補零;中文名稱走 REC_ALIAS/ALIAS_XLSM。"""
+    c = _rec_code(label)
+    return c.zfill(4) if c.isdigit() and len(c) < 4 else c
+
+
+def compute_daily_dividends(creds, records, base_sheet=DIV_BASE_SNAPSHOT):
+    """{"YYYY/MM/DD": 當日配息總額},按**除息日**認列(不是發放日)。
+
+    為什麼要認列:16_資產歷史 的市值＝Σ股數×收盤價,除息當天股價扣掉股息、市值就少一塊,
+    而配息現金流到 12_設定 的現金欄、不在市值裡——不認列的話,配息會被記成「下跌」。
+    認列後單日損益＝市值變化−淨投入+配息,除息當天不再被誤判為虧損。
+
+    為什麼用除息日而非發放日:價值是在除息日轉移的(股價當天就扣)。用發放日會變成
+    除息日先記一筆虧損、發放日再記一筆獲利,兩邊都失真。
+
+    持股回推:以 base_sheet 快照為起點 + 買賣紀錄逐日累加。除息日當天的「有權股數」
+    ＝成交日**嚴格早於**除息日的買進-賣出(台股除息前一交易日收盤仍持有才有權),
+    與 since_date_pnl 同一條規則。
+
+    ⚠ 配息資料涵蓋上市(TWT49U)＋上櫃(櫃買 exDailyQ),由 since_date_pnl.cash_dividends 提供。
+    ⚠ 期間內若有「會配息的標的」發生分割,這裡沒做股數換算(現有標的 00631L/00685L 不配息,
+      暫不受影響);日後若有,要比照 since_date_pnl 依「股票分割」分頁換算。
+    失敗一律回 None(呼叫端就不寫 J 欄、沿用舊算法),不讓每日排程因外部 API 掛掉。"""
+    import datetime as _dt
+    import collections as _c
+    try:
+        import since_date_pnl as _sp
+        from googleapiclient.discovery import build as _build
+        svc = _build("sheets", "v4", credentials=creds)
+        rows = svc.spreadsheets().values().get(
+            spreadsheetId=SPREADSHEET_ID, range=f"{base_sheet}!A1:C60").execute().get("values", [])
+        start = _c.defaultdict(float)
+        for r in rows[1:]:
+            if not (r and str(r[0]).strip()):
+                continue
+            q = num(str(r[2])) if len(r) > 2 and str(r[2]).strip() else None
+            if q:
+                start[_hold_code(r[0])] += q
+        if not start:
+            print(f"⚠ 讀不到起點快照 {base_sheet} 的持股,配息欄跳過")
+            return None
+        tx = _c.defaultdict(list)
+        for t in records:
+            tx[_hold_code(t["name"])].append(
+                (t["date"], t["qty"] if t["act"] == "買進" else -t["qty"]))
+        first = min(_dt.date(*map(int, _hist_sort_key(f"{d:%Y/%m/%d}").split("/")))
+                    for d in [min((x[0] for v in tx.values() for x in v),
+                                  default=_dt.date.today())])
+        divs = _sp.cash_dividends(_dt.date(first.year, 1, 1), _dt.date.today())
+        out = _c.defaultdict(float)
+        for code, lst in divs.items():
+            for exd, cash in lst:
+                q = start.get(code, 0) + sum(d for dd, d in tx.get(code, []) if dd < exd)
+                if q > 0:
+                    out[f"{exd:%Y/%m/%d}"] += round(q * cash)
+        return dict(out)
+    except Exception as e:
+        print(f"⚠ 計算配息失敗({e}),16_資產歷史 配息欄跳過,單日損益沿用不含息算法")
+        return None
+
+
 def compute_daily_flows(records):
     """{"YYYY/MM/DD": 當日淨投入} ＝ Σ買進實際扣款(J) − Σ賣出實收(Q)。
     02_每日漲跌 的「單日損益(真實)」＝ 市值變化 − 淨投入。舊算法用「成本變化」當淨投入,
@@ -527,19 +595,46 @@ def compute_daily_flows(records):
     return out
 
 
-def _write_hist_flows(hxml, sis, flows):
-    """16_資產歷史 I 欄整欄重寫:表頭「淨投入」,每個資料列填該日淨投入(無交易＝0)。
-    以買賣紀錄為準每次重算,交易晚一天登錄也會在下次同步自動更正。"""
-    col = HIST_FLOW_COL
+def _write_hist_flows(hxml, sis, flows, col=HIST_FLOW_COL, header=HIST_FLOW_HEADER):
+    """16_資產歷史 指定欄整欄重寫(預設 I 淨投入;配息欄傳 col="J")。
+    表頭寫 header,每個資料列填該日數值(當天沒有就 0)。
+    以買賣紀錄／除權息資料為準每次重算,晚一天登錄也會在下次同步自動更正。
+
+    ⚠ **日期落在歷史表沒有的那天時,累加到「之後最近的一列」**,不可直接丟掉。
+      實例:中信金 2891 除息日 2026/07/10,但 16_資產歷史 沒有 07/10 這列(非交易日),
+      2,500 元配息原本會憑空消失。交易日同理(補登的成交日可能不在歷史表裡)。
+      比歷史表最後一天還晚的(今天剛發生、歷史還沒記到)則留著不寫,下次同步自然會進來。"""
 
     def put(row_xml, rn, cell_xml):
         row_xml = re.sub(rf'<c r="{col}{rn}"[^>]*?(?:/>|>.*?</c>)', "", row_xml, flags=re.S)
         return row_xml.replace("</row>", cell_xml + "</row>")
 
+    # 先收集歷史表實際有的日期,把對不上的日期併到「之後最近的一列」
+    have = []
+    for m in re.finditer(r'<row r="(\d+)"[^>]*>.*?</row>', hxml, flags=re.S):
+        rn = int(m.group(1))
+        if rn == 1:
+            continue
+        a = re.search(rf'<c r="A{rn}"[^>]*?(?:t="s"[^>]*>.*?<v>(\d+)</v>|t="inlineStr"[^>]*>.*?<t>(.*?)</t>)',
+                      m.group(0), re.S)
+        if a:
+            have.append(_hist_sort_key(sis[int(a.group(1))] if a.group(1) else a.group(2)))
+    have_sorted = sorted(set(have))
+    merged = {}
+    for k, v in (flows or {}).items():
+        key = _hist_sort_key(k)
+        if key not in have_sorted:
+            later = [d for d in have_sorted if d > key]
+            if not later:            # 比歷史表最後一天還晚:先不寫,下次同步會涵蓋
+                continue
+            key = later[0]
+        merged[key] = merged.get(key, 0.0) + v
+    flows = merged
+
     def fix(m):
         rn, row = int(m.group(1)), m.group(0)
         if rn == 1:
-            return put(row, 1, f'<c r="{col}1" t="inlineStr"><is><t>{HIST_FLOW_HEADER}</t></is></c>')
+            return put(row, 1, f'<c r="{col}1" t="inlineStr"><is><t>{header}</t></is></c>')
         a = re.search(rf'<c r="A{rn}"[^>]*?(?:t="s"[^>]*>.*?<v>(\d+)</v>|t="inlineStr"[^>]*>.*?<t>(.*?)</t>)',
                       row, re.S)
         if not a:
@@ -721,6 +816,7 @@ def _write_trade_log(lxml, rows):
 
 
 def surgical_write(orig_path, out_path, num_cells, str_cells, hist=None, trades=None, log_rows=None,
+                   divs=None,
                    flows=None):
     """只重寫 worksheet XML / sharedStrings / workbook.xml(/資產歷史),其餘元件原樣複製。
     num_cells: {ref: 數值或 None}; str_cells: {ref: 文字}; hist: (日期字串, metrics)。"""
@@ -763,6 +859,11 @@ def surgical_write(orig_path, out_path, num_cells, str_cells, hist=None, trades=
             hist_part = _locate_sheet_part(zin, HIST_TAB)
             hxml = zin.read(hist_part).decode("utf-8")
         hxml = _write_hist_flows(hxml, sis, flows)
+    if divs is not None:                    # 配息欄:依除權息資料整欄重寫
+        if hist_part is None:
+            hist_part = _locate_sheet_part(zin, HIST_TAB)
+            hxml = zin.read(hist_part).decode("utf-8")
+        hxml = _write_hist_flows(hxml, sis, divs, col=HIST_DIV_COL, header=HIST_DIV_HEADER)
 
     # 11_投資日誌:有 log_rows 就依買賣紀錄整張重建;讀不到買賣紀錄時退回舊行為(只附加偵測到的買賣)
     log_part = None
@@ -1013,7 +1114,11 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
     # 有淨投入欄(16_資產歷史 I 欄)時:單日損益＝市值變化−淨投入、淨投入資金＝I 欄;
     # 沒有(國泰 21_國泰資產歷史)時維持舊算法:損益變化／成本變化
     flow_mode = N > 1 and all(len(h) > 4 and h[4] is not None for h in hist[1:])
-    FL = HIST_FLOW_COL
+    # 配息欄(J):有才把配息算進單日損益。除息當天股價扣掉股息、市值變少,但配息現金
+    # 不在市值裡,不加回來的話除息會被誤記成虧損。國泰 21_國泰資產歷史 沒有這欄,
+    # div_mode 自動為 False、維持原本行為(新舊 XML 位元組相同)。
+    div_mode = flow_mode and all(len(h) > 5 and h[5] is not None for h in hist[1:])
+    FL, DV = HIST_FLOW_COL, HIST_DIV_COL
     # 歷史資料表(16_資產歷史／21_國泰資產歷史)自 2026-10-01 起也改成「新到舊」儲存:
     # 列2 = 最新一天、列 N+1 = 最早一天。hist 這個 list 本身仍維持「舊到新」
     # (hist[0]=最早),只有「換算成歷史表列號」這一步要倒過來,其餘邏輯完全不動。
@@ -1070,7 +1175,8 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
                      cell(f"C{agg_row}", ST_NUM, f=f"C{data_start}", v=f"{hist[-1][3]:.0f}")]
     if N > 1:
         if flow_mode:
-            sD = sum(hist[j][1] - hist[j - 1][1] - hist[j][4] for j in range(1, N))
+            sD = sum(hist[j][1] - hist[j - 1][1] - hist[j][4]
+                     + (hist[j][5] if div_mode else 0) for j in range(1, N))
             sE = sum(hist[j][4] for j in range(1, N))
         else:
             sD = sum(hist[j][3] - hist[j - 1][3] for j in range(1, N))
@@ -1108,9 +1214,14 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
         if flow_mode:
             buy = hist[orig_idx][4]
             dpl = dmv - buy
-            D = f'IF({H}A{hr}="","",{H}B{hr}-{H}B{hrp}-{H}{FL}{hr})'
+            core = f'{H}B{hr}-{H}B{hrp}-{H}{FL}{hr}'
+            if div_mode:                       # 單日損益＝市值變化−淨投入+配息
+                div = hist[orig_idx][5]
+                dpl += div
+                core += f'+{H}{DV}{hr}'
+            D = f'IF({H}A{hr}="","",{core})'
             E = f'IF({H}A{hr}="","",{H}{FL}{hr})'
-            G = f'IF(OR({H}A{hr}="",{H}B{hrp}=0),"",({H}B{hr}-{H}B{hrp}-{H}{FL}{hr})/{H}B{hrp})'
+            G = f'IF(OR({H}A{hr}="",{H}B{hrp}=0),"",({core})/{H}B{hrp})'
         parts = [cell(f"A{dr}", ST_TXT, f=A, v=dt, is_str=True),
                  cell(f"B{dr}", ST_NUM, f=B, v=f"{mv:.0f}"),
                  cell(f"C{dr}", ST_NUM, f=C, v=f"{pl:.0f}"),
@@ -1171,19 +1282,21 @@ def _monthly_pnl(hist):
         mv, prev_mv = hist[j][1], hist[j - 1][1]
         if flow_mode:
             flow = hist[j][4]
-            pnl = mv - prev_mv - flow
+            div = hist[j][5] if (len(hist[j]) > 5 and hist[j][5] is not None) else 0.0
+            pnl = mv - prev_mv - flow + div          # 與每日表 D 欄同式(含配息)
         else:
             flow = hist[j][2] - hist[j - 1][2]
             pnl = hist[j][3] - hist[j - 1][3]
+            div = 0.0
         day_r = (pnl / prev_mv) if prev_mv else 0.0      # 與每日 G 欄同一條式子
         if out and out[-1][0] == y and out[-1][1] == m:
             e = out[-1]
-            out[-1] = (y, m, e[2] + pnl, e[3] + flow, mv, e[5], e[6] * (1 + day_r))
+            out[-1] = (y, m, e[2] + pnl, e[3] + flow, mv, e[5], e[6] * (1 + day_r), e[7] + div)
         else:
-            # 第6欄暫存報酬率分母、第7欄累乘 TWR 因子
-            out.append((y, m, pnl, flow, mv, prev_mv, 1 + day_r))
-    return [(y, m, pnl, flow, mv_end, (pnl / base if base else 0), twr_f - 1)
-            for (y, m, pnl, flow, mv_end, base, twr_f) in reversed(out)]
+            # 第6欄暫存報酬率分母、第7欄累乘 TWR 因子、第8欄累加配息
+            out.append((y, m, pnl, flow, mv, prev_mv, 1 + day_r, div))
+    return [(y, m, pnl, flow, mv_end, (pnl / base if base else 0), twr_f - 1, dv)
+            for (y, m, pnl, flow, mv_end, base, twr_f, dv) in reversed(out)]
 
 
 # 月損益表:放在「每日總市值與損益走勢」折線圖正下方。折線圖浮在 I 欄(col=8,0-indexed),
@@ -1257,7 +1370,8 @@ def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench
     """組「月損益」表的儲存格,回傳 {列號: 該列要補的 <c> 字串} 與 (first_row, last_row)。
 
     欄位(自 col0 起 7 欄,預設 I~O):
-      月份 / 月末市值 / 月損益 / 淨投入 / 月報酬率 / TWR / 0050當月。
+      月份 / 月末市值 / 月損益 / 配息 / 淨投入 / 月報酬率 / TWR / 0050當月。
+    「月損益」**已含配息**(除息日認列),「配息」欄單獨列出讓它可被稽核。
     「月報酬率」是簡單報酬(月損益÷上月月末市值),月中大額加碼會失真;
     「TWR」逐日連乘、不受金流時點影響,兩欄並列才看得出哪個月的差距是資金時點造成的。
     「0050當月」是 0050 自己的月報酬(**價格報酬,不含息**),抓不到時整欄留白。
@@ -1289,25 +1403,26 @@ def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench
             return (f'<c r="{ref}" s="{s}" t="inlineStr"><is><t>{escape(str(v))}</t></is></c>')
         return f'<c r="{ref}" s="{s}"><v>{v}</v></c>'
 
-    C = [cl(col0 + k) for k in range(7)]
+    C = [cl(col0 + k) for k in range(8)]
     bench = bench or {}
     out = {}
     r = start_row
     out[r] = cell(f"{C[0]}{r}", ST_TITLE, v="月損益", is_str=True)
     r += 1
     out[r] = "".join(cell(f"{c}{r}", ST_TXT, v=h, is_str=True)
-                     for c, h in zip(C, ["月份", "月末市值", "月損益", "淨投入",
+                     for c, h in zip(C, ["月份", "月末市值", "月損益", "配息", "淨投入",
                                          "月報酬率", "TWR", f"{BENCHMARK_CODE}當月"]))
-    for (y, m, pnl, flow, mv_end, ret, twr) in months:
+    for (y, m, pnl, flow, mv_end, ret, twr, dv) in months:
         r += 1
         b = bench.get((y, m))
         out[r] = (cell(f"{C[0]}{r}", ST_TXT, v=f"{y}/{m:02d}", is_str=True)
                   + cell(f"{C[1]}{r}", ST_NUM, v=f"{mv_end:.0f}")
                   + cell(f"{C[2]}{r}", ST_NUM, v=f"{pnl:.0f}")
-                  + cell(f"{C[3]}{r}", ST_NUM, v=f"{flow:.0f}")
-                  + cell(f"{C[4]}{r}", ST_PCT, v=f"{ret:.10g}")
-                  + cell(f"{C[5]}{r}", ST_PCT, v=f"{twr:.10g}")
-                  + cell(f"{C[6]}{r}", ST_PCT, v=(None if b is None else f"{b:.10g}")))
+                  + cell(f"{C[3]}{r}", ST_NUM, v=f"{dv:.0f}")
+                  + cell(f"{C[4]}{r}", ST_NUM, v=f"{flow:.0f}")
+                  + cell(f"{C[5]}{r}", ST_PCT, v=f"{ret:.10g}")
+                  + cell(f"{C[6]}{r}", ST_PCT, v=f"{twr:.10g}")
+                  + cell(f"{C[7]}{r}", ST_PCT, v=(None if b is None else f"{b:.10g}")))
     if months:
         # 合計列:月末市值不可加總(是時點值不是流量),留空
         r += 1
@@ -1326,10 +1441,11 @@ def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench
         out[r] = (cell(f"{C[0]}{r}", ST_TXT, v="合計", is_str=True)
                   + cell(f"{C[1]}{r}", ST_NUM)
                   + cell(f"{C[2]}{r}", ST_NUM, v=f"{sum(x[2] for x in months):.0f}")
-                  + cell(f"{C[3]}{r}", ST_NUM, v=f"{sum(x[3] for x in months):.0f}")
-                  + cell(f"{C[4]}{r}", ST_PCT)
-                  + cell(f"{C[5]}{r}", ST_PCT, v=f"{twr_all - 1:.10g}")
-                  + cell(f"{C[6]}{r}", ST_PCT, v=(None if b_all is None else f"{b_all:.10g}")))
+                  + cell(f"{C[3]}{r}", ST_NUM, v=f"{sum(x[7] for x in months):.0f}")
+                  + cell(f"{C[4]}{r}", ST_NUM, v=f"{sum(x[3] for x in months):.0f}")
+                  + cell(f"{C[5]}{r}", ST_PCT)
+                  + cell(f"{C[6]}{r}", ST_PCT, v=f"{twr_all - 1:.10g}")
+                  + cell(f"{C[7]}{r}", ST_PCT, v=(None if b_all is None else f"{b_all:.10g}")))
     return out, (start_row, r)
 
 
@@ -2661,10 +2777,12 @@ def full_refresh(path_in, path_out, date_str):
         if dt is None:
             continue
         fl = hws.cell(r, 9).value                                      # 淨投入 I(可能沒有)
+        dv = hws.cell(r, 10).value                                     # 配息 J(可能沒有)
         hist_rows.append((str(dt)[:10], float(hws.cell(r, 2).value),   # 市值 B
                           float(hws.cell(r, 3).value),                 # 成本 C
                           float(hws.cell(r, 4).value),                 # 損益 D
-                          float(fl) if isinstance(fl, (int, float)) else None))
+                          float(fl) if isinstance(fl, (int, float)) else None,
+                          float(dv) if isinstance(dv, (int, float)) else None))
     # 歷史表自 2026-10-01 起是「新到舊」儲存,但程式內部一律用「舊到新」(hist[0]=最早),
     # 所以讀進來一定要重新排序;排序後就不受儲存順序影響,哪天再翻回去也不會壞
     hist_rows.sort(key=lambda r: _hist_sort_key(r[0]))
@@ -2991,10 +3109,11 @@ def sync(args):
             print(f"[日誌] 偵測 {t['label']} {t['act']} {t['qty']:,.0f} 股 @ {t['px']}(含費)")
 
     # 11_投資日誌:依「股票買賣紀錄」整張重建;偵測到的變動有對應紀錄就不另補
-    log_rows, flows = None, None
+    log_rows, flows, divs = None, None, None
     try:
         records = read_trade_records(creds)
         flows = compute_daily_flows(records)
+        divs = compute_daily_dividends(creds, records)
         held = {to_code(ws.cell(r, 1).value): str(ws.cell(r, 1).value).strip() for r in xl_rows.values()}
         hdates = [_parse_rec_date(_hist_sort_key(v)) for (v,) in
                   wb[HIST_TAB].iter_rows(min_row=2, max_col=1, values_only=True) if v]
@@ -3055,6 +3174,7 @@ def sync(args):
     out = os.path.join(workdir, "updated.xlsm")
     sheet_part, hist_part, hist_note, log_part = surgical_write(
         path, out, num_cells, str_cells, hist=(date_str, metrics), trades=trades, log_rows=log_rows,
+        divs=divs,
         flows=flows)
     print(f"[歷史] {hist_note};市值 {metrics['mv']:,.0f} 成本 {metrics['cost']:,.0f}")
     if log_part and log_rows is None:

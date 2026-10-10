@@ -68,12 +68,16 @@ def main():
         print(f"[歷史] {date_str}：{old} → {mv:,.0f}／{cost:,.1f}；{note}")
         cur = out
 
-    # 淨投入欄(I):依股票買賣紀錄整欄重寫,02_每日漲跌 的單日損益＝市值變化−淨投入
-    flows = w.compute_daily_flows(w.read_trade_records(creds))
+    # 淨投入欄(I)＋配息欄(J):依買賣紀錄／除權息資料整欄重寫,
+    # 02_每日漲跌 的單日損益＝市值變化−淨投入+配息(與每日同步同一套)
+    recs = w.read_trade_records(creds)
+    flows = w.compute_daily_flows(recs)
+    divs = w.compute_daily_dividends(creds, recs)
     out = os.path.join(workdir, "flows.xlsm")
-    w.surgical_write(cur, out, {}, {}, flows=flows)
+    w.surgical_write(cur, out, {}, {}, flows=flows, divs=divs)
     cur = out
-    print(f"[淨投入] 依買賣紀錄寫入 {len(flows)} 個交易日的淨投入")
+    print(f"[淨投入] 依買賣紀錄寫入 {len(flows)} 個交易日的淨投入"
+          + (f";[配息] 寫入 {len(divs)} 個除息日" if divs else ";[配息] 跳過"))
 
     final = os.path.join(workdir, "final.xlsm")
     fchanged, fsum = w.full_refresh(cur, final, latest)
