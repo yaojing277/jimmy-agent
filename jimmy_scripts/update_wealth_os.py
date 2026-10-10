@@ -1250,6 +1250,44 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
                                 data_start=data_start, data_end=data_end, base_row=base_row)
 
 
+def _irr(bmv, emv, flows, days):
+    """期間金額加權報酬率(MWR＝IRR)。以二分法解 r:
+
+        BMV x (1+r) + Σ Fi x (1+r)^((T-ti)/T) = EMV
+
+    bmv/emv:期初、期末市值;flows:[(ti, Fi)] ti＝距期初第幾天、Fi＝淨外部現金流
+    (買進扣款 − 賣出實收 − 配息;配息是錢離開股票部位,算流出);days:期間總天數 T。
+    與 TWR 的差別:TWR 把每段報酬等權連乘、忽略金額,MWR 則讓「投入較多錢的時段」
+    佔較大權重,所以會把「加碼時機好不好」算進來。
+    解不出來(資金流過大導致無實根、或期初為 0)回 None,呼叫端留白——
+    寧可留白也不要給一個看似精確的錯數字。"""
+    if days <= 0 or bmv <= 0:
+        return None
+
+    def npv(r):
+        v = bmv * (1 + r)
+        for t, f in flows:
+            e = (days - t) / days
+            base = 1 + r
+            v += f * (base ** e if base > 0 else 0)
+        return v - emv
+
+    lo, hi = -0.9999, 10.0
+    flo, fhi = npv(lo), npv(hi)
+    if flo * fhi > 0:                     # 區間內沒有變號,無解
+        return None
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        fm = npv(mid)
+        if abs(fm) < 1e-6:
+            return mid
+        if flo * fm <= 0:
+            hi, fhi = mid, fm
+        else:
+            lo, flo = mid, fm
+    return (lo + hi) / 2
+
+
 def _monthly_pnl(hist):
     """由 hist(舊到新,每筆 (日期, 市值, 成本, 損益[, 淨投入]))彙總「每月損益」。
 
@@ -1269,7 +1307,10 @@ def _monthly_pnl(hist):
     與每日 G 欄同一條式子),再減 1。與「月損益÷上月月末市值」的差別在於**資金投入的時點**
     ——月中大額加碼時,簡單報酬率拿月初資本當分母會失真(例:2026/07 加碼 283 萬後才回檔),
     TWR 不受金流時點影響,是比較「操作績效」的正確口徑。
-    回傳 [(y, m, pnl, flow, mv_end, ret, twr), ...] **由新到舊**(配合全檔新到舊慣例)。
+    另算 **MWR(金額加權報酬率,即 IRR)**:把每筆現金流依「距期初天數」加權求解,
+    **會把加碼時機算進去**。TWR 答「選股配置做得好不好」、MWR 答「考慮進出時機後
+    這筆錢的報酬如何」,兩者並列才完整。解不出來時留白。
+    回傳 [(y, m, pnl, flow, mv_end, ret, twr, div, mwr), ...] **由新到舊**。
     """
     N = len(hist)
     if N < 2:
@@ -1289,14 +1330,23 @@ def _monthly_pnl(hist):
             pnl = hist[j][3] - hist[j - 1][3]
             div = 0.0
         day_r = (pnl / prev_mv) if prev_mv else 0.0      # 與每日 G 欄同一條式子
+        d_cur = _parse_rec_date(_hist_sort_key(hist[j][0]))
+        d_prv = _parse_rec_date(_hist_sort_key(hist[j - 1][0]))
+        net_f = flow - div          # MWR 用的外部現金流:配息是錢離開股票部位,算流出
         if out and out[-1][0] == y and out[-1][1] == m:
             e = out[-1]
-            out[-1] = (y, m, e[2] + pnl, e[3] + flow, mv, e[5], e[6] * (1 + day_r), e[7] + div)
+            fl = e[9] + ([((d_cur - e[8]).days, net_f)] if net_f else [])
+            out[-1] = (y, m, e[2] + pnl, e[3] + flow, mv, e[5], e[6] * (1 + day_r),
+                       e[7] + div, e[8], fl, d_cur)
         else:
-            # 第6欄暫存報酬率分母、第7欄累乘 TWR 因子、第8欄累加配息
-            out.append((y, m, pnl, flow, mv, prev_mv, 1 + day_r, div))
-    return [(y, m, pnl, flow, mv_end, (pnl / base if base else 0), twr_f - 1, dv)
-            for (y, m, pnl, flow, mv_end, base, twr_f, dv) in reversed(out)]
+            # 6:報酬率分母 7:TWR累乘 8:配息 9:期初日 10:現金流清單 11:期末日
+            fl = [((d_cur - d_prv).days, net_f)] if net_f else []
+            out.append((y, m, pnl, flow, mv, prev_mv, 1 + day_r, div, d_prv, fl, d_cur))
+    res = []
+    for (y, m, pnl, flow, mv_end, base, twr_f, dv, d0, fl, d1) in reversed(out):
+        mwr = _irr(base, mv_end, fl, (d1 - d0).days) if (d0 and d1) else None
+        res.append((y, m, pnl, flow, mv_end, (pnl / base if base else 0), twr_f - 1, dv, mwr))
+    return res
 
 
 # 月損益表:放在「每日總市值與損益走勢」折線圖正下方。折線圖浮在 I 欄(col=8,0-indexed),
@@ -1366,11 +1416,14 @@ def _benchmark_monthly_returns(months, code=BENCHMARK_CODE):
     return out
 
 
-def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench=None):
+def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench=None,
+                             mwr_all=None):
     """組「月損益」表的儲存格,回傳 {列號: 該列要補的 <c> 字串} 與 (first_row, last_row)。
 
     欄位(自 col0 起 7 欄,預設 I~O):
-      月份 / 月末市值 / 月損益 / 配息 / 淨投入 / 月報酬率 / TWR / 0050當月。
+      月份 / 月末市值 / 月損益 / 配息 / 淨投入 / 月報酬率 / TWR / MWR / 0050當月。
+    TWR 忽略金額、答「選股配置好不好」;MWR(IRR)依金額與時點加權、答「考慮加碼時機後
+    這筆錢的報酬」。跟 0050 比要用 TWR(0050 沒有資金進出問題)。
     「月損益」**已含配息**(除息日認列),「配息」欄單獨列出讓它可被稽核。
     「月報酬率」是簡單報酬(月損益÷上月月末市值),月中大額加碼會失真;
     「TWR」逐日連乘、不受金流時點影響,兩欄並列才看得出哪個月的差距是資金時點造成的。
@@ -1403,7 +1456,7 @@ def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench
             return (f'<c r="{ref}" s="{s}" t="inlineStr"><is><t>{escape(str(v))}</t></is></c>')
         return f'<c r="{ref}" s="{s}"><v>{v}</v></c>'
 
-    C = [cl(col0 + k) for k in range(8)]
+    C = [cl(col0 + k) for k in range(9)]
     bench = bench or {}
     out = {}
     r = start_row
@@ -1411,8 +1464,8 @@ def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench
     r += 1
     out[r] = "".join(cell(f"{c}{r}", ST_TXT, v=h, is_str=True)
                      for c, h in zip(C, ["月份", "月末市值", "月損益", "配息", "淨投入",
-                                         "月報酬率", "TWR", f"{BENCHMARK_CODE}當月"]))
-    for (y, m, pnl, flow, mv_end, ret, twr, dv) in months:
+                                         "月報酬率", "TWR", "MWR", f"{BENCHMARK_CODE}當月"]))
+    for (y, m, pnl, flow, mv_end, ret, twr, dv, mwr) in months:
         r += 1
         b = bench.get((y, m))
         out[r] = (cell(f"{C[0]}{r}", ST_TXT, v=f"{y}/{m:02d}", is_str=True)
@@ -1422,7 +1475,8 @@ def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench
                   + cell(f"{C[4]}{r}", ST_NUM, v=f"{flow:.0f}")
                   + cell(f"{C[5]}{r}", ST_PCT, v=f"{ret:.10g}")
                   + cell(f"{C[6]}{r}", ST_PCT, v=f"{twr:.10g}")
-                  + cell(f"{C[7]}{r}", ST_PCT, v=(None if b is None else f"{b:.10g}")))
+                  + cell(f"{C[7]}{r}", ST_PCT, v=(None if mwr is None else f"{mwr:.10g}"))
+                  + cell(f"{C[8]}{r}", ST_PCT, v=(None if b is None else f"{b:.10g}")))
     if months:
         # 合計列:月末市值不可加總(是時點值不是流量),留空
         r += 1
@@ -1445,7 +1499,8 @@ def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench
                   + cell(f"{C[4]}{r}", ST_NUM, v=f"{sum(x[3] for x in months):.0f}")
                   + cell(f"{C[5]}{r}", ST_PCT)
                   + cell(f"{C[6]}{r}", ST_PCT, v=f"{twr_all - 1:.10g}")
-                  + cell(f"{C[7]}{r}", ST_PCT, v=(None if b_all is None else f"{b_all:.10g}")))
+                  + cell(f"{C[7]}{r}", ST_PCT, v=(None if mwr_all is None else f"{mwr_all:.10g}"))
+                  + cell(f"{C[8]}{r}", ST_PCT, v=(None if b_all is None else f"{b_all:.10g}")))
     return out, (start_row, r)
 
 
@@ -2871,10 +2926,19 @@ def full_refresh(path_in, path_out, date_str):
         cal_styles_xml, _m_amt_fmt = _ensure_numfmt(cal_styles_xml, CAL_AMT_FMT)
         cal_styles_xml, _m_num = _ensure_numfmt_style(cal_styles_xml, safe_num_style, _m_amt_fmt)
         _bench = _benchmark_monthly_returns([(x[0], x[1]) for x in _months])
+        # 合計列的 MWR:整段期間(最早→最新)一次解 IRR,不可由各月 MWR 連乘
+        _d0 = _parse_rec_date(_hist_sort_key(hist_rows[0][0]))
+        _d1 = _parse_rec_date(_hist_sort_key(hist_rows[-1][0]))
+        _fl = []
+        for _j in range(1, len(hist_rows)):
+            _f = (hist_rows[_j][4] or 0) - (hist_rows[_j][5] or 0)
+            if _f:
+                _fl.append(((_parse_rec_date(_hist_sort_key(hist_rows[_j][0])) - _d0).days, _f))
+        _mwr_all = _irr(hist_rows[0][1], hist_rows[-1][1], _fl, (_d1 - _d0).days)
         m_cells, m_span = _build_monthly_pnl_cells(
             _months, daily_title_row + _span + MONTHLY_GAP,
             {"title": "58", "txt": safe_txt_style, "num": _m_num, "pct": _m_pct},
-            bench=_bench)
+            bench=_bench, mwr_all=_mwr_all)
         daily_sheetdata = _merge_cells_into_sheetdata(daily_sheetdata, m_cells)
         monthly_info = {"rows": m_span, "months": len(_months),
                         "total": sum(x[2] for x in _months)}
