@@ -1154,7 +1154,11 @@ def _monthly_pnl(hist):
     與每日 G 欄同口徑。表格是新到舊排序,所以**分母就是下一列的「月末市值」**,
     使用者可以直接在表上對帳(2026-10-10 Jimmy 要求把欄位從月初市值改成月末市值,
     理由:月初市值已含當月第一天漲跌、不是分母,擺在表上反而讓人以為對不上)。
-    回傳 [(y, m, pnl, flow, mv_end, ret), ...] **由新到舊**(配合全檔新到舊慣例)。
+    另算 **TWR(時間加權報酬)**:把當月每日報酬連乘(逐日 r＝當日損益÷前一日市值,
+    與每日 G 欄同一條式子),再減 1。與「月損益÷上月月末市值」的差別在於**資金投入的時點**
+    ——月中大額加碼時,簡單報酬率拿月初資本當分母會失真(例:2026/07 加碼 283 萬後才回檔),
+    TWR 不受金流時點影響,是比較「操作績效」的正確口徑。
+    回傳 [(y, m, pnl, flow, mv_end, ret, twr), ...] **由新到舊**(配合全檔新到舊慣例)。
     """
     N = len(hist)
     if N < 2:
@@ -1171,13 +1175,15 @@ def _monthly_pnl(hist):
         else:
             flow = hist[j][2] - hist[j - 1][2]
             pnl = hist[j][3] - hist[j - 1][3]
+        day_r = (pnl / prev_mv) if prev_mv else 0.0      # 與每日 G 欄同一條式子
         if out and out[-1][0] == y and out[-1][1] == m:
             e = out[-1]
-            out[-1] = (y, m, e[2] + pnl, e[3] + flow, mv, e[5])
+            out[-1] = (y, m, e[2] + pnl, e[3] + flow, mv, e[5], e[6] * (1 + day_r))
         else:
-            out.append((y, m, pnl, flow, mv, prev_mv))    # 第6欄暫存報酬率分母
-    return [(y, m, pnl, flow, mv_end, (pnl / base if base else 0))
-            for (y, m, pnl, flow, mv_end, base) in reversed(out)]
+            # 第6欄暫存報酬率分母、第7欄累乘 TWR 因子
+            out.append((y, m, pnl, flow, mv, prev_mv, 1 + day_r))
+    return [(y, m, pnl, flow, mv_end, (pnl / base if base else 0), twr_f - 1)
+            for (y, m, pnl, flow, mv_end, base, twr_f) in reversed(out)]
 
 
 # 月損益表:放在「每日總市值與損益走勢」折線圖正下方。折線圖浮在 I 欄(col=8,0-indexed),
@@ -1202,10 +1208,59 @@ def _chart_row_span(drawing_xml, rid, row_height_pt=15.0):
     return int(-(-int(ext.group(1)) // per_row)) if per_row else None
 
 
-def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0):
+# 月損益表的對照基準:0050 自己的月報酬(**價格報酬,不含息**)。
+# 為什麼不含息:16_資產歷史 的市值＝Σ股數×收盤價,除息當天市值會掉、配息現金不在市值裡,
+# 淨投入也只含買賣交割——所以組合這邊本來就是價格報酬。基準也用價格報酬才對等。
+BENCHMARK_CODE = "0050"
+# 分割還原:分割**之前**的收盤價要除以比例,才跟分割後同一個尺度。
+# 與「股價試算/股票分割」分頁同一組事實,日後 0050 再分割要在這裡加一列。
+BENCHMARK_SPLITS = {"0050": [("2025/06/18", 4)]}
+
+
+def _benchmark_monthly_returns(months, code=BENCHMARK_CODE):
+    """算 code 在 months 這些月份的月報酬(價格報酬)。months: [(y, m), ...]。
+    需要多抓「最早月份的前一個月」當分母。回傳 {(y, m): 報酬率};抓不到就回 {}。
+    ⚠ 對外部 API 失敗一律寬容(回空字典、呼叫端留白):這支會跑在每日排程裡,
+      不能因為 TWSE 抖一下就讓整批同步失敗(與 _refresh_lev2 同樣的原則)。"""
+    import datetime as _dt
+    import twse_hist as _th
+    if not months:
+        return {}
+    need = set(months)
+    y0, m0 = min(months)
+    need.add((y0 - 1, 12) if m0 == 1 else (y0, m0 - 1))
+    splits = [(_dt.date(*map(int, d.split("/"))), r) for d, r in BENCHMARK_SPLITS.get(code, [])]
+    last = {}
+    try:
+        for (y, m) in sorted(need):
+            cl = _th.month_closes(code, y, m)
+            if not cl:
+                return {}
+            d = max(cl)
+            px = cl[d]
+            for sd, ratio in splits:
+                if d < sd:
+                    px /= ratio
+            last[(y, m)] = px
+    except Exception as e:
+        print(f"⚠ 取 {code} 月報酬失敗({e}),月損益表的基準欄留白")
+        return {}
+    out = {}
+    for (y, m) in months:
+        prev = (y - 1, 12) if m == 1 else (y, m - 1)
+        if prev in last and last[prev]:
+            out[(y, m)] = last[(y, m)] / last[prev] - 1
+    return out
+
+
+def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench=None):
     """組「月損益」表的儲存格,回傳 {列號: 該列要補的 <c> 字串} 與 (first_row, last_row)。
 
-    欄位(自 col0 起 5 欄,預設 I~M):月份 / 月末市值 / 月損益 / 淨投入 / 月報酬率。
+    欄位(自 col0 起 7 欄,預設 I~O):
+      月份 / 月末市值 / 月損益 / 淨投入 / 月報酬率 / TWR / 0050當月。
+    「月報酬率」是簡單報酬(月損益÷上月月末市值),月中大額加碼會失真;
+    「TWR」逐日連乘、不受金流時點影響,兩欄並列才看得出哪個月的差距是資金時點造成的。
+    「0050當月」是 0050 自己的月報酬(**價格報酬,不含息**),抓不到時整欄留白。
     表格新到舊,所以**每列報酬率的分母就是下一列的「月末市值」**,可直接在表上對帳;
     同時 本列月末 = 下一列月末 + 本列月損益 + 本列淨投入 也成立。
     months 由 _monthly_pnl() 來,已是新到舊。最後補一列「合計」,其金額應等於每日表
@@ -1234,28 +1289,47 @@ def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0):
             return (f'<c r="{ref}" s="{s}" t="inlineStr"><is><t>{escape(str(v))}</t></is></c>')
         return f'<c r="{ref}" s="{s}"><v>{v}</v></c>'
 
-    C = [cl(col0 + k) for k in range(5)]
+    C = [cl(col0 + k) for k in range(7)]
+    bench = bench or {}
     out = {}
     r = start_row
     out[r] = cell(f"{C[0]}{r}", ST_TITLE, v="月損益", is_str=True)
     r += 1
     out[r] = "".join(cell(f"{c}{r}", ST_TXT, v=h, is_str=True)
-                     for c, h in zip(C, ["月份", "月末市值", "月損益", "淨投入", "月報酬率"]))
-    for (y, m, pnl, flow, mv_end, ret) in months:
+                     for c, h in zip(C, ["月份", "月末市值", "月損益", "淨投入",
+                                         "月報酬率", "TWR", f"{BENCHMARK_CODE}當月"]))
+    for (y, m, pnl, flow, mv_end, ret, twr) in months:
         r += 1
+        b = bench.get((y, m))
         out[r] = (cell(f"{C[0]}{r}", ST_TXT, v=f"{y}/{m:02d}", is_str=True)
                   + cell(f"{C[1]}{r}", ST_NUM, v=f"{mv_end:.0f}")
                   + cell(f"{C[2]}{r}", ST_NUM, v=f"{pnl:.0f}")
                   + cell(f"{C[3]}{r}", ST_NUM, v=f"{flow:.0f}")
-                  + cell(f"{C[4]}{r}", ST_PCT, v=f"{ret:.10g}"))
+                  + cell(f"{C[4]}{r}", ST_PCT, v=f"{ret:.10g}")
+                  + cell(f"{C[5]}{r}", ST_PCT, v=f"{twr:.10g}")
+                  + cell(f"{C[6]}{r}", ST_PCT, v=(None if b is None else f"{b:.10g}")))
     if months:
         # 合計列:月末市值不可加總(是時點值不是流量),留空
         r += 1
+        # 報酬率欄位一律用**連乘**求期間累積,不可相加(加總會高估);
+        # 0050 欄若有任一月缺值就留白,免得拿不完整的期間跟組合比
+        twr_all = 1.0
+        for x in months:
+            twr_all *= (1 + x[6])
+        bs = [bench.get((x[0], x[1])) for x in months]
+        b_all = None
+        if bs and all(v is not None for v in bs):
+            b_all = 1.0
+            for v in bs:
+                b_all *= (1 + v)
+            b_all -= 1
         out[r] = (cell(f"{C[0]}{r}", ST_TXT, v="合計", is_str=True)
                   + cell(f"{C[1]}{r}", ST_NUM)
                   + cell(f"{C[2]}{r}", ST_NUM, v=f"{sum(x[2] for x in months):.0f}")
                   + cell(f"{C[3]}{r}", ST_NUM, v=f"{sum(x[3] for x in months):.0f}")
-                  + cell(f"{C[4]}{r}", ST_PCT))
+                  + cell(f"{C[4]}{r}", ST_PCT)
+                  + cell(f"{C[5]}{r}", ST_PCT, v=f"{twr_all - 1:.10g}")
+                  + cell(f"{C[6]}{r}", ST_PCT, v=(None if b_all is None else f"{b_all:.10g}")))
     return out, (start_row, r)
 
 
@@ -2678,9 +2752,11 @@ def full_refresh(path_in, path_out, date_str):
         cal_styles_xml, _m_pct = _ensure_numfmt_style(cal_styles_xml, safe_pct_style, _m_pct_fmt)
         cal_styles_xml, _m_amt_fmt = _ensure_numfmt(cal_styles_xml, CAL_AMT_FMT)
         cal_styles_xml, _m_num = _ensure_numfmt_style(cal_styles_xml, safe_num_style, _m_amt_fmt)
+        _bench = _benchmark_monthly_returns([(x[0], x[1]) for x in _months])
         m_cells, m_span = _build_monthly_pnl_cells(
             _months, daily_title_row + _span + MONTHLY_GAP,
-            {"title": "58", "txt": safe_txt_style, "num": _m_num, "pct": _m_pct})
+            {"title": "58", "txt": safe_txt_style, "num": _m_num, "pct": _m_pct},
+            bench=_bench)
         daily_sheetdata = _merge_cells_into_sheetdata(daily_sheetdata, m_cells)
         monthly_info = {"rows": m_span, "months": len(_months),
                         "total": sum(x[2] for x in _months)}
