@@ -183,16 +183,29 @@ def main():
     flows_after = {d: (hist[j][4] or 0.0) for j, d in
                    ((j, u._parse_rec_date(u._hist_sort_key(hist[j][0])))
                     for j in range(1, len(hist))) if d > draw}
+    # 投入截止日:預設**撥款月最後一天**。
+    # ⚠ 2026-10-12 Jimmy 確認:300 萬在 7 月就打完了,若本帳戶的淨投入吸收不完,
+    #   差額多半是拿去**複委託**(海外券商,本系統完全沒追蹤),不該硬對應到 8、9 月的買進
+    #   ——那會讓信貸的錢「蹭到」後面幾個月的漲幅,把報酬灌水。
+    #   吸收不完的部分列為「未對應」,**不計入報酬歸屬的分母**。
+    cut = c.get("投入截止日")
+    if cut:
+        cutoff = u._parse_rec_date(str(cut).replace("-", "/"))
+    else:
+        nm = dt.date(draw.year + draw.month // 12, draw.month % 12 + 1, 1)
+        cutoff = nm - dt.timedelta(days=1)
     remain, tranches = invested, []          # tranches: [(投入日, 金額)]
     for d in sorted(flows_after):
+        if d > cutoff:
+            break
         f = flows_after[d]
         if f <= 0 or remain <= 0:
             continue
         take = min(f, remain)
         tranches.append((d, take))
         remain -= take
-    if remain > 1:        # 淨投入不足以吸收全部信貸金額:剩下的視為撥款日就在場
-        tranches.insert(0, (draw, remain))
+    unmatched = remain if remain > 1 else 0.0
+    invested_tracked = invested - unmatched
     # 每批各自從投入日起累乘之後的日報酬
     detail_m, total_now = {}, 0.0
     for (td, amt) in tranches:
@@ -205,11 +218,13 @@ def main():
             detail_m[k] = detail_m.get(k, 0.0) + gain
             val += gain
         total_now += val
-    attributed = total_now - invested
-    cum = (total_now / invested) if invested else 1.0
+    attributed = total_now - invested_tracked
+    cum = (total_now / invested_tracked) if invested_tracked else 1.0
     detail = [(k[0], k[1], None, detail_m[k]) for k in sorted(detail_m)]
-    deployed_note = (f"分 {len(tranches)} 批投入，"
-                     f"{tranches[0][0]} ~ {tranches[-1][0]}")
+    deployed_note = (f"分 {len(tranches)} 批投入，{tranches[0][0]} ~ {tranches[-1][0]}"
+                     if tranches else "無對應批次")
+    unmatched_note = (f"未對應 {unmatched:,.0f}（截止 {cutoff} 前本帳戶淨投入吸收不完；"
+                      f"推測為複委託等本系統未追蹤的去向，不計入報酬歸屬）" if unmatched else "")
 
     print(f"\n{'='*64}\n  資金來源追蹤｜信貸（結算日 {asof}）\n{'='*64}")
     print(f"  撥款日 {c['撥款日']}　原始金額 {c['原始金額']:>12,.0f}　年利率 {c['年利率']:.2%}")
@@ -220,7 +235,10 @@ def main():
     print(f"    └ 累計本金    {principal:>12,.0f}   （負債轉成資產，非成本）")
     print(f"    目前餘額      {bal:>12,.0f}")
     print(f"    未來剩餘利息  {future_interest:>12,.0f}")
-    print(f"\n  投入股市 {invested:,.0f}（{deployed_note}；加權累計報酬 {cum-1:+.2%}）")
+    print(f"\n  信貸撥款中指定投入股市 {invested:,.0f}")
+    print(f"    本帳戶可對應 {invested_tracked:,.0f}（{deployed_note}；加權累計報酬 {cum-1:+.2%}）")
+    if unmatched:
+        print(f"    ⚠ {unmatched_note}")
     print(f"    歸屬損益      {attributed:>12,.0f}")
     print(f"\n{'─'*64}\n  覆蓋檢驗\n{'─'*64}")
     for label, cost in (("利息（划不划算）", interest), ("月付（現金流）", paid)):
@@ -245,7 +263,8 @@ def main():
             ["累計已付", round(paid)], ["累計利息（真實成本）", round(interest)],
             ["累計本金（非成本）", round(principal)], ["目前餘額", round(bal)],
             ["未來剩餘利息", round(future_interest)], [],
-            ["投入股市金額", invested], ["投入方式", deployed_note],
+            ["指定投入股市", invested], ["本帳戶可對應", round(invested_tracked)],
+            ["未對應（推測複委託）", round(unmatched)], ["投入方式", deployed_note],
             ["加權累計報酬", cum - 1],
             ["歸屬損益", round(attributed)], [],
             ["─ 覆蓋檢驗 ─", "成本", "淨效益", "倍數"],
@@ -259,7 +278,9 @@ def main():
              ["", "⚠ 假設「信貸的錢先被花掉」——實際是哪筆錢買的股票無從得知，此假設影響結果甚大："],
              ["", "　 若改假設撥款日全額一次進場，同一期間歸屬損益會從 +34 萬變成 −6 萬（未覆蓋利息）"],
              ["", "利息才是真實成本；本金攤還只是把負債轉成資產，不是費用"],
-             ["", "只追蹤信貸，房貸為自住房、與投資無關"]]
+             ["", "只追蹤信貸，房貸為自住房、與投資無關"],
+             ["", f"投入截止 {cutoff}（預設撥款月底）；之後的買進不再對應信貸，"
+                  "差額推測為複委託等本系統未追蹤的去向"]]
 
     svc = build("sheets", "v4", credentials=creds)
     meta = svc.spreadsheets().get(spreadsheetId=u.SPREADSHEET_ID).execute()
