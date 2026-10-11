@@ -35,3 +35,5 @@ build/
 DerivedData/
 *.xcuserstate
 *.xcuserdatad/
+# 信貸設定（含個人財務數字，不進版控）
+jimmy_scripts/loan_config.json

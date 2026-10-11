@@ -1,0 +1,286 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""loan_funding.py — 資金來源追蹤：信貸投入股市的報酬是否覆蓋利息／月付
+
+觸發語：「資金來源」「信貸報酬」
+
+【為什麼需要這支】
+帳本（16_資產歷史／股票買賣紀錄）只追蹤「股票帳戶內的進出」，
+**錢從哪個來源進到股票帳戶（薪水／存款／信貸）完全沒有被記錄**。
+2026 年買進 1,250 萬裡，513 萬是賣股再投入、427 萬是穎崴員工認股，
+真正的一般新資金約 310 萬——而信貸餘額 489 萬，顯然是主要資金來源之一。
+這支把「借錢投資」這件事的成本與報酬攤開，回答兩個問題：
+  1. 划不划算：歸屬損益 vs **累計利息**（利息才是真實成本，本金攤還只是把負債變現金）
+  2. 撐不撐得住：歸屬損益 vs **累計月付**（現金流觀點，每月真的要掏這麼多錢出去）
+
+【口徑（2026-10-11 Jimmy 決定）】
+  - 只追蹤**信貸**，房貸是自住房的，與投資無關，納入只會混淆
+    （「06_阿良資產負債表」的本金槓桿本來也只計信貸）
+  - 投入股市金額由 Jimmy **直接指定**（撥款金額未必全數進股市）
+  - 以**實際損益金額**比較，不用年化百分比——直接看賺的錢夠不夠付利息
+
+【報酬歸屬】
+  歸屬損益 = 投入金額 × 期間 TWR。
+  用 TWR 不用簡單報酬率：TWR 是「每一塊錢的報酬」，乘上投入金額才是這筆錢賺到的數字；
+  簡單報酬率受資金進出時點干擾，乘出來沒有意義。TWR 取自 update_wealth_os._monthly_pnl，
+  與「02_每日漲跌」月損益表同一套（含配息）。
+
+【設定檔】
+  jimmy_scripts/loan_config.json（**不進版控**，內含個人財務數字，比照 cathay_report_notes.json）
+  {
+    "撥款日":   "2026/03/05",
+    "原始金額": 5000000,
+    "年利率":   0.0361,
+    "總期數":   84,
+    "月付":     66000,
+    "投入股市": 4500000,
+    "備註":     "7 年期信用貸款"
+  }
+  缺檔時印出範本並結束，不會寫任何東西。
+
+用法：
+  python3 loan_funding.py              # 終端列印報表（不寫試算表）
+  python3 loan_funding.py --sheet      # 另外寫入「股價試算」的「資金來源」分頁
+  python3 loan_funding.py --sheet --yes  # 不詢問直接寫
+"""
+import argparse
+import json
+import os
+import sys
+import warnings
+import datetime as dt
+
+warnings.filterwarnings("ignore")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+import update_wealth_os as u                      # noqa: E402
+from googleapiclient.discovery import build       # noqa: E402
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+CONFIG = os.path.join(HERE, "loan_config.json")
+SHEET_NAME = "資金來源"
+TEMPLATE = {
+    "撥款日": "2026/03/05", "原始金額": 5000000, "年利率": 0.0361,
+    "總期數": 84, "月付": 66000, "投入股市": 4500000, "備註": "7 年期信用貸款",
+}
+
+
+def load_config(skip_if_missing=False):
+    """設定來源優先序:環境變數 LOAN_CONFIG_JSON(GitHub Actions 用) → 本機 loan_config.json。
+    雲端跑不到本機檔案(含個人財務數字、不進版控),所以比照 GOOGLE_SA_JSON 走 Secret。"""
+    env = os.environ.get("LOAN_CONFIG_JSON", "").strip()
+    if env:
+        try:
+            c = json.loads(env)
+        except json.JSONDecodeError as e:
+            sys.exit(f"✗ 環境變數 LOAN_CONFIG_JSON 不是合法 JSON：{e}")
+        miss = [k for k in ("撥款日", "原始金額", "年利率", "總期數", "月付", "投入股市") if k not in c]
+        if miss:
+            sys.exit(f"✗ LOAN_CONFIG_JSON 缺少欄位：{', '.join(miss)}")
+        return c
+    if not os.path.exists(CONFIG) and skip_if_missing:
+        print("— 無 LOAN_CONFIG_JSON 也無本機設定檔，跳過資金來源更新（不算失敗）")
+        return None
+    if not os.path.exists(CONFIG):
+        print(f"✗ 找不到設定檔 {CONFIG}\n請依下列範本建立（數字換成實際值）：\n")
+        print(json.dumps(TEMPLATE, ensure_ascii=False, indent=2))
+        print("\n⚠ 這個檔案含個人財務數字，已列入 .gitignore，不要提交版控。")
+        sys.exit(1)
+    c = json.load(open(CONFIG, encoding="utf-8"))
+    miss = [k for k in ("撥款日", "原始金額", "年利率", "總期數", "月付", "投入股市") if k not in c]
+    if miss:
+        sys.exit(f"✗ 設定檔缺少欄位：{', '.join(miss)}")
+    return c
+
+
+def amortize(principal, annual_rate, n_periods, pmt, start):
+    """等額本息攤還表。回傳 [(期數, 當期日期, 月付, 利息, 本金, 期末餘額), ...]。
+
+    ⚠ 以設定檔的「月付」為準，不自己用公式算——實際銀行的月付可能有進位差異。
+    最後一期若餘額不足，月付自動縮為「餘額+當期利息」，避免攤出負餘額。"""
+    r = annual_rate / 12
+    bal = float(principal)
+    rows = []
+    y, m, d = (int(x) for x in str(start).replace("-", "/").split("/"))
+    for i in range(1, int(n_periods) + 1):
+        mm = m + i - 1
+        pay_date = dt.date(y + mm // 12, mm % 12 + 1, min(d, 28))
+        interest = bal * r
+        pay = min(pmt, bal + interest)
+        princ = pay - interest
+        bal = max(0.0, bal - princ)
+        rows.append((i, pay_date, pay, interest, princ, bal))
+        if bal <= 0:
+            break
+    return rows
+
+
+def main():
+    ap = argparse.ArgumentParser(description="資金來源：信貸投入與報酬覆蓋檢驗")
+    ap.add_argument("--sheet", action="store_true", help="寫入「股價試算」的「資金來源」分頁")
+    ap.add_argument("--yes", action="store_true", help="不詢問直接寫入")
+    ap.add_argument("--asof", help="結算日（預設今天），例 2026/10/08")
+    ap.add_argument("--skip-if-no-config", action="store_true",
+                    help="沒有設定檔時正常結束（exit 0）而非中止，排程專用")
+    args = ap.parse_args()
+
+    c = load_config(skip_if_missing=args.skip_if_no_config)
+    if c is None:
+        return
+    asof = (u._parse_rec_date(args.asof) if args.asof else dt.date.today())
+
+    # ── 攤還表：算到 asof 為止已繳幾期、累計利息與月付 ──────────
+    sch = amortize(c["原始金額"], c["年利率"], c["總期數"], c["月付"], c["撥款日"])
+    done = [x for x in sch if x[1] <= asof]
+    paid = sum(x[2] for x in done)
+    interest = sum(x[3] for x in done)
+    principal = sum(x[4] for x in done)
+    bal = done[-1][5] if done else float(c["原始金額"])
+    future_interest = sum(x[3] for x in sch if x[1] > asof)
+    # 設定檔的「月付×期數」若與「本金＋利息」對不起來,攤完會留殘額——
+    # 代表利率/期數/月付三者不自洽(多半是利率填得不夠精確)。出聲提醒,不默默吞掉。
+    residual = sch[-1][5] if sch else 0.0
+    if residual > 1:
+        print(f"⚠ 攤還 {len(sch)} 期後仍有殘額 {residual:,.0f} 元——"
+              f"設定檔的年利率／期數／月付三者不自洽,請核對銀行的攤還表。")
+
+    # ── 投資報酬：以 TWR 乘上投入金額（與月損益表同一套口徑，含配息）──
+    creds = u.get_creds()
+    import tempfile
+    wd = tempfile.mkdtemp(prefix="loan_")
+    _drive, _meta, path, _bk = u.download_xlsm(creds, wd)
+    import openpyxl
+    wb = openpyxl.load_workbook(path, data_only=True)
+    hws = wb[u.HIST_TAB]
+    hist = []
+    for r in range(2, hws.max_row + 1):
+        dte = hws.cell(r, 1).value
+        if dte is None:
+            continue
+        fl, dv = hws.cell(r, 9).value, hws.cell(r, 10).value
+        hist.append((str(dte)[:10], float(hws.cell(r, 2).value), float(hws.cell(r, 3).value),
+                     float(hws.cell(r, 4).value),
+                     float(fl) if isinstance(fl, (int, float)) else None,
+                     float(dv) if isinstance(dv, (int, float)) else None))
+    hist.sort(key=lambda x: u._hist_sort_key(x[0]))
+    months = u._monthly_pnl(hist)            # 新到舊：(y,m,pnl,flow,mv_end,ret,twr,div,mwr)
+
+    draw = u._parse_rec_date(str(c["撥款日"]).replace("-", "/"))
+    invested = float(c["投入股市"])
+    # ⚠ 兩個都會嚴重失真的做法,都不要用:
+    #   (a) 用「撥款月的整月 TWR」——7/03 撥款卻把 7/01~7/02 的漲跌也算進來
+    #   (b) 假設全額在撥款日一次進場——實測 2026/07 的 283 萬是整個月分批投入的
+    #       (7/17 才累積到 243 萬、7/29 才滿額),而跌勢集中在下旬,
+    #       一次進場的假設會把 7 月虧損誇大數十萬。
+    # 正確做法:**依撥款後的實際淨投入逐筆建批**,每批各自從自己的投入日起算逐日報酬。
+    rate = {}              # {日期: 當日報酬率}
+    for j in range(1, len(hist)):
+        d = u._parse_rec_date(u._hist_sort_key(hist[j][0]))
+        prev_mv = hist[j - 1][1]
+        pnl = hist[j][1] - prev_mv - (hist[j][4] or 0.0) + (hist[j][5] or 0.0)
+        rate[d] = (pnl / prev_mv) if prev_mv else 0.0
+    days = sorted(rate)
+    flows_after = {d: (hist[j][4] or 0.0) for j, d in
+                   ((j, u._parse_rec_date(u._hist_sort_key(hist[j][0])))
+                    for j in range(1, len(hist))) if d > draw}
+    remain, tranches = invested, []          # tranches: [(投入日, 金額)]
+    for d in sorted(flows_after):
+        f = flows_after[d]
+        if f <= 0 or remain <= 0:
+            continue
+        take = min(f, remain)
+        tranches.append((d, take))
+        remain -= take
+    if remain > 1:        # 淨投入不足以吸收全部信貸金額:剩下的視為撥款日就在場
+        tranches.insert(0, (draw, remain))
+    # 每批各自從投入日起累乘之後的日報酬
+    detail_m, total_now = {}, 0.0
+    for (td, amt) in tranches:
+        val = amt
+        for d in days:
+            if d <= td:
+                continue
+            gain = val * rate[d]
+            k = (d.year, d.month)
+            detail_m[k] = detail_m.get(k, 0.0) + gain
+            val += gain
+        total_now += val
+    attributed = total_now - invested
+    cum = (total_now / invested) if invested else 1.0
+    detail = [(k[0], k[1], None, detail_m[k]) for k in sorted(detail_m)]
+    deployed_note = (f"分 {len(tranches)} 批投入，"
+                     f"{tranches[0][0]} ~ {tranches[-1][0]}")
+
+    print(f"\n{'='*64}\n  資金來源追蹤｜信貸（結算日 {asof}）\n{'='*64}")
+    print(f"  撥款日 {c['撥款日']}　原始金額 {c['原始金額']:>12,.0f}　年利率 {c['年利率']:.2%}")
+    print(f"  總期數 {c['總期數']} 期　月付 {c['月付']:,.0f}　備註：{c.get('備註','')}")
+    print(f"\n  已繳 {len(done)} / {c['總期數']} 期")
+    print(f"    累計已付      {paid:>12,.0f}")
+    print(f"    ├ 累計利息    {interest:>12,.0f}   ← 真實成本")
+    print(f"    └ 累計本金    {principal:>12,.0f}   （負債轉成資產，非成本）")
+    print(f"    目前餘額      {bal:>12,.0f}")
+    print(f"    未來剩餘利息  {future_interest:>12,.0f}")
+    print(f"\n  投入股市 {invested:,.0f}（{deployed_note}；加權累計報酬 {cum-1:+.2%}）")
+    print(f"    歸屬損益      {attributed:>12,.0f}")
+    print(f"\n{'─'*64}\n  覆蓋檢驗\n{'─'*64}")
+    for label, cost in (("利息（划不划算）", interest), ("月付（現金流）", paid)):
+        net = attributed - cost
+        cov = (attributed / cost) if cost else float("inf")
+        mark = "✓ 覆蓋" if net >= 0 else "✗ 未覆蓋"
+        print(f"  vs 累計{label:<16}成本 {cost:>11,.0f}  淨效益 {net:>+12,.0f}  ({cov:.2f} 倍) {mark}")
+    print(f"\n  逐月明細（撥款月起）")
+    print(f"    {'月份':<9}{'當月歸屬損益':>14}")
+    for (y, m, _t, amt) in detail:
+        print(f"    {y}/{m:02d}   {amt:>14,.0f}")
+
+    if not args.sheet:
+        print("\n（未寫入試算表；要寫請加 --sheet）")
+        return
+
+    rows = [["資金來源追蹤｜信貸", f"結算日 {asof}"], [],
+            ["撥款日", str(c["撥款日"])], ["原始金額", c["原始金額"]],
+            ["年利率", c["年利率"]], ["總期數", c["總期數"]], ["月付", c["月付"]],
+            ["備註", c.get("備註", "")], [],
+            ["已繳期數", f"{len(done)} / {c['總期數']}"],
+            ["累計已付", round(paid)], ["累計利息（真實成本）", round(interest)],
+            ["累計本金（非成本）", round(principal)], ["目前餘額", round(bal)],
+            ["未來剩餘利息", round(future_interest)], [],
+            ["投入股市金額", invested], ["投入方式", deployed_note],
+            ["加權累計報酬", cum - 1],
+            ["歸屬損益", round(attributed)], [],
+            ["─ 覆蓋檢驗 ─", "成本", "淨效益", "倍數"],
+            ["vs 累計利息（划不划算）", round(interest), round(attributed - interest),
+             round(attributed / interest, 2) if interest else ""],
+            ["vs 累計月付（現金流）", round(paid), round(attributed - paid),
+             round(attributed / paid, 2) if paid else ""], [],
+            ["月份", "當月歸屬損益"]]
+    rows += [[f"{y}/{m:02d}", round(amt)] for (y, m, _t, amt) in detail]
+    rows += [[], ["口徑說明", "歸屬損益：依撥款後的實際淨投入逐筆建批，每批各自從投入日起算逐日報酬（含配息）"],
+             ["", "⚠ 假設「信貸的錢先被花掉」——實際是哪筆錢買的股票無從得知，此假設影響結果甚大："],
+             ["", "　 若改假設撥款日全額一次進場，同一期間歸屬損益會從 +34 萬變成 −6 萬（未覆蓋利息）"],
+             ["", "利息才是真實成本；本金攤還只是把負債轉成資產，不是費用"],
+             ["", "只追蹤信貸，房貸為自住房、與投資無關"]]
+
+    svc = build("sheets", "v4", credentials=creds)
+    meta = svc.spreadsheets().get(spreadsheetId=u.SPREADSHEET_ID).execute()
+    sid = next((s["properties"]["sheetId"] for s in meta["sheets"]
+                if s["properties"]["title"] == SHEET_NAME), None)
+    if not args.yes:
+        print(f"\n即將{'覆寫' if sid is not None else '新建'}分頁「{SHEET_NAME}」（{len(rows)} 列）")
+        if input("確認寫入？(yes/no) ").strip().lower() not in ("y", "yes"):
+            print("已取消。")
+            return
+    if sid is None:
+        svc.spreadsheets().batchUpdate(spreadsheetId=u.SPREADSHEET_ID, body={"requests": [
+            {"addSheet": {"properties": {"title": SHEET_NAME}}}]}).execute()
+    else:
+        svc.spreadsheets().values().clear(
+            spreadsheetId=u.SPREADSHEET_ID, range=f"{SHEET_NAME}!A1:Z400").execute()
+    svc.spreadsheets().values().update(
+        spreadsheetId=u.SPREADSHEET_ID, range=f"{SHEET_NAME}!A1",
+        valueInputOption="USER_ENTERED", body={"values": rows}).execute()
+    print(f"✅ 已寫入「{SHEET_NAME}」分頁（{len(rows)} 列）")
+
+
+if __name__ == "__main__":
+    main()
