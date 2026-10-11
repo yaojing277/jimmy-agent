@@ -127,6 +127,7 @@
 | `overseas_sync.py` | 「**複委託**」海外帳戶追蹤（2026-10-12 起隨 `wealth_sync.yml` 每個交易日跑）：持股人工維護於「股價試算／複委託持股」（`--init` 建範本；欄位 代號/名稱/股數/買進均價/幣別/買進日/備註），yfinance 抓收盤＋`TWD=X` 匯率，寫 `複委託` 分頁。**原幣與台幣雙口徑分開列**（原幣＝真實投資績效、台幣另含匯率變動，不可混談）；報價或匯率抓不到就留白並列警告，不用舊值硬湊。`--skip-if-empty` 無持股時 exit 0。⚠ **美股收盤在台灣凌晨，14:30 排程抓到的是前一個美股交易日收盤**，每列標報價日。⚠ **尚未併入 `16_資產歷史`／`04_ETF分析`**，總資產與曝險比例不含此帳戶 |
 | `publish_projects.py` | 排程跑完把執行結果寫進 `yaojing277/projects` 的 `runlog.json`（同交易日重跑覆蓋、留 90 天），並同步 `projects.html`/`index.html`/兩份 devlog/`schedule_runlog.html`；需 secret `PAGES_PAT` |
 | `check_reminders.py` | 日期到期提醒（讀 `reminders.json`，需環境變數 `LINE_TOKEN`/`LINE_USER_ID`） |
+| `backup_private.sh` | 「**備份私密設定**」把不進版控、又無法重新產生的檔案同步到 `yaojing277/dotfiles`（Private）的 `jimmy_scripts_private/`：`cathay_report_notes.json`（人工註記，**救不回**）、`loan_config.json`、`line_secrets.json`。預覽／`--push`，冪等（內容沒變不產生空提交）。⚠ **憑證刻意不備份**（`gh_pat`／`credentials.json`／`token.json` 都能重新產生，不該進 git） |
 | `auth_sheets.py` / `reauth_sheets.py` | Google Sheets OAuth 授權／重授權（token 約 7 天過期）；`reauth_sheets.py --drive` 可加授 Google Drive 權限 |
 
 常用指令：
