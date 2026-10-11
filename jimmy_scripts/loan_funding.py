@@ -246,6 +246,27 @@ def main():
         cov = (attributed / cost) if cost else float("inf")
         mark = "✓ 覆蓋" if net >= 0 else "✗ 未覆蓋"
         print(f"  vs 累計{label:<16}成本 {cost:>11,.0f}  淨效益 {net:>+12,.0f}  ({cov:.2f} 倍) {mark}")
+    # ── 利息門檻:這筆錢要賺多少才不白借 ──────────────────────
+    total_int = interest + future_interest
+    years = float(c["總期數"]) / 12
+    hurdle = (total_int / invested_tracked) if invested_tracked else None
+    hurdle_ann = ((1 + hurdle) ** (1 / years) - 1) if (hurdle is not None and years) else None
+    int_per_year = total_int / years if years else 0
+    worst = min((amt for (_y, _m, _t, amt) in detail), default=0)
+    worst_ym = next((f"{y}/{m:02d}" for (y, m, _t, a) in detail if a == worst), "—")
+    print(f"\n{'─'*64}\n  利息門檻：這筆錢要賺多少才不白借\n{'─'*64}")
+    print(f"  全期總利息（{c['總期數']} 期）        {total_int:>12,.0f}")
+    print(f"  ÷ 可對應投入 {invested_tracked:,.0f}")
+    print(f"  = 門檻報酬率（{years:.0f} 年內需達成） {hurdle:>11.1%}"
+          f"   ＝年化 {hurdle_ann:.2%}" if hurdle is not None else "")
+    print(f"  目前累計報酬                  {cum-1:>11.2%}"
+          f"   {'✓ 已超過門檻' if (hurdle is not None and cum-1 >= hurdle) else '（仍在累積中）'}")
+    print(f"\n  風險對照：平均每年利息 {int_per_year:,.0f}")
+    print(f"            最差單月（{worst_ym}）歸屬損益 {worst:+,.0f}"
+          f"  ← 約等於 {abs(worst)/int_per_year:.1f} 年的利息" if int_per_year else "")
+    print(f"\n  ⚠ 此比較偏嚴格：以**整筆貸款**的利息，對**只有進股市那部分**的獲利。")
+    print(f"     未對應的 {unmatched:,.0f} 若另有報酬，並未計入。" if unmatched else "")
+
     print(f"\n  逐月明細（撥款月起）")
     print(f"    {'月份':<9}{'當月歸屬損益':>14}")
     for (y, m, _t, amt) in detail:
@@ -272,12 +293,26 @@ def main():
              round(attributed / interest, 2) if interest else ""],
             ["vs 累計月付（現金流）", round(paid), round(attributed - paid),
              round(attributed / paid, 2) if paid else ""], [],
+            ["─ 利息門檻：這筆錢要賺多少才不白借 ─"],
+            [f"全期總利息（{c['總期數']} 期）", round(total_int)],
+            ["÷ 可對應投入", round(invested_tracked)],
+            [f"→ 門檻報酬率（{years:.0f} 年內需達成）", hurdle if hurdle is not None else ""],
+            ["　換算年化門檻", hurdle_ann if hurdle_ann is not None else ""],
+            ["目前累計報酬", cum - 1],
+            ["是否已超過門檻", "是" if (hurdle is not None and cum - 1 >= hurdle) else "尚未（仍在累積）"],
+            ["平均每年利息", round(int_per_year)],
+            [f"最差單月（{worst_ym}）歸屬損益", round(worst),
+             f"約 {abs(worst)/int_per_year:.1f} 年的利息" if int_per_year else ""], [],
             ["月份", "當月歸屬損益"]]
     rows += [[f"{y}/{m:02d}", round(amt)] for (y, m, _t, amt) in detail]
     rows += [[], ["口徑說明", "歸屬損益：依撥款後的實際淨投入逐筆建批，每批各自從投入日起算逐日報酬（含配息）"],
              ["", "⚠ 假設「信貸的錢先被花掉」——實際是哪筆錢買的股票無從得知，此假設影響結果甚大："],
              ["", "　 若改假設撥款日全額一次進場，同一期間歸屬損益會從 +34 萬變成 −6 萬（未覆蓋利息）"],
              ["", "利息才是真實成本；本金攤還只是把負債轉成資產，不是費用"],
+             ["", "⚠ 門檻與覆蓋檢驗皆偏嚴格：以「整筆貸款」的利息，對「只有進股市那部分」的獲利；"
+                  "未對應金額若另有報酬並未計入"],
+             ["", "⚠ 真正的風險不是賺不贏利息（門檻低），而是波動期的現金流——"
+                  "月薪 7 萬 − 生活 4 萬 − 房貸 3.4 萬 − 信貸 6.6 萬，月現金流本為負，靠現金部位填"],
              ["", "只追蹤信貸，房貸為自住房、與投資無關"],
              ["", f"投入截止 {cutoff}（預設撥款月底）；之後的買進不再對應信貸，"
                   "差額推測為複委託等本系統未追蹤的去向"]]
@@ -297,6 +332,11 @@ def main():
     else:
         svc.spreadsheets().values().clear(
             spreadsheetId=u.SPREADSHEET_ID, range=f"{SHEET_NAME}!A1:Z400").execute()
+    # ⚠ valueInputOption=USER_ENTERED 會把 = + - @ 開頭的「字串」當公式解析,造成 #ERROR!
+    #   (實際踩過:標籤「= 門檻報酬率…」)。寫入前一律在前面補半形單引號跳脫。
+    def esc_cell(v):
+        return f"'{v}" if isinstance(v, str) and v[:1] in "=+-@" else v
+    rows = [[esc_cell(c) for c in r] for r in rows]
     svc.spreadsheets().values().update(
         spreadsheetId=u.SPREADSHEET_ID, range=f"{SHEET_NAME}!A1",
         valueInputOption="USER_ENTERED", body={"values": rows}).execute()

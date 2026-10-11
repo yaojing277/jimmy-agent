@@ -217,6 +217,10 @@ def main():
     else:
         svc.spreadsheets().values().clear(
             spreadsheetId=u.SPREADSHEET_ID, range=f"{OUT_SHEET}!A1:Z200").execute()
+    # 同 loan_funding:USER_ENTERED 會把 = + - @ 開頭的字串當公式,寫入前跳脫
+    def esc_cell(v):
+        return f"'{v}" if isinstance(v, str) and v[:1] in "=+-@" else v
+    out = [[esc_cell(c) for c in r] for r in out]
     svc.spreadsheets().values().update(
         spreadsheetId=u.SPREADSHEET_ID, range=f"{OUT_SHEET}!A1",
         valueInputOption="USER_ENTERED", body={"values": out}).execute()
