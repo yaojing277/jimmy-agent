@@ -9,18 +9,19 @@
 
     python3 notes_audio_digest.py scan                 # 1 列出符合條件的備忘錄 → manifest.json
     python3 notes_audio_digest.py export               # 2 匯出錄音（同時就是備份）＋量長度
-    python3 notes_audio_digest.py transcribe           # 3 faster-whisper 本機轉錄
+    python3 notes_audio_digest.py transcribe           # 3 Whisper 本機轉錄（mlx GPU 優先）
     python3 notes_audio_digest.py summarize            # 4 claude CLI 擬標題／摘要／待辦
     python3 notes_audio_digest.py preview              # 5 產本機 HTML 對照表供過目
-    python3 notes_audio_digest.py apply --yes          # 6 寫回備忘錄（⚠ 會改備忘錄）
+    python3 notes_audio_digest.py apply --yes          # 6 寫回備忘錄（⚠ 會改備忘錄；無語音的直接刪除）
     python3 notes_audio_digest.py move --yes           # 7 搬到「錄音整理」資料夾（⚠ 會改備忘錄）
     python3 notes_audio_digest.py status               # 各階段進度
 
 共通參數：--limit N（只處理前 N 則）、--only p1670,p1669（指定備忘錄）。
 
 注意：
-- 只讀得到 Notes.app 透過 AppleScript 給的資料；備忘錄資料庫本身受 macOS TCC 保護、無法直接讀檔，
-  錄音一律用 `save attachment` 匯出。
+- 錄音一律直接從備忘錄資料庫（~/Library/Group Containers/group.com.apple.notes）取完整檔：
+  AppleScript `save attachment` 與介面「儲存附件⋯」拿到的常只是片段（2026-10-13 實測 1:06:54 只拿到 56 秒）。
+  該資料夾受 macOS TCC 保護，執行 export 的程式需要「完全取用磁碟」權限。
 - 只有錄音的備忘錄 body 是 `<div><br><br></div>`，HTML 內**不含附件**——用 AppleScript `set body`
   寫回會把錄音洗掉（2026-10-13 實測）。apply 改走輔助使用 API，只把文字插到錄音前面；
   寫完驗證附件數與標題，不符就立刻停下。執行 apply 時備忘錄視窗會逐則切換，期間勿操作備忘錄。
@@ -210,33 +211,153 @@ def probe_seconds(path: Path) -> float:
         return 0.0
 
 
+NOTES_DIR = Path.home() / "Library/Group Containers/group.com.apple.notes"
+
+
+def open_notes_db():
+    """把備忘錄資料庫（含 WAL）複製到暫存目錄後唯讀開啟，不碰正在使用中的原檔。"""
+    import shutil
+    import sqlite3
+    tmp = Path(tempfile.mkdtemp(prefix="notesdb_"))
+    try:
+        for f in NOTES_DIR.glob("NoteStore.sqlite*"):
+            shutil.copy2(f, tmp / f.name)
+    except PermissionError:
+        sys.exit("❌ 讀不到備忘錄資料夾。請在「系統設定 → 隱私權與安全性 → 完全取用磁碟」加入實際執行\n"
+                 "   本腳本的程式（終端機；由 Claude 執行時是 ~/Library/Application Support/Claude/\n"
+                 "   claude-code/<版本>/<雜湊>/claude.app，不是 /Applications/Claude.app），加完要重開。")
+    return sqlite3.connect(tmp / "NoteStore.sqlite")
+
+
+def media_file(db, media_pk):
+    row = db.execute("select ZIDENTIFIER from ZICCLOUDSYNCINGOBJECT where Z_PK=?", (media_pk,)).fetchone()
+    if not row:
+        return None
+    hits = sorted(NOTES_DIR.glob(f"Accounts/*/Media/{row[0]}/*/*"))
+    return hits[0] if hits else None
+
+
+def resolve_recording(db, att_pk: int, media_pk, db_secs: float):
+    """一個錄音附件 → (要串接的檔案清單, 說明)。
+
+    ⚠ AppleScript 的 `save attachment`（與介面的「儲存附件⋯」）拿到的只是附件本身那個檔，
+    常常只是片段（實測 1:06:54 的錄音只拿到 56 秒）。完整錄音放在「子附件」的檔案裡，
+    子附件可能一個（已合併的完整檔）或多個（分段，依序相接）。這裡以資料庫記載的長度為準挑檔。
+    """
+    top = media_file(db, media_pk) if media_pk else None
+    subs = [media_file(db, m) for (m,) in db.execute(
+        "select ZMEDIA from ZICCLOUDSYNCINGOBJECT where ZPARENTATTACHMENT=? order by Z_PK", (att_pk,))]
+    subs = [f for f in subs if f]
+    cands = ([top] if top else []) + subs
+    if not cands:
+        return [], "找不到實體檔（可能尚未從 iCloud 下載）"
+    durs = {f: probe_seconds(f) for f in cands}
+    sub_total = sum(durs[f] for f in subs)
+    if db_secs and db_secs > 0:
+        for f in cands:
+            if abs(durs[f] - db_secs) <= 3:
+                # 資料庫長度有時只對到最後一小段（實測 7 秒對上、另有一段 6 分鐘）——寧可多收不可漏
+                if len(subs) > 1 and max(durs.values()) > durs[f] * 2:
+                    return subs, f"{len(subs)} 段相接（資料庫長度只對到其中一小段，全收）"
+                return [f], "單檔"
+        if subs and abs(sub_total - db_secs) <= 3 * len(subs):
+            return subs, f"{len(subs)} 段相接"
+    # 資料庫沒記長度或對不上：取「最長單檔」與「子附件相接」中較長者
+    longest = max(cands, key=lambda f: durs[f])
+    if len(subs) > 1 and sub_total > durs[longest] + 3:
+        return subs, f"{len(subs)} 段相接（資料庫長度 {db_secs or 0:.0f}s 對不上，取總和）"
+    note = "" if not db_secs else f"（資料庫長度 {db_secs:.0f}s 對不上，取最長檔）"
+    return [longest], "單檔" + note
+
+
 def cmd_export(args):
     AUDIO_DIR.mkdir(parents=True, exist_ok=True)
     notes = select(load_manifest(), args)
-    total, failed = 0.0, []
+    db = open_notes_db()
+    state = load_json(STATE, {})
+    total, failed, changed = 0.0, [], []
     for i, n in enumerate(notes, 1):
         pk = n["pk"]
-        dst = audio_path(pk)
-        if not dst:
-            idx = next(k for k, a in enumerate(n["attachments"], 1) if a.lower().endswith(AUDIO_EXT))
-            ext = Path(n["attachments"][idx - 1]).suffix.lower()
-            dst = AUDIO_DIR / f"{pk}{ext}"
-            try:
-                osa(f'tell application "Notes" to save (attachment {idx} of note id {as_quote(n["id"])}) '
-                    f'in POSIX file {as_quote(str(dst))}')
-            except Exception as e:
+        atts = db.execute(
+            "select Z_PK, ZMEDIA, ZDURATION from ZICCLOUDSYNCINGOBJECT "
+            "where ZNOTE=? and ZPARENTATTACHMENT is null and ZTYPEUTI like '%audio%' "
+            "and coalesce(ZMARKEDFORDELETION,0)=0 order by Z_PK", (int(pk[1:]),)).fetchall()
+        files, how = [], []
+        for att_pk, media_pk, secs in atts:
+            fs, h = resolve_recording(db, att_pk, media_pk, secs)
+            files += [f for f in fs if f not in files]
+            how.append(h)
+        if not files:
+            failed.append(pk)
+            set_state(pk, export=f"failed: {'; '.join(how) or '資料庫裡找不到錄音附件'}")
+            print(f"[{i}/{len(notes)}] {pk} ❌ {'; '.join(how) or '資料庫裡找不到錄音附件'}")
+            continue
+        for old in AUDIO_DIR.glob(f"{pk}.*"):
+            old.unlink()
+        dst = AUDIO_DIR / f"{pk}.m4a"
+        if len(files) == 1:
+            import shutil
+            dst = AUDIO_DIR / f"{pk}{files[0].suffix.lower()}"
+            shutil.copy2(files[0], dst)
+        else:
+            cmd = ["ffmpeg", "-v", "error", "-y"]
+            for f in files:
+                cmd += ["-i", str(f)]
+            cmd += ["-filter_complex", f"concat=n={len(files)}:v=0:a=1", "-c:a", "aac", "-b:a", "64k", str(dst)]
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            if res.returncode != 0:
                 failed.append(pk)
-                set_state(pk, export=f"failed: {e}")
-                print(f"[{i}/{len(notes)}] {pk} ❌ {e}")
+                set_state(pk, export=f"failed: ffmpeg {res.stderr.strip()[:200]}")
+                print(f"[{i}/{len(notes)}] {pk} ❌ ffmpeg {res.stderr.strip()[:200]}")
                 continue
         secs = probe_seconds(dst)
         total += secs
+        before = state.get(pk, {}).get("seconds")
+        if before is not None and abs(before - secs) > 3:
+            changed.append(pk)
+            # 先前以片段做的轉錄／摘要作廢，下次重做
+            for d in (TRANSCRIPT_DIR, SUMMARY_DIR):
+                (d / f"{pk}.json").unlink(missing_ok=True)
         set_state(pk, export="ok", seconds=round(secs, 1), bytes=dst.stat().st_size)
-        print(f"[{i}/{len(notes)}] {pk} {n['created']} {fmt_ts(secs)}  {dst.stat().st_size / 1e6:.1f} MB")
+        mark = f"  ← 原 {fmt_ts(before)}" if pk in changed else ""
+        print(f"[{i}/{len(notes)}] {pk} {n['created']} {fmt_ts(secs)}  {dst.stat().st_size / 1e6:.1f} MB  "
+              f"{'; '.join(how)}{mark}")
     print(f"\n✅ 匯出 {len(notes) - len(failed)} 則，總長 {total / 3600:.2f} 小時；失敗 {len(failed)} 則 {failed or ''}")
+    if changed:
+        print(f"   長度與上次匯出不同（已清掉舊的轉錄／摘要快取）：{len(changed)} 則 {changed}")
 
 
 # ---------------------------------------------------------------- 3 轉錄
+
+MLX_REPO = "mlx-community/whisper-large-v3-turbo"
+
+
+def transcribe_mlx(src: Path, language):
+    """Apple Silicon GPU（mlx-whisper＋large-v3-turbo）。回傳 (片段, 語言, 長度秒)。"""
+    import mlx_whisper
+    r = mlx_whisper.transcribe(
+        str(src), path_or_hf_repo=MLX_REPO, language=language or None,
+        initial_prompt=WHISPER_PROMPT, condition_on_previous_text=False, verbose=None)
+    segs = []
+    for s in r["segments"]:
+        text = s["text"].strip()
+        # mlx 版沒有 VAD：靠無語音機率與壓縮比擋掉靜音段的幻覺與鬼打牆
+        if not text or s.get("no_speech_prob", 0) > 0.6 or s.get("compression_ratio", 0) > 2.4:
+            continue
+        segs.append({"start": round(s["start"], 1), "end": round(s["end"], 1), "text": text})
+    dur = r["segments"][-1]["end"] if r["segments"] else probe_seconds(src)
+    return segs, r.get("language") or language, dur
+
+
+def transcribe_faster(model, src: Path, language):
+    """CPU（faster-whisper），沒裝 mlx-whisper 時的備援。"""
+    segments, info = model.transcribe(
+        str(src), language=language or None, vad_filter=True,
+        initial_prompt=WHISPER_PROMPT, condition_on_previous_text=False)
+    segs = [{"start": round(s.start, 1), "end": round(s.end, 1), "text": s.text.strip()}
+            for s in segments if s.text and s.text.strip()]
+    return segs, info.language, info.duration
+
 
 def cmd_transcribe(args):
     TRANSCRIPT_DIR.mkdir(parents=True, exist_ok=True)
@@ -245,29 +366,60 @@ def cmd_transcribe(args):
     if not notes:
         print("✅ 沒有待轉錄的錄音。")
         return
-    from faster_whisper import WhisperModel
-    print(f"🎙️  載入 Whisper 模型（{args.whisper_model}）...")
-    model = WhisperModel(args.whisper_model, device="cpu", compute_type="int8")
+    engine = args.engine
+    if engine == "auto":
+        try:
+            import mlx_whisper  # noqa: F401
+            engine = "mlx"
+        except ImportError:
+            engine = "faster"
+    model = None
+    if engine == "faster":
+        from faster_whisper import WhisperModel
+        print(f"🎙️  faster-whisper（{args.whisper_model}，CPU）...")
+        model = WhisperModel(args.whisper_model, device="cpu", compute_type="int8")
+    else:
+        print(f"🎙️  mlx-whisper（{MLX_REPO}，GPU）...")
+    t_all, audio_all = time.time(), 0.0
     for i, n in enumerate(notes, 1):
         pk = n["pk"]
         src = audio_path(pk)
         t0 = time.time()
         try:
-            segments, info = model.transcribe(
-                str(src), language=args.language or None, vad_filter=True,
-                initial_prompt=WHISPER_PROMPT, condition_on_previous_text=False)
-            segs = [{"start": round(s.start, 1), "end": round(s.end, 1), "text": s.text.strip()}
-                    for s in segments if s.text and s.text.strip()]
+            if engine == "mlx":
+                segs, lang, dur = transcribe_mlx(src, args.language)
+            else:
+                segs, lang, dur = transcribe_faster(model, src, args.language)
         except Exception as e:
             set_state(pk, transcribe=f"failed: {e}")
-            print(f"[{i}/{len(notes)}] {pk} ❌ {e}")
+            print(f"[{i}/{len(notes)}] {pk} ❌ {e}", flush=True)
             continue
         save_json(TRANSCRIPT_DIR / f"{pk}.json",
-                  {"language": info.language, "duration": info.duration, "segments": segs})
-        set_state(pk, transcribe="ok" if segs else "empty")
-        chars = sum(len(s["text"]) for s in segs)
-        print(f"[{i}/{len(notes)}] {pk} {fmt_ts(info.duration)} → {chars} 字"
-              f"（{time.time() - t0:.0f}s）{'' if segs else '  ⚠ 無語音'}", flush=True)
+                  {"engine": engine, "language": lang, "duration": dur, "segments": segs})
+        kept = clean_segs(segs)
+        set_state(pk, transcribe="ok" if kept else "empty")
+        audio_all += dur
+        chars = sum(len(s["text"]) for s in kept)
+        print(f"[{i}/{len(notes)}] {pk} {fmt_ts(dur)} → {chars} 字"
+              f"（{time.time() - t0:.0f}s）{'' if kept else '  ⚠ 無語音'}", flush=True)
+    el = time.time() - t_all
+    print(f"\n✅ 轉錄 {audio_all / 3600:.2f} 小時音訊，耗時 {el / 60:.1f} 分（{audio_all / max(el, 1):.1f} 倍速）")
+
+
+def paragraphs(segs: list) -> list:
+    """把 Whisper 片段併成段落：[(起始秒, 文字)]。"""
+    paras, cur, start, last_end = [], [], 0.0, 0.0
+    for s in segs:
+        if cur and (s["start"] - start >= PARA_SECONDS or s["start"] - last_end >= PARA_GAP):
+            paras.append((start, "，".join(cur)))
+            cur = []
+        if not cur:
+            start = s["start"]
+        cur.append(s["text"])
+        last_end = s["end"]
+    if cur:
+        paras.append((start, "，".join(cur)))
+    return paras
 
 
 # Whisper 在無聲／音樂段落常見的幻覺句（訓練資料裡的片尾字幕），以及把 initial_prompt 原樣吐回來
@@ -286,22 +438,6 @@ def clean_segs(segs: list) -> list:
             continue
         out.append(s)
     return out
-
-
-def paragraphs(segs: list) -> list:
-    """把 Whisper 片段併成段落：[(起始秒, 文字)]。"""
-    paras, cur, start, last_end = [], [], 0.0, 0.0
-    for s in segs:
-        if cur and (s["start"] - start >= PARA_SECONDS or s["start"] - last_end >= PARA_GAP):
-            paras.append((start, "，".join(cur)))
-            cur = []
-        if not cur:
-            start = s["start"]
-        cur.append(s["text"])
-        last_end = s["end"]
-    if cur:
-        paras.append((start, "，".join(cur)))
-    return paras
 
 
 # ---------------------------------------------------------------- 4 摘要
@@ -471,40 +607,48 @@ end tell''')
 
 
 OBJ = "\ufffc"  # 編輯區文字裡代表附件（錄音）的佔位字元
-TEXT_AREA = 'text area 1 of scroll area 3 of splitter group 1 of window 1'
+AX_SRC = BASE_DIR / "notes_ax_insert.swift"
+AX_BIN = CACHE_DIR / "bin" / "notes_ax_insert"
 
 
-def editor_text(note_id: str) -> str:
-    """在備忘錄視窗打開該則，回傳編輯區全文（附件以 U+FFFC 表示）。"""
-    osa(f'tell application "Notes" to show note id {as_quote(note_id)}')
-    time.sleep(1.2)
-    return osa(f'tell application "System Events" to tell process "Notes" to return value of {TEXT_AREA}')
+def ax(*argv) -> str:
+    """呼叫 notes_ax_insert（首次或原始碼更新時自動編譯）。"""
+    if not AX_BIN.exists() or AX_BIN.stat().st_mtime < AX_SRC.stat().st_mtime:
+        AX_BIN.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["swiftc", "-O", str(AX_SRC), "-o", str(AX_BIN)], check=True)
+    res = subprocess.run([str(AX_BIN), *map(str, argv)], capture_output=True, text=True, timeout=60)
+    if res.returncode != 0:
+        raise RuntimeError(res.stderr.strip())
+    return res.stdout
 
 
-def insert_before_recording(note_id: str, text: str):
+def insert_before_recording(note_id: str, text: str, force: bool = False):
     """把 text 換掉「第一個附件之前」的內容（原標題／空白列），附件本身不動。
 
     ⚠ 不可用 AppleScript `set body`：body 的 HTML 不含附件，整則覆寫會把錄音洗掉（2026-10-13 實測）。
     這裡走輔助使用 API 只改選取範圍內的文字。
     """
-    cur = editor_text(note_id)
+    osa(f'tell application "Notes" to show note id {as_quote(note_id)}')
+    time.sleep(1.2)
+    cur = ax("read")
     if OBJ not in cur:
         raise RuntimeError("編輯區找不到附件，可能沒切到正確的備忘錄")
     head = cur[:cur.index(OBJ)]
-    if len(head.strip()) > MAX_BODY_CHARS:
+    if len(head.strip()) > MAX_BODY_CHARS and not force:
         raise RuntimeError(f"錄音前已有 {len(head.strip())} 字內文，與掃描時不符，略過")
-    # AppleScript 字串以 UTF-16 計長，與 AX 範圍的單位一致
-    n16 = len(head.encode("utf-16-le")) // 2
     with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as fh:
         fh.write(text)
         tmp = fh.name
     try:
-        osa(f'''set t to read (POSIX file {as_quote(tmp)}) as «class utf8»
-tell application "System Events" to tell process "Notes"
-    set ta to {TEXT_AREA}
-    set value of attribute "AXSelectedTextRange" of ta to {{1, {n16}}}
-    set value of attribute "AXSelectedText" of ta to t
-end tell''')
+        # AX 範圍以 UTF-16 code unit 計
+        ax("replace", 0, len(head.encode("utf-16-le")) // 2, tmp)
+        # 游標移回最前面，把第一列套成「大標題」樣式（純外觀，失敗不影響內容）
+        ax("caret", 0)
+        try:
+            osa('tell application "System Events" to tell process "Notes" to click menu item "大標題" '
+                'of menu 1 of menu bar item "格式" of menu bar 1')
+        except Exception as e:
+            print(f"   ⚠ 套用標題樣式失敗：{e}")
     finally:
         Path(tmp).unlink(missing_ok=True)
     time.sleep(0.8)
@@ -513,20 +657,33 @@ end tell''')
 def cmd_apply(args):
     notes = select(load_manifest(), args)
     state = load_json(STATE, {})
-    todo = [n for n in notes if ready(n) and state.get(n["pk"], {}).get("apply") != "ok"]
+    todo = [n for n in notes if ready(n) and state.get(n["pk"], {}).get("apply") != "deleted"
+            and (args.redo or state.get(n["pk"], {}).get("apply") != "ok")]
     print(f"待寫入 {len(todo)} 則" + ("" if args.yes else "（預覽，未加 --yes 不會寫入）"))
     for i, n in enumerate(todo, 1):
         pk = n["pk"]
         summ, segs = ready(n)
         title = new_title(n, summ)
         if not args.yes:
-            print(f"  {pk}  {n['old_title'] or '（空）'} → {title}")
+            print(f"  {pk}  {n['old_title'] or '（空）'} → {title if segs else '🗑 無語音，將刪除'}")
             continue
         if not audio_path(pk):
             sys.exit(f"❌ {pk} 沒有錄音備份，拒絕寫入。請先跑 export。")
+        if not segs:
+            # 沒偵測到語音的錄音直接刪除（Jimmy 2026-10-13 指示）；進「最近刪除」30 天內可救回，
+            # 錄音備份仍在 .notes_audio_cache/audio/
+            try:
+                osa(f'tell application "Notes" to delete note id {as_quote(n["id"])}')
+            except Exception as e:
+                set_state(pk, apply=f"failed: 刪除失敗 {e}")
+                print(f"[{i}/{len(todo)}] {pk} ❌ 刪除失敗 {e}")
+                continue
+            set_state(pk, apply="deleted")
+            print(f"[{i}/{len(todo)}] {pk} 🗑 無語音，已刪除（{n['created']}，{n['old_title'] or '無標題'}）", flush=True)
+            continue
         before, _ = note_facts(n["id"])
         try:
-            insert_before_recording(n["id"], build_text(n, summ, segs))
+            insert_before_recording(n["id"], build_text(n, summ, segs), force=args.redo)
         except Exception as e:
             set_state(pk, apply=f"failed: {e}")
             print(f"[{i}/{len(todo)}] {pk} ❌ {e}")
@@ -578,9 +735,9 @@ def cmd_status(args):
     for stage in ("export", "transcribe", "summarize", "apply", "move"):
         vals = [state.get(n["pk"], {}).get(stage) for n in notes]
         ok = sum(v == "ok" for v in vals)
-        empty = sum(v == "empty" for v in vals)
+        empty = sum(v in ("empty", "deleted") for v in vals)
         bad = [n["pk"] for n, v in zip(notes, vals) if v and v.startswith("failed")]
-        print(f"  {stage:<10} 完成 {ok}" + (f"、無語音 {empty}" if empty else "")
+        print(f"  {stage:<10} 完成 {ok}" + (f"、無語音{'已刪除' if stage == 'apply' else ''} {empty}" if empty else "")
               + (f"、失敗 {len(bad)} {bad}" if bad else ""))
     secs = sum(state.get(n["pk"], {}).get("seconds", 0) for n in notes)
     print(f"  錄音總長 {secs / 3600:.2f} 小時")
@@ -593,6 +750,10 @@ def main():
     ap.add_argument("--limit", type=int, help="只處理前 N 則")
     ap.add_argument("--only", help="只處理指定備忘錄（逗號分隔，如 p1670,p1669）")
     ap.add_argument("--yes", action="store_true", help="apply／move 真的寫入（否則只預覽）")
+    ap.add_argument("--redo", action="store_true",
+                    help="apply：已寫入過的也重寫（把錄音前面的既有文字整段換掉；務必搭配 --only）")
+    ap.add_argument("--engine", choices=["auto", "mlx", "faster"], default="auto",
+                    help="轉錄引擎：mlx＝GPU large-v3-turbo（預設，有裝就用）、faster＝CPU faster-whisper")
     ap.add_argument("--whisper-model", default=WHISPER_MODEL_SIZE,
                     help=f"Whisper 模型（tiny/base/small/medium/large-v3，預設 {WHISPER_MODEL_SIZE}）")
     ap.add_argument("--language", default="zh", help="轉錄語言（預設 zh；給空字串則自動偵測）")

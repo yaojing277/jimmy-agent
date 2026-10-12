@@ -1,6 +1,7 @@
 // 備忘錄編輯區文字插入小工具（供 notes_audio_digest.py 的 apply 階段呼叫）
 //
 //   notes_ax_insert read                      印出編輯區全文（附件以 U+FFFC 表示）
+//   notes_ax_insert caret <loc>               把游標移到 UTF-16 位置 loc
 //   notes_ax_insert replace <loc> <len> <檔>   把 UTF-16 範圍 [loc, loc+len) 換成檔案內容
 //
 // 走輔助使用 API 只改選取範圍內的文字，不整則覆寫，錄音附件因此不受影響。
@@ -47,6 +48,11 @@ if args.count >= 2 && args[1] == "read" {
     if e != .success { fail("設定選取範圍失敗（\(e.rawValue)）") }
     e = AXUIElementSetAttributeValue(ta, kAXSelectedTextAttribute as CFString, text as CFString)
     if e != .success { fail("寫入文字失敗（\(e.rawValue)）") }
+} else if args.count == 3 && args[1] == "caret" {
+    guard let loc = Int(args[2]) else { fail("參數錯誤") }
+    var range = CFRange(location: loc, length: 0)
+    guard let rv = AXValueCreate(.cfRange, &range) else { fail("無法建立範圍") }
+    if AXUIElementSetAttributeValue(ta, kAXSelectedTextRangeAttribute as CFString, rv) != .success { fail("移動游標失敗") }
 } else {
-    fail("用法：notes_ax_insert read | replace <loc> <len> <檔>")
+    fail("用法：notes_ax_insert read | caret <loc> | replace <loc> <len> <檔>")
 }
