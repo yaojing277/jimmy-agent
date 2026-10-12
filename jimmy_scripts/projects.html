@@ -183,6 +183,18 @@
     border-color: #3b2580;
   }
   .link-btn.secondary:hover { background: #251854; }
+  .link-btn.local {
+    color: var(--text2);
+    background: #1a1a1f;
+    border-color: #3a3a44;
+    border-style: dashed;
+  }
+  .link-btn.local:hover { background: #24242b; }
+  .link-btn.local.offline {
+    cursor: default;
+    opacity: 0.75;
+  }
+  .link-btn.local.offline:hover { background: #1a1a1f; }
 
   /* ── Sub-table ── */
   .sub-table {
@@ -288,7 +300,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-12</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-13</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -569,6 +581,7 @@
         <a class="link-btn" href="stock_automation_devlog.html" target="_blank">📚 家族總表（2026-04 起）</a>
         <a class="link-btn" href="wealth_os_devlog.html" target="_blank">📘 Wealth OS 開發紀錄</a>
         <a class="link-btn" href="return_calendar_guide.html" target="_blank">📊 報酬日曆建置手冊</a>
+        <a class="link-btn local" href="2026市值成長拆解_問答整理.html" target="_blank" data-local-only="1" title="2026 年市值成長拆解問答整理｜統計區間 2026/01/01～2026/10/12（186 個交易日）。含個人財務數字，刻意不進版控、不發佈到 GitHub Pages，僅存本機。">📈 2026 市值成長拆解（1/01–10/12）🔒</a>
         <a class="link-btn" href="schedule_runlog.html" target="_blank">🗓️ 排程執行紀錄</a>
         <a class="link-btn secondary" href="https://github.com/yaojing277/stock-notify" target="_blank">⑂ GitHub</a>
       </div>
@@ -958,6 +971,10 @@
       </thead>
       <tbody>
         <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-13</td>
+          <td>📈 <b>總覽新增「2026 市值成長拆解」文件，並建立「本機限定文件」的呈現方式</b>：把 10/12~10/13 一連串市值成長問答整理成單一自足 HTML（統計區間 <b>2026/01/01～10/12</b>，186 個交易日），掛進 Wealth OS 卡片。<b>⚠ 該檔含個人財務數字，刻意不進版控、不發佈到 GitHub Pages</b>——<code>deploy_projects.sh</code> 的 <code>FILES</code> 與 <code>publish_projects.py</code> 的 <code>SYNC_FILES</code> 都是<b>寫死的清單</b>（不會自動掃描頁內連結），所以加連結不會把它推上去。但線上會變成 404 死連結，因此新增 <code>data-local-only</code> 機制：<code>location.protocol !== 'file:'</code> 時自動移除 <code>href</code>、加 <code>aria-disabled</code> 並改顯示「🔒 僅本機」灰字虛線按鈕。<b>日後任何「只存在本機的文件」要掛上總覽，照這個模式即可</b></td>
+        </tr>
+        <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-12</td>
           <td>🧾 <b>排程跑完後補登三筆成交：USER_ENTERED 又把 <code>00662</code> 吃成 <code>662</code></b>：10/12 三筆買進（00631L 1,000 股 @40.60／00662 200 股 @127.25／台達電 10 股 @1,885，合計 84,971）在 14:30 排程跑完後才登錄，因此<b>不跑「更新股價」</b>、直接把成本併進既有的 <code>Jimmy_261012</code> 快照 B／C 欄，再跑「更新所有分頁」讓 <code>16_資產歷史</code> 同日覆寫列 2。<b>⚠ 踩到 CLAUDE.md 早就寫過的坑</b>：批次寫入「股票買賣紀錄」時以 <code>USER_ENTERED</code> 寫 <code>00662</code>，被當成數字存成 <b>662</b>（<code>00631L</code> 含字母倖免），<b>純數字代號一律要加 <code>'</code> 前綴</b>；寫完立刻 read-back 才抓到——<b>批次寫入後的驗證不能只對金額，A 欄也要逐列看</b>。另確立一條時效規則：<code>16_資產歷史</code> 的 <b>I 淨投入每次同步都依買賣紀錄整欄重算（晚登錄會自動更正），但 B 市值是當天快照的凍結值、不會回頭重算</b>——當天沒把持股併進快照，那一列就會少算新股市值（本次若漏做，10/12 單日損益會從 +167,057 變成 +81,737，短少 85,320）。結果：總市值 <b>17,509,750</b>、單日損益 <b>+167,057</b>、投資日誌 205→208 列無「買賣紀錄缺」、安全指數 75；<b>月損益表與配息欄在排程與手動重跑兩次之後都完整存活</b>（Jimmy 交辦的檢查項目）；曝險比例 <b>49:40:11</b>（前 50:39:11）、成本比例 <b>62:25:13</b></td>
         </tr>
@@ -1191,6 +1208,18 @@
 </section>
 
 <script>
+  // 本機限定文件（含金額，刻意不發佈）：線上開啟時改成不可點的灰字註記，
+  // 避免在 GitHub Pages 上變成 404 死連結。檔案清單寫死在 deploy_projects.sh
+  // 與 publish_projects.py 的 SYNC_FILES，兩邊都沒有它，所以永遠不會被推上去。
+  document.querySelectorAll('[data-local-only]').forEach(function (a) {
+    if (location.protocol === 'file:') return;
+    a.classList.add('offline');
+    a.removeAttribute('href');
+    a.removeAttribute('target');
+    a.setAttribute('aria-disabled', 'true');
+    a.textContent = a.textContent.replace(/\uD83D\uDD12$/, '') + '\uD83D\uDD12 \u50c5\u672c\u6a5f';
+  });
+
   // 更新最後更新日期（每次由 Claude 修改時同步更新 lastUpdated 內容即可）
   // 若需自動顯示今日，取消下方 auto 區塊的註解
   /*
