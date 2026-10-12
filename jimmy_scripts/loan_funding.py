@@ -115,6 +115,54 @@ def amortize(principal, annual_rate, n_periods, pmt, start):
     return rows
 
 
+def overseas_twd(creds):
+    """複委託帳戶的台幣市值合計（M 欄「台幣合計」那列）。
+
+    ⚠ 複委託尚未併入 16_資產歷史／04_ETF分析,所以必須另外讀這張分頁,
+      否則負債比率的分母會漏掉一整個帳戶、比率被低估。
+    讀不到就回 (0.0, 原因)——寧可標示「口徑不完整」,也不要讓整步失敗。
+    """
+    try:
+        svc = build("sheets", "v4", credentials=creds)
+        rows = svc.spreadsheets().values().get(
+            spreadsheetId=u.SPREADSHEET_ID, range="複委託!A1:N40"
+        ).execute().get("values", [])
+    except Exception as e:                      # 分頁不存在/API 抖動
+        return 0.0, f"讀取失敗（{type(e).__name__}）"
+    for r in rows:
+        if r and str(r[0]).strip() == "台幣合計":
+            try:
+                return float(str(r[12]).replace(",", "")), ""   # M 欄
+            except (IndexError, ValueError):
+                return 0.0, "「台幣合計」列找不到 M 欄數值"
+    return 0.0, "找不到「台幣合計」列"
+
+
+def debt_ratio(bal, mv_main, cash, mv_os, cfg):
+    """信貸負債比率＝信貸餘額 ÷ 投資淨資產。
+
+    淨資產＝(主帳戶股票市值 ＋ 現金 ＋ 複委託台幣市值) − 信貸餘額。
+    口徑依 A8 阿吧 EP132：**自住房與房貸不計入**(與投資槓桿無關),
+    他的例子是「淨資產 1000 萬借 300 萬＝1.3 倍槓桿」,即借款疊在自有本金之上。
+
+    ⚠ 分子用**信貸餘額**而非「投入股市的金額」:沒進股市的那部分仍在付利息,
+      而它對應的現金也已計入分母,用投入金額會兩頭都偏樂觀。
+    ⚠ 借錢**不改變淨資產**(現金增、負債同步增),所以「再借」只會單向推高比率;
+      額度只能靠攤還本金或淨資產成長來擴張。
+    """
+    assets = mv_main + cash + mv_os
+    equity = assets - bal
+    if equity <= 0:
+        return None
+    return {
+        "assets": assets, "equity": equity, "ratio": bal / equity,
+        "cap_max": equity * cfg["debt_max"], "cap_warn": equity * cfg["debt_warn"],
+        "room_max": equity * cfg["debt_max"] - bal,
+        "room_warn": equity * cfg["debt_warn"] - bal,
+        "max": cfg["debt_max"], "warn": cfg["debt_warn"],
+    }
+
+
 def main():
     ap = argparse.ArgumentParser(description="資金來源：信貸投入與報酬覆蓋檢驗")
     ap.add_argument("--sheet", action="store_true", help="寫入「股價試算」的「資金來源」分頁")
@@ -122,6 +170,7 @@ def main():
     ap.add_argument("--asof", help="結算日（預設今天），例 2026/10/08")
     ap.add_argument("--skip-if-no-config", action="store_true",
                     help="沒有設定檔時正常結束（exit 0）而非中止，排程專用")
+    ap.add_argument("--line-file", help="輸出一行負債比率摘要到此檔（給 workflow 併進每日 LINE）")
     args = ap.parse_args()
 
     c = load_config(skip_if_missing=args.skip_if_no_config)
@@ -164,6 +213,13 @@ def main():
                      float(dv) if isinstance(dv, (int, float)) else None))
     hist.sort(key=lambda x: u._hist_sort_key(x[0]))
     months = u._monthly_pnl(hist)            # 新到舊：(y,m,pnl,flow,mv_end,ret,twr,div,mwr)
+
+    # ── 負債比率監控（EP132 的 30%／20% 門檻）────────────────────
+    scfg = u.read_settings(wb)
+    mv_main = hist[-1][1] if hist else 0.0          # hist 已排成舊→新，取最新總市值
+    mv_date = hist[-1][0] if hist else "—"
+    mv_os, os_note = overseas_twd(creds)
+    DR = debt_ratio(bal, mv_main, scfg["cash"], mv_os, scfg)
 
     draw = u._parse_rec_date(str(c["撥款日"]).replace("-", "/"))
     invested = float(c["投入股市"])
@@ -240,6 +296,28 @@ def main():
     if unmatched:
         print(f"    ⚠ {unmatched_note}")
     print(f"    歸屬損益      {attributed:>12,.0f}")
+    if DR:
+        over = DR["ratio"] > DR["max"]
+        print(f"\n{'─'*64}\n  負債比率（信貸餘額 ÷ 投資淨資產）\n{'─'*64}")
+        print(f"    主帳戶股票市值  {mv_main:>12,.0f}   （{mv_date} 收盤）")
+        print(f"    ＋ 現金         {scfg['cash']:>12,.0f}")
+        print(f"    ＋ 複委託       {mv_os:>12,.0f}" + (f"   ⚠ {os_note}" if os_note else ""))
+        print(f"    ＝ 投資資產     {DR['assets']:>12,.0f}")
+        print(f"    − 信貸餘額      {bal:>12,.0f}")
+        print(f"    ＝ 投資淨資產   {DR['equity']:>12,.0f}   ← 門檻的分母")
+        print(f"\n    負債比率 {DR['ratio']:.2%}"
+              f"   {'✗ 已超過' if over else '✓ 未超過'} {DR['max']:.0%} 上限")
+        for label, cap, room in (("上限", DR["cap_max"], DR["room_max"]),
+                                 ("保守線", DR["cap_warn"], DR["room_warn"])):
+            pct = DR["max"] if label == "上限" else DR["warn"]
+            state = f"尚可借 {room:,.0f}" if room > 0 else f"已超出 {-room:,.0f}"
+            print(f"      {pct:.0%} {label}：可借上限 {cap:>12,.0f}   {state}")
+        print(f"\n    ⚠ 借錢不改變淨資產（現金增、負債同步增），「再借」只會推高比率；")
+        print(f"       額度只能靠攤還本金或淨資產成長擴張。")
+        print(f"    ⚠ 自住房與房貸不計入（與投資槓桿無關），口徑依 A8 阿吧 EP132。")
+    else:
+        print("\n⚠ 投資淨資產 ≤ 0 或資料不足，略過負債比率。")
+
     print(f"\n{'─'*64}\n  覆蓋檢驗\n{'─'*64}")
     for label, cost in (("利息（划不划算）", interest), ("月付（現金流）", paid)):
         net = attributed - cost
@@ -272,6 +350,17 @@ def main():
     for (y, m, _t, amt) in detail:
         print(f"    {y}/{m:02d}   {amt:>14,.0f}")
 
+    # ── LINE 一行摘要（排程用；放在 --sheet 判斷之前，不寫表也會產出）──
+    if args.line_file and DR:
+        room = DR["room_max"]
+        tail = (f"尚可借 {room/10000:,.0f} 萬" if room > 0
+                else f"⚠ 已超 {-room/10000:,.1f} 萬")
+        line = (f"信貸負債比率 {DR['ratio']:.1%}"
+                f"（上限 {DR['max']:.0%}，{tail}）")
+        with open(args.line_file, "w", encoding="utf-8") as f:
+            f.write(line)
+        print(f"\n[line-file] {line}")
+
     if not args.sheet:
         print("\n（未寫入試算表；要寫請加 --sheet）")
         return
@@ -287,8 +376,25 @@ def main():
             ["指定投入股市", invested], ["本帳戶可對應", round(invested_tracked)],
             ["未對應（推測複委託）", round(unmatched)], ["投入方式", deployed_note],
             ["加權累計報酬", cum - 1],
-            ["歸屬損益", round(attributed)], [],
-            ["─ 覆蓋檢驗 ─", "成本", "淨效益", "倍數"],
+            ["歸屬損益", round(attributed)], []]
+    if DR:
+        rows += [["─ 負債比率：信貸餘額 ÷ 投資淨資產 ─", "金額", "比率"],
+                 [f"主帳戶股票市值（{mv_date}）", round(mv_main)],
+                 ["＋ 現金（12_設定 B6）", round(scfg["cash"])],
+                 ["＋ 複委託台幣市值" + (f"　⚠ {os_note}" if os_note else ""), round(mv_os)],
+                 ["＝ 投資資產", round(DR["assets"])],
+                 ["− 信貸餘額", round(bal)],
+                 ["＝ 投資淨資產（門檻分母）", round(DR["equity"])],
+                 ["負債比率", "", DR["ratio"]],
+                 [f"{DR['max']:.0%} 上限：可借上限", round(DR["cap_max"]),
+                  f"{'尚可借' if DR['room_max'] > 0 else '已超出'} "
+                  f"{abs(DR['room_max']):,.0f}"],
+                 [f"{DR['warn']:.0%} 保守線：可借上限", round(DR["cap_warn"]),
+                  f"{'尚可借' if DR['room_warn'] > 0 else '已超出'} "
+                  f"{abs(DR['room_warn']):,.0f}"],
+                 ["判定", "超過上限" if DR["ratio"] > DR["max"] else
+                  ("超過保守線" if DR["ratio"] > DR["warn"] else "保守線內")], []]
+    rows += [["─ 覆蓋檢驗 ─", "成本", "淨效益", "倍數"],
             ["vs 累計利息（划不划算）", round(interest), round(attributed - interest),
              round(attributed / interest, 2) if interest else ""],
             ["vs 累計月付（現金流）", round(paid), round(attributed - paid),
@@ -314,6 +420,12 @@ def main():
              ["", "⚠ 真正的風險不是賺不贏利息（門檻低），而是波動期的現金流——"
                   "月薪 7 萬 − 生活 4 萬 − 房貸 3.4 萬 − 信貸 6.6 萬，月現金流本為負，靠現金部位填"],
              ["", "只追蹤信貸，房貸為自住房、與投資無關"],
+             ["", "負債比率門檻 30%／20% 出自 A8 阿吧 EP132（「30% 以內還算合理、保守 20%、40% 以上效果就爛」）；"
+                  "要調門檻改「12_設定」B33／B34，空著就用預設"],
+             ["", "⚠ 比率分子用**信貸餘額**而非投入股市金額——沒進股市的那部分仍在付利息，"
+                  "且對應現金已計入分母，用投入金額會兩頭偏樂觀"],
+             ["", "⚠ 借錢不改變淨資產（現金增、負債同步增），「再借」只會推高比率；"
+                  "額度只能靠攤還本金或淨資產成長擴張"],
              ["", f"投入截止 {cutoff}（預設撥款月底）；之後的買進不再對應信貸，"
                   "差額推測為複委託等本系統未追蹤的去向"]]
 

@@ -40,3 +40,5 @@ jimmy_scripts/loan_config.json
 # 市值成長拆解問答整理與員工認股診斷（含個人財務數字，不進公開 repo）
 jimmy_scripts/2026市值成長拆解_問答整理.html
 jimmy_scripts/穎崴員工認股_成本基礎失真診斷_*.md
+# 備忘錄錄音整理快取（私人錄音與逐字稿，絕不進版控）
+jimmy_scripts/.notes_audio_cache/
