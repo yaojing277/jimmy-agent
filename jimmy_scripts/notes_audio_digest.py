@@ -32,6 +32,7 @@
 import argparse
 import html
 import json
+import os
 import re
 import subprocess
 import sys
@@ -424,7 +425,7 @@ def paragraphs(segs: list) -> list:
 
 # Whisper 在無聲／音樂段落常見的幻覺句（訓練資料裡的片尾字幕），以及把 initial_prompt 原樣吐回來
 HALLUCINATION_RE = re.compile(
-    r"點贊|點讚|訂閱|轉發|打賞|明鏡|字幕(由|提供|製作|志願)|謝謝(觀看|收看|大家收看)|"
+    r"點贊|點讚|訂閱|轉發|打賞|明鏡|点赞|订阅|转发|打赏|明镜|栏目|字幕(由|提供|製作|志願)|謝謝(觀看|收看|大家收看)|"
     r"逐字稿與談話錄音|正體中文（台灣用語）|Amara\.org|請按讚|下集再見|下期再見")
 
 
@@ -530,7 +531,8 @@ def cmd_summarize(args):
 # ---------------------------------------------------------------- 內文組裝
 
 def new_title(n: dict, summ: dict) -> str:
-    return f"{summ['title']} {n['created']}"
+    # 日期在前：資料夾改按標題排序時仍是時間順序（Jimmy 2026-10-13 指定）
+    return f"{n['created']} {summ['title']}"
 
 
 def build_text(n: dict, summ: dict, segs: list) -> str:
@@ -630,6 +632,10 @@ def insert_before_recording(note_id: str, text: str, force: bool = False):
     """
     osa(f'tell application "Notes" to show note id {as_quote(note_id)}')
     time.sleep(1.2)
+    # 確認視窗真的切到這一則才動手，避免把文字插進別則（切換較慢、或視窗被使用者點走）
+    shown = osa('tell application "Notes" to return id of item 1 of (get selection)')
+    if shown != note_id:
+        raise RuntimeError("備忘錄視窗沒有切到這一則，略過")
     cur = ax("read")
     if OBJ not in cur:
         raise RuntimeError("編輯區找不到附件，可能沒切到正確的備忘錄")
@@ -660,16 +666,19 @@ def cmd_apply(args):
     todo = [n for n in notes if ready(n) and state.get(n["pk"], {}).get("apply") != "deleted"
             and (args.redo or state.get(n["pk"], {}).get("apply") != "ok")]
     print(f"待寫入 {len(todo)} 則" + ("" if args.yes else "（預覽，未加 --yes 不會寫入）"))
+    if args.yes and todo:
+        # 寫入靠操作備忘錄視窗，螢幕一鎖定就讀不到視窗——執行期間不讓螢幕休眠（腳本結束自動解除）
+        subprocess.Popen(["caffeinate", "-d", "-i", "-w", str(os.getpid())])
     for i, n in enumerate(todo, 1):
         pk = n["pk"]
         summ, segs = ready(n)
         title = new_title(n, summ)
         if not args.yes:
-            print(f"  {pk}  {n['old_title'] or '（空）'} → {title if segs else '🗑 無語音，將刪除'}")
+            print(f"  {pk}  {n['old_title'] or '（空）'} → {'🗑 無語音，將刪除' if summ.get('empty') else title}")
             continue
         if not audio_path(pk):
             sys.exit(f"❌ {pk} 沒有錄音備份，拒絕寫入。請先跑 export。")
-        if not segs:
+        if summ.get("empty"):
             # 沒偵測到語音的錄音直接刪除（Jimmy 2026-10-13 指示）；進「最近刪除」30 天內可救回，
             # 錄音備份仍在 .notes_audio_cache/audio/
             try:
