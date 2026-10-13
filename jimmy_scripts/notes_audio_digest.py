@@ -530,7 +530,13 @@ def cmd_summarize(args):
 
 # ---------------------------------------------------------------- 內文組裝
 
+STUB_MARK = "⚠有空卡片 "
+
+
 def new_title(n: dict, summ: dict) -> str:
+    # 寫入時偶發多出一個「音訊・0 秒」空卡片（成因未明），標題最前面加註記讓 Jimmy 找得到、自己刪
+    if load_json(STATE, {}).get(n["pk"], {}).get("stub"):
+        return f"{STUB_MARK}{n['created']} {summ['title']}"
     # 日期在前：資料夾改按標題排序時仍是時間順序（Jimmy 2026-10-13 指定）
     return f"{n['created']} {summ['title']}"
 
@@ -698,12 +704,30 @@ def cmd_apply(args):
             print(f"[{i}/{len(todo)}] {pk} ❌ {e}")
             continue
         after, name = note_facts(n["id"])
-        if after != before:
+        if after < before:
             set_state(pk, apply=f"failed: 附件數 {before} → {after}")
             sys.exit(f"❌ {pk} 寫入後附件數由 {before} 變成 {after}，已停止。備份在 {audio_path(pk)}")
+        if after > before:
+            # 多出空卡片：不停，標題加註記後重寫一次（原錄音不受影響）
+            set_state(pk, stub=True)
+            title = new_title(n, summ)
+            try:
+                insert_before_recording(n["id"], build_text(n, summ, segs), force=True)
+            except Exception as e:
+                set_state(pk, apply=f"failed: 加註記失敗 {e}")
+                print(f"[{i}/{len(todo)}] {pk} ❌ 多出空卡片且加註記失敗 {e}")
+                continue
+            after2, name = note_facts(n["id"])
+            if after2 < before:
+                sys.exit(f"❌ {pk} 加註記後附件數變成 {after2}，已停止。備份在 {audio_path(pk)}")
+            print(f"   ⚠ {pk} 多出空卡片（附件數 {before} → {after2}），標題已加註記")
         if name.strip() != title.strip():
-            set_state(pk, apply=f"failed: 標題不符（{name}）")
-            sys.exit(f"❌ {pk} 寫入後標題是「{name}」，預期「{title}」，已停止。")
+            # AppleScript 回報的名稱偶爾不更新（實測一則卡在「新錄音」）——改看編輯區第一列
+            if ax("read").startswith(title):
+                print(f"   ⚠ {pk} 備忘錄回報的名稱仍是「{name}」，但編輯區第一列已是新標題")
+            else:
+                set_state(pk, apply=f"failed: 標題不符（{name}）")
+                sys.exit(f"❌ {pk} 寫入後標題是「{name}」，預期「{title}」，已停止。")
         set_state(pk, apply="ok", new_title=title)
         print(f"[{i}/{len(todo)}] {pk} ✅ {name}", flush=True)
 
