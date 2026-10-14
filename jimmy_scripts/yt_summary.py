@@ -94,8 +94,45 @@ def fetch_metadata(video_id: str) -> dict:
         meta["channel"] = data.get("author_name") or ""
         meta["thumbnail"] = data.get("thumbnail_url") or meta["thumbnail"]
     except Exception as e:
-        print(f"⚠️  oEmbed 中繼資料抓取失敗（不影響摘要）：{e}")
+        print(f"⚠️  oEmbed 失敗（{type(e).__name__}），改從觀看頁抓標題／頻道…")
+        scraped = scrape_meta(watch_url)
+        if scraped:
+            meta.update(scraped)
+            print(f"   ✅ 備援取得：{meta['title']}（{meta['channel']}）")
+        else:
+            print("   ⚠️ 備援也失敗，標題將顯示為 video id")
     return meta
+
+
+def scrape_meta(watch_url: str) -> dict:
+    """oEmbed 失敗時的備援：從觀看頁的 videoDetails 取標題與頻道。
+
+    ⚠ oEmbed 會間歇回 401（2026-09 槓桿人生、2026-10 大仁來開槓都中過），
+      不是影片有問題;沒有備援的話標題會掉成 video id、摘要頁與摘要庫都難辨識。
+    ⚠ 必須鎖在 "videoDetails" 區塊內抓——整頁有多個 "title" 欄位
+      (實測會抓到推薦影片的 "523")。
+    """
+    try:
+        html_text = requests.get(watch_url, headers={"User-Agent": "Mozilla/5.0"},
+                                 timeout=15).text
+    except Exception:
+        return {}
+    def unesc(raw):
+        # raw 是 JSON 字串的「內容」,用 json.loads 還原 \uXXXX 等轉義。
+        # ⚠ 不可用 .encode().decode("unicode_escape") —— 那會把 UTF-8 中文弄成亂碼(實測)。
+        try:
+            return json.loads(f'"{raw}"')
+        except json.JSONDecodeError:
+            return raw
+
+    out = {}
+    m = re.search(r'"videoDetails":\{.*?"title":"(.*?)","lengthSeconds"', html_text, re.S)
+    if m:
+        out["title"] = unesc(m.group(1))
+    m = re.search(r'"videoDetails":\{.*?"author":"(.*?)"', html_text, re.S)
+    if m:
+        out["channel"] = unesc(m.group(1))
+    return out
 
 
 # ---------------------------------------------------------------- 字幕
