@@ -169,7 +169,7 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 | ETF 報酬比較圖卡 | `00631L_vs_0050_returns.html` / `_light.html` + PNG + `ETF_annual_returns.csv` |
 | 每日跌幅分布查詢 | **手機版（主）**：https://yaojing277.github.io/projects/drop/ ——`drop_stats_publish.py daily` 隨 `wealth_sync.yml` 每個交易日抓證交所全市場收盤行情（MI_INDEX，一次＝全市場一天）重建當月月檔 `drop/data/YYYY-MM.json`＋`meta.json`，`drop_stats_web.html` 在瀏覽器端計算（電腦不必開）；漲跌幅用官方參考價（一般日＝漲跌價差、除息日 X＝TWT49U 除權息參考價），分割自動正確；目前只收上市。回補：`build --from YYYY-MM` 後 `publish`。**本機版**：`drop_stats_card.py <代號>`（CLI 產 HTML/PNG）、`drop_stats_server.py`（localhost:8766） |
 | `projects.html` | 專案總覽頁；說「更新專案總覽」時需同步更新這裡＋本檔案（見 memory）。`deploy_projects.sh` 一鍵部署至 `yaojing277.github.io/projects`（repo `yaojing277/projects`，2026-09-03 建立）：另存一份 `index.html` 當首頁，並一併帶上頁內相對連結的檔案（兩份 devlog、ETF 報酬圖卡、族群圖表、`yt_summaries/`）；**改完 `projects.html` 或兩份 devlog 後要跑這支才會反映到線上**（2026-09-03 起每個交易日排程也會自動同步這幾份，本機跑只是想立刻生效時用） |
-| YouTube 影片 AI 摘要 | `yt_summary.py <網址>`：字幕（youtube-transcript-api，zh-TW 優先）→ claude CLI `-p`（自動尋找桌面版 App 內建執行檔）→ 深色 HTML 摘要頁＋`yt_summaries/index.html` 摘要庫；無字幕自動 fallback **yt-dlp＋faster-whisper 本地轉錄**（`--whisper-model` 可調）；字幕／轉錄結果快取於 `.yt_transcript_cache/`（摘要失敗重跑免再轉錄一次，該目錄不會被 deploy 推上 GitHub）；**首次使用需先讓 claude CLI /login 一次**。`yt_auto_summary.py`：三頻道（阿良的正二人生／槓桿人生／卡哇KAWA）RSS 新片自動摘要→部署→LINE 推短版（狀態記 `yt_auto_state.json`，首次執行只登記、`--backfill N` 回補；LINE 金鑰讀環境變數或 `line_secrets.json`）。`deploy_yt_summaries.sh` 一鍵部署摘要庫至 `yaojing277.github.io/yt-summaries`（repo 不存在自動建立） |
+| YouTube 影片 AI 摘要 | `yt_summary.py <網址>`：字幕（youtube-transcript-api，zh-TW 優先）→ claude CLI `-p`（自動尋找桌面版 App 內建執行檔）→ 深色 HTML 摘要頁＋`yt_summaries/index.html` 摘要庫；無字幕自動 fallback **yt-dlp＋faster-whisper 本地轉錄**（`--whisper-model` 可調）；字幕／轉錄結果快取於 `.yt_transcript_cache/`（摘要失敗重跑免再轉錄一次，該目錄不會被 deploy 推上 GitHub）；**首次使用需先讓 claude CLI /login 一次**。**oEmbed 會間歇回 401**（與影片無關），`scrape_meta()` 自動改從觀看頁 `videoDetails` 取標題／頻道當備援（2026-10-13 起）——還原轉義要用 `json.loads`，用 `unicode_escape` 中文會變亂碼；且須鎖在 `videoDetails` 區塊內抓，整頁有多個 `"title"`。`yt_auto_summary.py`：三頻道（阿良的正二人生／槓桿人生／卡哇KAWA）RSS 新片自動摘要→部署→LINE 推短版（狀態記 `yt_auto_state.json`，首次執行只登記、`--backfill N` 回補；LINE 金鑰讀環境變數或 `line_secrets.json`）。`deploy_yt_summaries.sh` 一鍵部署摘要庫至 `yaojing277.github.io/yt-summaries`（repo 不存在自動建立） |
 
 ### 其他獨立小專案
 
@@ -252,6 +252,39 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   改完門檻後用 `read_settings(wb)` 印出來核對一次（B13/B21/B33/B34 應為 0.6/0.7/0.4/0.3），
   並比對 `number_format` 是否為 `0.00%`。⚠ 注意 B14/B15/B16/B25 的格式是
   `#,##0;[Red](#,##0);-`（顯示成 0），但**儲存值同樣是小數**，那是既有現象、不是錯誤。
+- **版本紀錄與 devlog 不寫絕對金額（2026-10-14 起）**：`projects.html` 與兩份 devlog 都發佈到
+  **Public** repo `yaojing277/projects`，說明文字任何人可見。一律改用**相對描述**——
+  保留 %、pp、倍數、比例、安全指數分數，但**不寫投資組合的絕對金額**
+  （總市值／總負債／淨資產／可借額度／現金目標）。10-13 那三筆已轉為相對描述
+  （7 位數金額由 13 種降回 9 種）；**9 種舊的依 Jimmy 指示不回頭改**——
+  清現況救不回 git 歷史，而搜尋引擎抓現頁、不抓歷史。
+  **[2026-10-14] `wealth_os_devlog.html` 已全面清除**：7 位數 35 種／44 處、「萬」單位 ≥100 萬 39 處
+  全改為比率與方向（對帳句保留「與 X 一致」的結論、拆解句改占比）。
+  ⚠ 清查時發現**年花費其實也外洩過**（devlog 一處以 `12_設定!B22` 金額現身），已改掉——
+  「某項目未外洩」的結論要逐檔搜過才算，不能只看主要幾頁。
+  **6 位數金額（24 種／36 處）也已於同日清完 → devlog 現為零投資組合金額**；
+  唯一保留的 `269,280` 不是金額（是 K 欄輸入錯誤的價格，刪了看不懂那個 bug）。
+  **[2026-10-14] 三頁已全部清零**（Jimmy 指示連舊條目一起清）：`projects.html`、
+  `wealth_os_devlog.html`、`stock_automation_devlog.html` 皆無真實投資組合金額。
+  殘留的 5 個數字不是金額：虛構舉例 `12,345,678`、K 欄錯誤價格 `269,280` 與它算出的
+  `346 億／15 億`（bug 示範）、「≥100 萬」門檻標籤、Excel 列數上限 `1048576`。
+  ⚠ **盤點金額要同時掃四種寫法**：逗號格式（7 位／6 位）、「萬」、「億」、裸長數字，
+  **而且要逐檔掃過每一頁**。實際踩了三次：第一次漏「萬」單位、第二次漏總覽頁的「萬」、
+  第三次才發現 `stock_automation_devlog` 其實有 6 種 6 位數（前兩次都記它「乾淨」，
+  因為只數了 7 位數）。**只換個單位或換個檔案就會從網子裡溜掉。**
+  ⚠ **描述「清掉了什麼」時不要引述被清掉的數字**：2026-10-14 那筆版本紀錄初稿把 devlog
+  原話連金額一起引用，等於一邊記錄清除、一邊把它貼回公開頁（**部署後掃線上頁才抓到**）。
+  紀錄只寫「哪種寫法、在哪個檔案」，不要寫數值本身。**清完要掃一次已部署的線上頁**，
+  不能只信本機掃描的結果。
+  ⚠ **公開頁有兩條上線路徑，兩條都要同步**（2026-10-14 差點全部白做）：手動 `deploy_projects.sh`
+  推的是 `jimmy_scripts/` 的本機版，**每日排程的 `publish_projects.py` 跑在雲端、讀的是
+  `stock_notify_tmp/jimmy_scripts/`**——那份沒同步，下次排程就會把清掉的金額全部貼回線上。
+  ⚠ **盤點範圍要以「發佈清單」為準，不是憑印象列檔案**：去讀 `publish_projects.py` 的
+  `SYNC_FILES` 與 `deploy_projects.sh` 的 `FILES`。前五次盤點都漏掉
+  `return_calendar_guide.html`（報酬日曆建置手冊，示範表格用真實數字，16 種 6 位數），
+  只因為它不在「兩份 devlog」的心智清單裡。該手冊已改為算式自洽的虛構示意值。
+  ⚠ 清查計數別用 `[0-9]{3},[0-9]{3}` 直接比對——會把 7 位數的尾段也算進去、虛報成兩倍，要加前後邊界。
+  細節見 memory（[[project-public-pages-amounts]]）。
 - **版本紀錄要順手補（2026-09-29 起）**：做完有份量的改動（新腳本／新功能／行為變更／重要修復）後，
   **主動**在 `projects.html` 「版本紀錄」最上方補一筆並更新頁首日期，不必等「更新專案總覽」指令。
   每日排程的 `publish_projects.py` 只同步檔案、不會代寫版本紀錄（2026-09-02～09-26 曾因此空窗三週）。
