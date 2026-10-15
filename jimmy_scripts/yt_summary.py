@@ -26,6 +26,7 @@ import json
 import os
 import re
 import subprocess
+import time
 import sys
 import tempfile
 from datetime import datetime
@@ -152,6 +153,18 @@ class NoCaptionsError(RuntimeError):
     """影片完全沒有字幕（含自動字幕）；呼叫端可用此觸發 Whisper fallback。"""
 
 
+class TranscriptBlocked(RuntimeError):
+    """字幕端點**暫時**取不到：YouTube 限流／IP 封鎖／PO Token 等傳輸層問題。
+
+    ⚠ 這不是「沒有字幕」,務必跟 NoCaptionsError 分開:
+      - **不可** fallback 到 Whisper——影片其實有字幕,白下載 80MB 音軌又慢
+      - **不可**記成永久失敗——休息一陣子就抓得到(2026-10-15 實測:
+        被記成失敗的 30 部,隔幾小時全部都抓得到 zh-TW 人工字幕)
+      - 呼叫端應視為**全域封鎖**,整批冷卻後重試同一部,
+        **不要** per-video 指數退避(那是持續敲一個已封鎖的端點)
+    """
+
+
 def fetch_transcript(video_id: str):
     """回傳 (snippets, 語言碼, 是否自動字幕)；snippets = [{text, start}, ...]。
 
@@ -160,6 +173,7 @@ def fetch_transcript(video_id: str):
     """
     from youtube_transcript_api import YouTubeTranscriptApi
     from youtube_transcript_api._errors import (
+        CouldNotRetrieveTranscript,
         TranscriptsDisabled,
         NoTranscriptFound,
         VideoUnavailable,
@@ -172,6 +186,11 @@ def fetch_transcript(video_id: str):
         raise NoCaptionsError("此影片無字幕（含自動字幕）。") from e
     except VideoUnavailable as e:
         raise RuntimeError("影片不存在或無法存取（可能為私人/會員限定影片）。") from e
+    except CouldNotRetrieveTranscript as e:
+        # ⚠ 必須擺在上面三個具體子類之後(它是它們的基底類別)。
+        #   這裡接到的是 YouTubeRequestFailed／PoTokenRequired／YouTubeDataUnparsable
+        #   等**傳輸層**子類,以前會原樣逃出、被批次腳本當成 per-video 可重試錯誤。
+        raise TranscriptBlocked(f"{type(e).__name__}：字幕端點暫時取不到") from e
 
     if not tlist:
         raise NoCaptionsError("此影片無字幕（含自動字幕）。")
@@ -180,7 +199,12 @@ def fetch_transcript(video_id: str):
     tlist.sort(key=lambda t: (t.is_generated, _lang_rank(t.language_code)))
     chosen = tlist[0]
 
-    fetched = chosen.fetch()
+    try:
+        fetched = chosen.fetch()
+    except CouldNotRetrieveTranscript as e:
+        # 清單列得出來、取內容卻被擋 —— 確定是傳輸層問題,不是沒字幕。
+        # (舊版這行沒包 try,錯誤原樣逃出,正是 2026-10-15 那 30 部誤判的來源)
+        raise TranscriptBlocked(f"{type(e).__name__}：取字幕內容時被擋") from e
     snippets = [{"text": s.text, "start": s.start} for s in fetched]
     return snippets, chosen.language_code, chosen.is_generated
 
@@ -596,8 +620,19 @@ def summarize_video(url: str, model: str = "sonnet", whisper_model: str = WHISPE
         try:
             snippets, lang, auto = fetch_transcript(video_id)
         except NoCaptionsError:
-            snippets, lang, auto = transcribe_with_whisper(video_id, model_size=whisper_model)
-            source = "whisper"
+            # ⚠ 「沒字幕」有可能是**假的**：YouTube 對字幕 API 限速時會回一個不含
+            #   字幕軌的頁面,youtube_transcript_api 會判成 TranscriptsDisabled。
+            #   直接 fallback 等於對「其實有字幕」的影片白跑好幾分鐘 Whisper
+            #   (2026-10-14 批次摘要整個頻道時實測中招)。所以先隔一下重試一次,
+            #   兩次都說沒有才當真。
+            print("   ⏳ 判定無字幕,15 秒後重試一次以排除限速誤判…")
+            time.sleep(15)
+            try:
+                snippets, lang, auto = fetch_transcript(video_id)
+                print("   ✅ 重試後取得字幕(前一次是限速誤判)")
+            except NoCaptionsError:
+                snippets, lang, auto = transcribe_with_whisper(video_id, model_size=whisper_model)
+                source = "whisper"
         save_cached_transcript(video_id, snippets, lang, auto, source)
 
     transcript_text = build_transcript_text(snippets)

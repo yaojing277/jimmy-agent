@@ -300,7 +300,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-14</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-15</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -978,6 +978,10 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-15</td>
+          <td>➕ <b>Wealth OS 首次新增股票：兩檔新 ETF 進表，牽動 11 張分頁</b>：買進兩檔不在系統內的標的（一檔主動式、一檔指數正2），<code>update_wealth_os.py</code> 對此只印「<b>不自動新增，請人工加列</b>」——這是 <code>delete_stock_rows()</code> 的反向操作。<b>採「附加在 <code>03_持股總表</code> 尾端」而非依代號插在中間</b>：中間插入會讓 <code>05_個股分析</code> 的 36 個固定參照全部位移，附加則讓既有列原封不動。實際改動 <b>22 處指向合計列的跨分頁參照</b>＋<b>24 處範圍結尾</b>＋03 自身的 shared 主格 ref、S 欄絕對參照、合計列搬移與條件式格式。<b>⚠ 踩到三個坑</b>：(1) <b>不能插在 <code>&lt;/sheetData&gt;</code> 之前</b>——合計列後面還有帶樣式的空列與數百個自閉合 <code>&lt;row/&gt;</code>，那樣會造成<b>列號重複且不遞增</b>，<b>只有「無重複儲存格編號」那道硬檢查抓得到</b>（元件清單一致＋無 <code>#REF!</code> 完全看不出來）；(2) <code>full_refresh()</code> 以 <code>d['row'] &gt;= 14</code> 判斷個股的寫法在新增 ETF 後失效，<b>已改為依類別判斷、與列順序脫鉤</b>；(3) <code>13_加碼分析</code> 逐檔對應所有持股，必須同步加列，<code>--full</code> 的「找不到儲存格」護欄正確攔截且<b>未上傳</b>。全程在本機複本上施作、七項驗證全過才上傳，上傳前另比對雲端 sha256 防止蓋掉期間變更。結果：<b>22 檔全部配對成功、無 <code>only_src</code> 警告</b>，各分頁合計一致、S 欄比例合計為 1、<code>05_個股分析</code> 檔數未變</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-14</td>
           <td>🚨 <b>差點全部白做：雲端副本沒同步，下次排程就會把金額貼回線上</b>。<code>publish_projects.py</code> 跑在 <code>stock-notify</code>，<b>從 <code>stock_notify_tmp/jimmy_scripts/</code> 讀檔</b>同步到公開頁——那四份卻還是舊版（最舊的是 10/01），合計帶著 <b>48 種 7 位數＋65 種 6 位數＋49 種「萬」</b>。<b>清本機不等於清線上，線上也不等於清完</b>：手動 <code>deploy_projects.sh</code> 推的是本機版，排程推的是雲端副本，<b>兩條路都要同步才算數</b>。已全部同步並 push。<b>⚠ 同時發現第五個檔案</b>：<code>SYNC_FILES</code> 還含 <code>return_calendar_guide.html</code>（報酬日曆建置手冊），裡面示範表格用的是真實數字（16 種 6 位數）——<b>前五次盤點都沒掃到它，因為它不在「兩份 devlog」的心智清單裡</b>。已改為算式自洽的虛構示意值（成本固定、市值取萬位整數，未實現損益＝市值−成本、市值漲跌＝損益＋淨投入皆驗算通過）並於 caption 標註「示意值」。<b>教訓：盤點範圍要以「發佈清單」為準，不是憑印象列檔案</b>——去讀 <code>SYNC_FILES</code> 與 <code>deploy_projects.sh</code> 的 <code>FILES</code>，那才是真正會上線的集合</td>

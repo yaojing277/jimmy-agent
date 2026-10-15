@@ -2742,7 +2742,10 @@ def full_refresh(path_in, path_out, date_str):
 
     # 04_個股分析(列4起 ↔ 02 個股與其後各列;F 欄為 shared 公式,逐列刷快取)
     p = tabs["05_個股分析"]
-    st04 = [d for d in S if d['row'] >= 14]
+    # ⚠ 原為 d['row'] >= 14（假設 03 的個股一定排在列14 之後）。2026-10-15 新增兩檔 ETF
+    #   後該假設即失效：附加在尾端會被當成個股、插在前面則會把 ETF 擠進個股區段。
+    #   改用類別判斷，與 03 的列順序完全脫鉤。
+    st04 = [d for d in S if d['cat'] == '個股']
     for i, d in enumerate(st04):
         r = 4 + i
         C(p, f"B{r}", d['F']); C(p, f"C{r}", d['S'])

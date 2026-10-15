@@ -1,0 +1,28 @@
+{
+  "failed": {
+    "8MpX7AxiuC4": {
+      "title": "#23｜高股息「零成本」全是騙局？學會富人的「成本」思維，解鎖資產翻倍密碼。",
+      "type": "RuntimeError",
+      "error": "claude CLI 執行失敗：You've hit your session limit · resets 6:30am (Asia/Taipei)",
+      "at": "2026-10-15T04:53:45"
+    },
+    "EOEIPOE08y8": {
+      "title": "#22｜股市大跌該逃嗎？揭密槓桿投資的「真正風險」與 必備的「4 大防禦機制」",
+      "type": "RuntimeError",
+      "error": "claude CLI 執行失敗：You've hit your session limit · resets 6:30am (Asia/Taipei)",
+      "at": "2026-10-15T05:02:28"
+    },
+    "1Gb4wGZ5jrw": {
+      "title": "#21｜散戶終局大公開！放棄選股改用「槓桿+大盤」，提早達成財富自由！",
+      "type": "RuntimeError",
+      "error": "claude CLI 執行失敗：You've hit your session limit · resets 6:30am (Asia/Taipei)",
+      "at": "2026-10-15T05:11:12"
+    },
+    "7YT7EYJFSXg": {
+      "title": "掌握「債務」底層邏輯，3步驟讓你變成有錢人的腦袋｜槓桿人生EP20精華版",
+      "type": "RuntimeError",
+      "error": "claude CLI 執行失敗：You've hit your session limit · resets 6:30am (Asia/Taipei)",
+      "at": "2026-10-15T05:19:54"
+    }
+  }
+}
