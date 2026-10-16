@@ -300,7 +300,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-15</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-16</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -805,7 +805,7 @@
         <div class="card-icon">🎬</div>
         <div class="card-meta">
           <div class="card-name">YouTube 影片 AI 摘要</div>
-          <div class="card-sub">貼網址 / 頻道自動監控 → AI 重點摘要 · v2.1</div>
+          <div class="card-sub">貼網址 / 新片監控 / 整頻道批次 → AI 重點摘要 · v3.0</div>
         </div>
         <span class="dot"></span>
       </div>
@@ -820,7 +820,8 @@
         <b>無字幕自動 Whisper 語音轉錄</b>）→ <b>claude CLI</b> 產生結構化摘要 →
         深色 HTML 摘要頁：一句話總結、重點清單、<b>可點跳轉的時間戳章節</b>、金句與適合誰看。
         字幕與轉錄結果會<b>快取</b>，摘要中斷重跑免再等一次 Whisper。
-        另可 <b>yt_auto_summary.py</b> 一鍵檢查三個頻道新片、自動摘要＋部署＋LINE 推播。
+        另有兩支批次工具：<b>yt_auto_summary.py</b> 檢查三個頻道新片（自動摘要＋部署＋LINE），
+        <b>yt_channel_summary.py</b> 把<b>整個頻道</b>補完（起跑前預檢、分多天跑、斷點續跑）。
       </div>
       <table class="sub-table">
         <thead>
@@ -829,9 +830,11 @@
         <tbody>
           <tr><td>單片摘要</td><td class="mono">python3 yt_summary.py &lt;網址&gt;</td></tr>
           <tr><td>新片自動摘要</td><td class="mono">python3 yt_auto_summary.py</td></tr>
+          <tr><td>整頻道批次</td><td class="mono">python3 yt_channel_summary.py &lt;頻道網址&gt;</td></tr>
           <tr><td>監控頻道</td><td>阿良的正二人生 / 槓桿人生 / 卡哇KAWA</td></tr>
           <tr><td>AI 引擎</td><td>claude CLI（訂閱制，免 API key）＋ faster-whisper 轉錄</td></tr>
           <tr><td>摘要庫</td><td class="mono">yt_summaries/index.html</td></tr>
+          <tr><td>目前收錄</td><td><b>80 部</b>（含槓桿人生全頻道 70 部）</td></tr>
         </tbody>
       </table>
       <ul class="todo-list">
@@ -841,6 +844,8 @@
         <li class="done">摘要庫部署 GitHub Pages（deploy_yt_summaries.sh 一鍵）</li>
         <li class="done">頻道新片自動摘要（yt_auto_summary.py：RSS 比對已見清單 → 摘要 → 部署 → LINE）</li>
         <li class="done">字幕／轉錄快取（.yt_transcript_cache，不隨 deploy 上傳）</li>
+        <li class="done">整頻道批次摘要（yt_channel_summary.py：fetch 級預檢、分多天跑、斷點續跑）</li>
+        <li class="done">槓桿人生全頻道 70 部補完</li>
         <li>本機設定 LINE 金鑰（line_secrets.json）啟用摘要推播</li>
       </ul>
       <div class="link-row">
@@ -978,6 +983,14 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-16</td>
+          <td>🎬 <b>整頻道批次摘要 v3.0：槓桿人生 70 部補完（摘要庫 80 部）</b>。新增 <code>yt_channel_summary.py</code>：yt-dlp 取頻道清單 → 逐部摘要 → 中途部署，斷點續跑（已在摘要庫的自動跳過）。過程踩了<b>三個互相掩蓋的坑</b>，每一個都讓人誤判下一個：<br>
+          <b>① <code>list()</code> 探測是假綠燈（最根本）</b>：判斷「封鎖解除了嗎」時只呼叫 <code>list()</code>，但真正被擋的是 <code>fetch()</code>——同一部影片 <code>list()</code> 回得出 zh-TW、<code>fetch()</code> 卻是 <code>IpBlocked</code>。因此連續多輪批次都「看到綠燈就啟動、第一部就撞牆」，被誤判成「節流間隔不夠」，連帶讓所有 pause 實測數據失效。<b>預檢一定要真的抓一部字幕內容。</b><br>
+          <b>② 限流被誤判成永久失敗</b>：限流會以 <code>YouTubeRequestFailed</code> 等 <code>CouldNotRetrieveTranscript</code> 子類出現，而分類只認 <code>IpBlocked</code>／<code>RequestBlocked</code>，其餘掉進 per-video 指數退避（450 秒／部，30 部正好燒掉約 3.75 小時零進度）。一度有 30 部被記成「沒字幕」——實際抽測全都有 zh-TW 人工字幕。現已統一轉成 <code>TranscriptBlocked</code> 並以 <code>isinstance</code> 兜底（真正的無字幕在上游已轉成 <code>NoCaptionsError</code>，所以還能走到分類的這個家族必然是傳輸問題）。<br>
+          <b>③ claude 用量上限被當 per-video 可重試</b>：撞到 <code>session limit</code> 後每部仍白等 450 秒，但額度是<b>固定時刻重置</b>，重試與冷卻都沒用。新增 <code>quota_exhausted()</code> 一撞到就整批收工並印出重置時間。<br>
+          <b>⚠ 真正的節流瓶頸是 claude 用量，不是 YouTube</b>：實測 <code>--pause 60</code> 連續完成 13 部、全程零 YouTube 封鎖，然後撞上用量上限——所以整頻道的節奏是「每個用量重置週期約 12~13 部」，調大 <code>--daily-limit</code> 也改變不了。<b>⚠ 另一個保留的防線</b>：限速時 YouTube 會回「結構正常但不含字幕軌」的頁面，套件判成 <code>TranscriptsDisabled</code>（合法回應、不是傳輸錯誤），<code>TranscriptBlocked</code> 攔不到，所以 <code>yt_summary.py</code> 那段「判定無字幕先等 15 秒重試一次」<b>不可刪</b>，它是唯一能擋下「對有字幕的影片白跑 Whisper」的機制</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-15</td>
           <td>➕ <b>Wealth OS 首次新增股票：兩檔新 ETF 進表，牽動 11 張分頁</b>：買進兩檔不在系統內的標的（一檔主動式、一檔指數正2），<code>update_wealth_os.py</code> 對此只印「<b>不自動新增，請人工加列</b>」——這是 <code>delete_stock_rows()</code> 的反向操作。<b>採「附加在 <code>03_持股總表</code> 尾端」而非依代號插在中間</b>：中間插入會讓 <code>05_個股分析</code> 的 36 個固定參照全部位移，附加則讓既有列原封不動。實際改動 <b>22 處指向合計列的跨分頁參照</b>＋<b>24 處範圍結尾</b>＋03 自身的 shared 主格 ref、S 欄絕對參照、合計列搬移與條件式格式。<b>⚠ 踩到三個坑</b>：(1) <b>不能插在 <code>&lt;/sheetData&gt;</code> 之前</b>——合計列後面還有帶樣式的空列與數百個自閉合 <code>&lt;row/&gt;</code>，那樣會造成<b>列號重複且不遞增</b>，<b>只有「無重複儲存格編號」那道硬檢查抓得到</b>（元件清單一致＋無 <code>#REF!</code> 完全看不出來）；(2) <code>full_refresh()</code> 以 <code>d['row'] &gt;= 14</code> 判斷個股的寫法在新增 ETF 後失效，<b>已改為依類別判斷、與列順序脫鉤</b>；(3) <code>13_加碼分析</code> 逐檔對應所有持股，必須同步加列，<code>--full</code> 的「找不到儲存格」護欄正確攔截且<b>未上傳</b>。全程在本機複本上施作、七項驗證全過才上傳，上傳前另比對雲端 sha256 防止蓋掉期間變更。結果：<b>22 檔全部配對成功、無 <code>only_src</code> 警告</b>，各分頁合計一致、S 欄比例合計為 1、<code>05_個股分析</code> 檔數未變</td>

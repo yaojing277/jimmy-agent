@@ -169,7 +169,7 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 | ETF 報酬比較圖卡 | `00631L_vs_0050_returns.html` / `_light.html` + PNG + `ETF_annual_returns.csv` |
 | 每日跌幅分布查詢 | **手機版（主）**：https://yaojing277.github.io/projects/drop/ ——`drop_stats_publish.py daily` 隨 `wealth_sync.yml` 每個交易日抓證交所全市場收盤行情（MI_INDEX，一次＝全市場一天）重建當月月檔 `drop/data/YYYY-MM.json`＋`meta.json`，`drop_stats_web.html` 在瀏覽器端計算（電腦不必開）；漲跌幅用官方參考價（一般日＝漲跌價差、除息日 X＝TWT49U 除權息參考價），分割自動正確；目前只收上市。回補：`build --from YYYY-MM` 後 `publish`。**本機版**：`drop_stats_card.py <代號>`（CLI 產 HTML/PNG）、`drop_stats_server.py`（localhost:8766） |
 | `projects.html` | 專案總覽頁；說「更新專案總覽」時需同步更新這裡＋本檔案（見 memory）。`deploy_projects.sh` 一鍵部署至 `yaojing277.github.io/projects`（repo `yaojing277/projects`，2026-09-03 建立）：另存一份 `index.html` 當首頁，並一併帶上頁內相對連結的檔案（兩份 devlog、ETF 報酬圖卡、族群圖表、`yt_summaries/`）；**改完 `projects.html` 或兩份 devlog 後要跑這支才會反映到線上**（2026-09-03 起每個交易日排程也會自動同步這幾份，本機跑只是想立刻生效時用） |
-| YouTube 影片 AI 摘要 | `yt_summary.py <網址>`：字幕（youtube-transcript-api，zh-TW 優先）→ claude CLI `-p`（自動尋找桌面版 App 內建執行檔）→ 深色 HTML 摘要頁＋`yt_summaries/index.html` 摘要庫；無字幕自動 fallback **yt-dlp＋faster-whisper 本地轉錄**（`--whisper-model` 可調）；字幕／轉錄結果快取於 `.yt_transcript_cache/`（摘要失敗重跑免再轉錄一次，該目錄不會被 deploy 推上 GitHub）；**首次使用需先讓 claude CLI /login 一次**。**oEmbed 會間歇回 401**（與影片無關），`scrape_meta()` 自動改從觀看頁 `videoDetails` 取標題／頻道當備援（2026-10-13 起）——還原轉義要用 `json.loads`，用 `unicode_escape` 中文會變亂碼；且須鎖在 `videoDetails` 區塊內抓，整頁有多個 `"title"`。`yt_auto_summary.py`：三頻道（阿良的正二人生／槓桿人生／卡哇KAWA）RSS 新片自動摘要→部署→LINE 推短版（狀態記 `yt_auto_state.json`，首次執行只登記、`--backfill N` 回補；LINE 金鑰讀環境變數或 `line_secrets.json`）。`deploy_yt_summaries.sh` 一鍵部署摘要庫至 `yaojing277.github.io/yt-summaries`（repo 不存在自動建立） |
+| YouTube 影片 AI 摘要 | `yt_summary.py <網址>`：字幕（youtube-transcript-api，zh-TW 優先）→ claude CLI `-p`（自動尋找桌面版 App 內建執行檔）→ 深色 HTML 摘要頁＋`yt_summaries/index.html` 摘要庫；無字幕自動 fallback **yt-dlp＋faster-whisper 本地轉錄**（`--whisper-model` 可調）；字幕／轉錄結果快取於 `.yt_transcript_cache/`（摘要失敗重跑免再轉錄一次，該目錄不會被 deploy 推上 GitHub）；**首次使用需先讓 claude CLI /login 一次**。**oEmbed 會間歇回 401**（與影片無關），`scrape_meta()` 自動改從觀看頁 `videoDetails` 取標題／頻道當備援（2026-10-13 起）——還原轉義要用 `json.loads`，用 `unicode_escape` 中文會變亂碼；且須鎖在 `videoDetails` 區塊內抓，整頁有多個 `"title"`。`yt_auto_summary.py`：三頻道（阿良的正二人生／槓桿人生／卡哇KAWA）RSS 新片自動摘要→部署→LINE 推短版（狀態記 `yt_auto_state.json`，首次執行只登記、`--backfill N` 回補；LINE 金鑰讀環境變數或 `line_secrets.json`）。`yt_channel_summary.py <頻道網址>`：**整頻道批次補完**（yt-dlp 取清單 → 逐部摘要 → 中途部署；已在摘要庫的自動跳過＝斷點續跑）。`--daily-limit`（預設 12）分多天跑、`--pause`（預設 45）、`--retry-failed` 重試失敗清單（狀態記 `.yt_channel_state.json`，不進版控）。**起跑前預檢會真的抓一部字幕內容**，被擋就整輪不啟動。[2026-10-16] 槓桿人生 70 部已補完，摘要庫共 80 部。`deploy_yt_summaries.sh` 一鍵部署摘要庫至 `yaojing277.github.io/yt-summaries`（repo 不存在自動建立） |
 
 ### 其他獨立小專案
 
@@ -272,6 +272,28 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   改完門檻後用 `read_settings(wb)` 印出來核對一次（B13/B21/B33/B34 應為 0.6/0.7/0.4/0.3），
   並比對 `number_format` 是否為 `0.00%`。⚠ 注意 B14/B15/B16/B25 的格式是
   `#,##0;[Red](#,##0);-`（顯示成 0），但**儲存值同樣是小數**，那是既有現象、不是錯誤。
+- **判斷「外部服務的封鎖解除了嗎」，探測必須打到真正會被擋的那個呼叫（2026-10-16 血淚）**：
+  YouTube 字幕 API 被封鎖時 **`list()` 仍會成功、只有 `fetch()` 被擋**——同一部影片
+  `list()` 回得出 `[('zh-TW', False)]`、`fetch()` 卻是 `IpBlocked`。
+  我和另一個 session 各自獨立踩了同一個坑：都用 `list()` 探測、看到綠燈就啟動批次，
+  結果第一部就撞牆，**連續五輪批次都是這樣死的**，還一路被誤判成「節流間隔不夠」，
+  連帶讓所有 `--pause` 實測數據作廢。⚠ **假綠燈比紅燈危險**：紅燈會讓你停下來查，
+  假綠燈會讓你拿錯誤前提去調一個根本不是問題的參數。
+  ⚠ 探測本身吃配額,**不要連打數次**（次數不是重點,呼叫哪個才是）。
+- **外部錯誤要分三類，不是兩類（2026-10-16 定案）**：per-video 可重試／**全域封鎖**（整批冷卻）／
+  **固定時刻才恢復**（直接收工）。三者混用都會壞：
+  ① 限流以 `YouTubeRequestFailed` 等 `CouldNotRetrieveTranscript` 子類出現，
+  只認 `IpBlocked`／`RequestBlocked` 會讓其餘掉進 per-video 退避（450 秒/部，30 部≈3.75 小時零進度），
+  還會被記成「沒字幕」永久失敗（實測那 30 部全都有 zh-TW 人工字幕）。
+  現已統一轉成 `TranscriptBlocked`＋`isinstance` 兜底。
+  ② **claude 訂閱用量上限**（`session limit · resets …`）屬第三類：額度固定時刻重置，
+  重試與冷卻都沒用，`quota_exhausted()` 一撞到就整批收工。
+  ⚠ **真正的節流瓶頸是 claude 用量而非 YouTube**：實測 `--pause 60` 連續 13 部零封鎖才撞用量，
+  所以整頻道節奏是「每個用量重置週期約 12~13 部」，調大 `--daily-limit` 改變不了。
+- **`yt_summary.py` 那段「判定無字幕先等 15 秒重試一次」不可刪（2026-10-16 評估）**：
+  限速時 YouTube 會回「結構正常但不含字幕軌」的頁面，套件判成 `TranscriptsDisabled`
+  ——那是**合法回應、不是傳輸層錯誤**，`TranscriptBlocked` 攔不到。
+  那 15 秒重試是唯一能擋下「對其實有字幕的影片白跑幾分鐘 Whisper」的防線。
 - **版本紀錄與 devlog 不寫絕對金額（2026-10-14 起）**：`projects.html` 與兩份 devlog 都發佈到
   **Public** repo `yaojing277/projects`，說明文字任何人可見。一律改用**相對描述**——
   保留 %、pp、倍數、比例、安全指數分數，但**不寫投資組合的絕對金額**
@@ -465,6 +487,8 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   - [2026-07-19] 新片自動摘要 v2.0 完成：`yt_auto_summary.py` 手動執行（不排程），首輪 `--backfill 1` 實測 3 部全成功（含 2 部無字幕走 Whisper：阿良 EP147、卡哇KAWA）；oEmbed 401 時以 RSS 標題/頻道備援（`fallback_meta`）
   - [2026-09-09] 加入字幕／轉錄快取 `.yt_transcript_cache/`：Whisper 結果存檔，摘要步驟失敗重跑免再轉錄一次；claude CLI 的 OAuth **會過期**（錯誤訊息 `OAuth session expired`），失效時需本人 `/login`，期間可由 Claude 讀快取逐字稿自行撰寫摘要再產頁（見 [[feedback-yt-summary-trigger]]）
   - [2026-09-29] 摘要庫累積 8 部影片；線上 https://yaojing277.github.io/yt-summaries/
+  - [2026-10-16] **整頻道批次 v3.0 完成**：`yt_channel_summary.py` 把槓桿人生 70 部補完，摘要庫共 80 部。
+    過程三個坑（`list()` 假綠燈／限流誤判成永久失敗／用量上限當可重試）已寫進重要慣例。
   - **待辦**：本機建 `jimmy_scripts/line_secrets.json`（`{"LINE_TOKEN":"...","LINE_USER_ID":"..."}`，與 GitHub Secrets 同組值）啟用 LINE 摘要推播
 - [2026-07-08] **MouseSideKey 保存與升格**（已完成）
   - 本機完成安裝（Hammerspoon 1.1.1、登入項目已設，輔助使用權限需手動授予）
