@@ -564,7 +564,7 @@ def parse_ep_number(title: str):
 
 
 def render_index_html(entries: list) -> str:
-    # 排序:頻道分組(最近更新的頻道在上) → 集數由大到小 → 正片在精華版前面。
+    # 排序:頻道分組(最近更新的頻道在上) → 集數由小到大 → 正片在精華版前面。
     # 抽不到集數的(公告、單篇影片)排在該頻道最後,改以日期新到舊。
     latest = {}
     for e in entries:
@@ -579,7 +579,7 @@ def render_index_html(entries: list) -> str:
         return (
             ch_rank.get(e.get("channel") or "", 999),
             0 if ep is not None else 1,
-            -(ep or 0),
+            ep if ep is not None else 0,
             1 if "精華" in e.get("title", "") else 0,
             # 無集數者靠日期新到舊;字串無法取負,改用可反轉的排序碼
             tuple(-ord(c) for c in date),
