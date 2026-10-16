@@ -93,6 +93,16 @@ OPTIONAL_SETTINGS_MAP = {
 LEV_LOWER = 0.20          # 正二下緣(低於此顯示「可分批增加」)
 STOCK_MAX = 0.40          # 個股合計上限
 
+# 單一持股集中度的豁免清單(2026-10-17 Jimmy 指示):這三檔不受 12_設定 B16「單一持股上限」約束。
+#   00631L／00685L 本來就因類別「正二ETF」被排除,列在這裡是為了與指示逐字對應、
+#   且日後若類別改動仍然豁免;**真正改變判定的是 00878**(高股息ETF,當時 21.1%)。
+#   理由:這三檔是 Jimmy 的核心配置方向(正二加碼＋00878 當配息底倉),集中度本就是刻意的,
+#   由 B13 正二占股票市值上限、B21 正二曝險上限、B14 高股息上限分別把關,不需再被單股上限重複警告。
+# ⚠ 這份清單同時產生 15_安全指數 B8 與 18_投資規則檢查 B9 的 MAXIFS 公式(每次 --full 重寫),
+#   所以 Python 判定與表內公式永遠同口徑。**不要只改一邊**——
+#   只改 Python 會變成「快取值說 OK、Excel 重算說偏高」,而那種不一致不會報錯。
+SINGLE_MAX_EXEMPT = ("00878", "00631L", "00685L")
+
 # 02_每日漲跌:每次 --full 依 16_資產歷史 重建;公式參照歷史,快取一併刷新(Drive 預覽也正確)
 DAILY_TAB = "02_每日漲跌"
 
@@ -2608,9 +2618,21 @@ def full_refresh(path_in, path_out, date_str):
     hi = cat.get('高股息ETF', 0) / F27; lev = cat.get('正二ETF', 0) / F27
     mkt = cat.get('市值ETF', 0) / F27; oth = cat.get('其他ETF', 0) / F27
     stk = cat.get('個股', 0) / F27
-    # 單一持股集中度排除正二(與 15_安全指數 B8、18_投資規則檢查 B9 的 MAXIFS 同口徑);
+    # 單一持股集中度排除正二＋SINGLE_MAX_EXEMPT(與 15_安全指數 B8、18_投資規則檢查 B9 的
+    # MAXIFS 同口徑——那兩條公式由下方 setf() 以同一份清單產生,不會各自飄移);
     # 正二另有 B13 占股票市值上限與 B21 曝險上限把關,配置方向本就是逐步加碼正二
-    mx_d = max((d for d in S if d['cat'] != '正二ETF'), key=lambda d: d['F']); mx = mx_d['F'] / F27
+    mx_pool = [d for d in S
+               if d['cat'] != '正二ETF' and d['name'] not in SINGLE_MAX_EXEMPT]
+    if not mx_pool:          # 理論上不會發生(豁免清單遠少於持股數),但別讓 max() 丟空序列
+        sys.exit("--full:扣掉正二與豁免清單後沒有任何持股可算集中度,請檢查 SINGLE_MAX_EXEMPT。")
+    mx_d = max(mx_pool, key=lambda d: d['F']); mx = mx_d['F'] / F27
+    # 15_安全指數 B8 與 18_投資規則檢查 B9 的 MAXIFS,由同一份豁免清單產生。
+    # ⚠ 範圍結尾取實際最後一檔的列號、不寫死——2026-10-15 新增兩檔時這兩條是人工延伸到 24 的,
+    #   改成自動後,日後新增股票就不會留下「公式只算到舊的最後一列」這種靜默漏算。
+    _r0, _r1 = DATA_START_ROW, max(d['row'] for d in S)
+    _rg = lambda col: f"'{TARGET_TAB}'!{col}{_r0}:{col}{_r1}"
+    mx_formula = (f'MAXIFS({_rg("S")},{_rg("B")},"<>正二ETF"'
+                  + "".join(f',{_rg("A")},"<>{n}"' for n in SINGLE_MAX_EXEMPT) + ")")
     # 全部參數與門檻讀 11_設定(唯一事實來源)
     cfg = read_settings(wb)
     cash, house = cfg["cash"], cfg["house"]
@@ -2660,6 +2682,20 @@ def full_refresh(path_in, path_out, date_str):
     def V(part, ref, v):
         X[part] = _xml_setnum(X[part], ref, v)
 
+    def setf(part, ref, formula):
+        """重寫公式格的 <f>(樣式保留,快取留給隨後的 C() 寫)。非公式格即中止。"""
+        xml = X[part]
+        m = re.search(rf'<c r="{ref}"([^>]*?)>(.*?)</c>', xml, re.S)
+        if not m:
+            sys.exit(f"--full:找不到儲存格 {ref},版面可能已改,停止。")
+        if not re.search(r'<f[^>]*?/>|<f[^>]*?>.*?</f>', m.group(2), re.S):
+            sys.exit(f"--full:{ref} 不是公式格,版面可能已改,停止以免寫壞。")
+        s_attr = re.search(r's="(\d+)"', m.group(1)).group(1)
+        X[part] = (xml[:m.start()]
+                   + f'<c r="{ref}" s="{s_attr}"><f>'
+                   + escape(formula, {'"': "&quot;"}) + "</f></c>"
+                   + xml[m.end():])
+
     # 02:全公式快取
     p = tabs[TARGET_TAB]
     for d in S:
@@ -2705,7 +2741,7 @@ def full_refresh(path_in, path_out, date_str):
         # 曝險是另一個口徑(正二x2÷總曝險),與上面的「占股票市值」併成同一行,不另占摘要欄位
         + f"；曝險 {lev_exp:.1%}" + (f"，已超過 {cfg['lev_exp_max']:.0%} 上限"
                                      if lev_exp > cfg["lev_exp_max"] else f"，低於 {cfg['lev_exp_max']:.0%} 上限"),
-        f"最大單一持股(不含正二) {mx_d['name']}({mx:.1%})" + (f"，超過 {cfg['single_max']:.0%} 上限，留意集中度"
+        f"最大單一持股(不含正二與豁免檔) {mx_d['name']}({mx:.1%})" + (f"，超過 {cfg['single_max']:.0%} 上限，留意集中度"
                                                 if mx > cfg["single_max"] else ""),
         f"安全指數 {safety} 分;現金池 {cash:,.0f}(預留目標 {cfg['cash_target']:,.0f})",
     ]
@@ -2792,11 +2828,13 @@ def full_refresh(path_in, path_out, date_str):
 
     # 08_安全指數
     p = tabs["15_安全指數"]
+    setf(p, "B8", f"IF({mx_formula}>'{SETTINGS_TAB}'!B16,10,0)")
     for ref, v in (("B2", safety), ("B5", b5x), ("B6", b6x), ("B7", b7x),
                    ("B8", b8x), ("B9", b9x)):
         C(p, ref, v)
     C(p, "D2", stars, True)
-    setstr(p, "D8", f"不含正二,最大單一持股為 {mx_d['name']}(約 {mx:.1%})")
+    setstr(p, "D8", f"不含正二與豁免檔({'/'.join(SINGLE_MAX_EXEMPT)}),"
+                    f"最大單一持股為 {mx_d['name']}(約 {mx:.1%})")
 
     # 16_重複曝險
     p = tabs["17_重複曝險"]
@@ -2806,6 +2844,7 @@ def full_refresh(path_in, path_out, date_str):
 
     # 17_投資規則檢查
     p = tabs["18_投資規則檢查"]
+    setf(p, "B9", mx_formula)
     for ref, v in (("B4", N['0050']['sh']), ("B5", N['00662']['sh']),
                    ("B6", N['台積電']['sh']), ("B7", hi), ("B8", lev),
                    ("B9", mx), ("B10", cash),
