@@ -563,9 +563,19 @@ def parse_ep_number(title: str):
     return None
 
 
-def render_index_html(entries: list) -> str:
-    # 排序:頻道分組(最近更新的頻道在上) → 集數由小到大 → 正片在精華版前面。
-    # 抽不到集數的(公告、單篇影片)排在該頻道最後,改以日期新到舊。
+# 專屬摘要庫:影片多到自成一館的頻道,另給一頁只收該頻道。
+# key＝summaries.json 裡的 channel 原字串(必須完全相符),value＝產出檔名。
+CHANNEL_PAGES = {
+    "槓桿人生": "leverage-life.html",
+}
+
+
+def sort_index_entries(entries: list) -> list:
+    """頻道分組(最近更新的在上) → 集數由小到大 → 正片在精華版前面。
+
+    抽不到集數的(公告、單篇影片)排在該頻道最後,改以日期新到舊。
+    單一頻道的專屬頁用同一支函式:分組只剩一組,其餘規則不變。
+    """
     latest = {}
     for e in entries:
         ch = e.get("channel") or ""
@@ -575,42 +585,79 @@ def render_index_html(entries: list) -> str:
 
     def sort_key(e):
         ep = parse_ep_number(e.get("title", ""))
-        date = e.get("date", "")
         return (
             ch_rank.get(e.get("channel") or "", 999),
             0 if ep is not None else 1,
             ep if ep is not None else 0,
             1 if "精華" in e.get("title", "") else 0,
             # 無集數者靠日期新到舊;字串無法取負,改用可反轉的排序碼
-            tuple(-ord(c) for c in date),
+            tuple(-ord(c) for c in e.get("date", "")),
         )
 
-    items = []
-    for e in sorted(entries, key=sort_key):
-        items.append(
-            f'<a class="item" href="{esc(e["file"])}">'
-            f'<img src="{esc(e["thumbnail"])}" alt="" loading="lazy">'
-            f'<div class="pad"><b>{esc(e["title"])}</b>'
-            f'<p>{esc(e.get("one_line") or e.get("channel"))}</p>'
-            f'<div class="meta">{esc(e.get("channel"))}　{esc(e.get("date"))}</div>'
-            f'</div></a>'
-        )
+    return sorted(entries, key=sort_key)
+
+
+def render_item(e: dict) -> str:
+    ep = parse_ep_number(e.get("title", ""))
+    badge = f'<span class="badge">EP{ep}</span>' if ep is not None else ""
+    return (
+        f'<a class="item" href="{esc(e["file"])}">'
+        f'<img src="{esc(e["thumbnail"])}" alt="" loading="lazy">'
+        f'<div class="pad"><b>{esc(e["title"])}</b>'
+        f'<p>{esc(e.get("one_line") or e.get("channel"))}</p>'
+        f'<div class="meta">{badge}{esc(e.get("channel"))}　{esc(e.get("date"))}</div>'
+        f'</div></a>'
+    )
+
+
+def render_index_html(entries: list, channel: str = None) -> str:
+    """channel 給值就只收該頻道,產出專屬摘要庫頁。"""
+    if channel:
+        entries = [e for e in entries if (e.get("channel") or "") == channel]
+        title = f"{channel} 摘要庫"
+        head = f'<h1>🎬 {esc(channel)}</h1>'
+        nav = '<div class="meta" style="margin-top:10px">' \
+              '<a href="index.html">← 回總摘要庫</a></div>'
+    else:
+        title = "影片摘要庫"
+        head = "<h1>🎬 影片摘要庫</h1>"
+        # 有專屬頁的頻道,在總館頂端給一個入口
+        links = [
+            f'<a class="badge" style="color:var(--accent)" href="{esc(f)}">{esc(ch)} '
+            f'{sum(1 for e in entries if (e.get("channel") or "") == ch)} 部 →</a>'
+            for ch, f in CHANNEL_PAGES.items()
+            if any((e.get("channel") or "") == ch for e in entries)
+        ]
+        nav = ('<div style="margin-top:12px">專屬摘要庫　' + "".join(links) + "</div>"
+               if links else "")
+
+    items = [render_item(e) for e in sort_index_entries(entries)]
     return f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>影片摘要庫</title>
+<title>{esc(title)}</title>
 <style>{PAGE_CSS}</style>
 </head>
 <body>
 <div class="wrap">
-  <div class="card"><h1>🎬 影片摘要庫</h1>
-  <div class="meta">共 {len(entries)} 部影片　·　yt_summary.py 產生</div></div>
+  <div class="card">{head}
+  <div class="meta">共 {len(items)} 部影片　·　yt_summary.py 產生</div>
+  {nav}</div>
   <div class="grid">{"".join(items)}</div>
 </div>
 </body>
 </html>"""
+
+
+def write_index_pages(entries: list):
+    """寫出總摘要庫與各頻道專屬頁。"""
+    (OUT_DIR / "index.html").write_text(render_index_html(entries), encoding="utf-8")
+    for ch, fname in CHANNEL_PAGES.items():
+        if any((e.get("channel") or "") == ch for e in entries):
+            (OUT_DIR / fname).write_text(
+                render_index_html(entries, channel=ch), encoding="utf-8")
 
 
 def update_index(entry: dict):
@@ -625,7 +672,7 @@ def update_index(entry: dict):
     INDEX_JSON.write_text(
         json.dumps(entries, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    (OUT_DIR / "index.html").write_text(render_index_html(entries), encoding="utf-8")
+    write_index_pages(entries)
     return len(entries)
 
 

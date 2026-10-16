@@ -846,10 +846,12 @@
         <li class="done">字幕／轉錄快取（.yt_transcript_cache，不隨 deploy 上傳）</li>
         <li class="done">整頻道批次摘要（yt_channel_summary.py：fetch 級預檢、分多天跑、斷點續跑）</li>
         <li class="done">槓桿人生全頻道 70 部補完</li>
+        <li class="done">索引依集數排序（頻道分組 → EP 小到大 → 正片在精華版前）、槓桿人生專屬摘要庫</li>
         <li>本機設定 LINE 金鑰（line_secrets.json）啟用摘要推播</li>
       </ul>
       <div class="link-row">
         <a class="link-btn" href="https://yaojing277.github.io/yt-summaries/" target="_blank">🌐 摘要庫（線上）</a>
+        <a class="link-btn secondary" href="https://yaojing277.github.io/yt-summaries/leverage-life.html" target="_blank">🎬 槓桿人生專屬庫</a>
         <a class="link-btn secondary" href="yt_summaries/index.html" target="_blank">📚 本機摘要庫</a>
         <a class="link-btn secondary" href="https://github.com/yaojing277/yt-summaries" target="_blank">⑂ GitHub</a>
       </div>
@@ -983,6 +985,13 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-17</td>
+          <td>🎬 <b>摘要庫索引改依集數排序，並為槓桿人生另開專屬摘要庫</b>（<code>leverage-life.html</code>，70 部，總館頂端有入口、專屬頁可回總館）。<br>
+          <b>起因</b>：原本只依日期新到舊，整頻道批次補完後 70 部的日期幾乎全擠在同三天，順序實質上是隨機的。改為<b>頻道分組（最近更新的在上）→ 集數由小到大 → 正片排在同集數的精華版之前</b>，抽不到集數的（公告、單篇影片）排該頻道最後、改以日期新到舊。卡片右下角加上 EP 標籤。<br>
+          <b>⚠ 集數抽取要吃四種命名</b>，而且<b>規則順序不能顛倒</b>：<code>#47｜</code>、<code>【槓桿人生】EP3｜</code>、<code>…｜槓桿人生EP20精華版</code>、<code>EP.64｜</code>。先找 <code>EP</code> 再找 <code>#</code>，且 <code>#</code> 那條必須用 <code>match</code> 只認開頭——標題尾端常有 <code>#台股</code> 這類<b>標籤</b>，用 <code>search</code> 會抓到標籤裡的數字；而真正的集數一定在最前面。<br>
+          總館與專屬頁<b>共用同一支排序與卡片函式</b>（專屬頁的「頻道分組」只是剩一組），日後要再開別的頻道只需在 <code>CHANNEL_PAGES</code> 加一行</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-17</td>
           <td>🔒 <b>三份發佈頁的投資組合金額全面清零（約 90 處）</b>。延續前一筆：既然網子有洞，就把剩下的全部清掉，而非只補個人現金流那幾處。逐處改為占比、倍數、方向或「哪一類數字」，<b>技術結論與踩坑脈絡完整保留</b>。<br>
