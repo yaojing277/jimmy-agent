@@ -567,6 +567,7 @@ def parse_ep_number(title: str):
 # key＝summaries.json 裡的 channel 原字串(必須完全相符),value＝產出檔名。
 CHANNEL_PAGES = {
     "槓桿人生": "leverage-life.html",
+    "阿良的正二人生": "aliang-lev2.html",
 }
 
 
