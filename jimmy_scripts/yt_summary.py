@@ -545,9 +545,48 @@ def render_summary_html(meta: dict, summary: dict, info: dict) -> str:
 </html>"""
 
 
+def parse_ep_number(title: str):
+    """從標題抽出集數,抽不到回 None。
+
+    頻道命名很不統一,實際出現過四種寫法:
+      「#47｜…」「【槓桿人生】EP3｜…」「…｜槓桿人生EP20精華版」「EP.64｜…」
+    ⚠ 先找 EP 再找開頭的 #數字,順序不能顛倒——標題尾端常有
+      「#台股 #美股」這類標籤,而 # 開頭的集數一定在最前面,
+      所以 # 那條規則用 match(只認開頭)而非 search。
+    """
+    m = re.search(r"EP\.?\s*(\d+)", title, re.I)
+    if m:
+        return int(m.group(1))
+    m = re.match(r"\s*[#\uff03](\d+)", title)
+    if m:
+        return int(m.group(1))
+    return None
+
+
 def render_index_html(entries: list) -> str:
+    # 排序:頻道分組(最近更新的頻道在上) → 集數由大到小 → 正片在精華版前面。
+    # 抽不到集數的(公告、單篇影片)排在該頻道最後,改以日期新到舊。
+    latest = {}
+    for e in entries:
+        ch = e.get("channel") or ""
+        latest[ch] = max(latest.get(ch, ""), e.get("date", ""))
+    ch_rank = {ch: i for i, ch in enumerate(
+        sorted(latest, key=lambda c: (latest[c], c), reverse=True))}
+
+    def sort_key(e):
+        ep = parse_ep_number(e.get("title", ""))
+        date = e.get("date", "")
+        return (
+            ch_rank.get(e.get("channel") or "", 999),
+            0 if ep is not None else 1,
+            -(ep or 0),
+            1 if "精華" in e.get("title", "") else 0,
+            # 無集數者靠日期新到舊;字串無法取負,改用可反轉的排序碼
+            tuple(-ord(c) for c in date),
+        )
+
     items = []
-    for e in sorted(entries, key=lambda x: x.get("date", ""), reverse=True):
+    for e in sorted(entries, key=sort_key):
         items.append(
             f'<a class="item" href="{esc(e["file"])}">'
             f'<img src="{esc(e["thumbnail"])}" alt="" loading="lazy">'
