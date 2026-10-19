@@ -568,6 +568,8 @@ def parse_ep_number(title: str):
 CHANNEL_PAGES = {
     "槓桿人生": "leverage-life.html",
     "阿良的正二人生": "aliang-lev2.html",
+    "大仁來開槓": "daren.html",
+    "A8 阿吧": "a8-aba.html",
 }
 
 
