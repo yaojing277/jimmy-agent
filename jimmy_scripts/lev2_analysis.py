@@ -46,15 +46,63 @@ SHORT_B = CODE_B[2:]
 
 TRADING_DAYS_PER_YEAR = 252
 
+# ========================= 分割還原 =========================
+# ⚠ TWSE 歷史收盤價**不還原分割**(twse_hist.daily_closes 原樣回傳)。
+#   00685L 於 2026-07-07 由 1 拆 24,分割前後直接相減會算出單日約 −96% 的假崩跌,
+#   把相關係數、Beta、追蹤差統計全部毀掉(實測相關 0.9967 → 0.4161、
+#   追蹤差標準差 0.27pp → 11.02pp)。滾動 60 日視窗看不到這個坑,
+#   是 2026-10-20 改成固定起日跨越分割日時才浮現的。
+# 來源以「股價試算／股票分割」分頁為準,**日後再有分割要同步加一列到這裡**。
+SPLITS = {
+    "00685L": [(datetime.date(2026, 7, 7), 24)],   # 參考價 12.75 = 306 ÷ 24
+}
+
+
+def _split_adj(code, d, px):
+    """把分割生效日之前的收盤價換算成分割後口徑(生效日當天已是分割後價)。"""
+    for eff, ratio in SPLITS.get(code, ()):
+        if d < eff:
+            px /= ratio
+    return px
+
+
 
 # ========================= 取價 =========================
-def fetch(days=60):
-    """取兩檔近 days 個交易日的共同收盤價;回 [(date, pa, pb), ...] 升冪。
+def fetch(days=60, since=None):
+    """取兩檔共同收盤價;回 [(date, pa, pb), ...] 升冪。
 
-    長度為 days+1:第一筆只當「前一日」用來算第二筆的報酬。
-    以日曆天回抓 days*2.2 天(含週末與國定假日餘裕),不足時再往前追一次。
+    兩種模式:
+      days  (預設)  近 days 個交易日,長度 days+1。
+      since (優先)  **固定起日**:回傳 since(含)之後的所有共同交易日,
+                    並在最前面多帶一筆 since 之前最近的交易日。
+    ⚠ 兩種模式都會多帶「前一日」——第一筆只當基準用來算第二筆的報酬,
+      不會出現在 analyse() 的 daily[] 裡。所以 since 當天**會**有報酬值,
+      少帶那一筆的話 since 當天就會被吃掉。
+    以日曆天回抓(含週末與國定假日餘裕),不足時再往前追。
     """
     today = datetime.date.today()
+    if since is not None:
+        lead = 20                      # 往前多抓的日曆天,用來取得 since 前一個交易日
+        common = []
+        for _ in range(3):
+            a = th.daily_closes(CODE_A, since - datetime.timedelta(days=lead), today)
+            b = th.daily_closes(CODE_B, since - datetime.timedelta(days=lead), today)
+            common = sorted(set(a) & set(b))
+            prior = [d for d in common if d < since]
+            after = [d for d in common if d >= since]
+            if prior and after:
+                return [(d, _split_adj(CODE_A, d, a[d]), _split_adj(CODE_B, d, b[d]))
+                        for d in [prior[-1]] + after]
+            lead *= 3                  # 起日前碰到長假(或資料稀疏)就再往前拉
+        if not common:
+            sys.exit(f"查無 {CODE_A}/{CODE_B} 自 {since} 起的共同交易日資料,"
+                     "請確認網路或 TWSE 服務狀態。")
+        # 取不到「起日前一日」時不靜默略過:少了基準,第一天的報酬會是假的
+        print(f"⚠ 找不到 {since} 之前的交易日,首日報酬無基準,已略過首日。",
+              file=sys.stderr)
+        after = [d for d in common if d >= since]
+        return [(d, _split_adj(CODE_A, d, a[d]), _split_adj(CODE_B, d, b[d]))
+                for d in after]
     span = max(int(days * 2.2), 30)
     for attempt in range(3):
         start = today - datetime.timedelta(days=span)
@@ -63,13 +111,15 @@ def fetch(days=60):
         common = sorted(set(a) & set(b))          # 只取兩檔都有交易的日期
         if len(common) >= days + 1:
             common = common[-(days + 1):]
-            return [(d, a[d], b[d]) for d in common]
+            return [(d, _split_adj(CODE_A, d, a[d]), _split_adj(CODE_B, d, b[d]))
+                    for d in common]
         span = int(span * 1.8)                    # 資料不足 -> 拉長回抓區間重試
     if not common:
         sys.exit(f"查無 {CODE_A}/{CODE_B} 共同交易日資料,請確認網路或 TWSE 服務狀態。")
     print(f"⚠ 僅取得 {len(common)} 個共同交易日(要求 {days + 1}),以現有資料分析。",
           file=sys.stderr)
-    return [(d, a[d], b[d]) for d in common]
+    return [(d, _split_adj(CODE_A, d, a[d]), _split_adj(CODE_B, d, b[d]))
+            for d in common]
 
 
 # ========================= 統計工具 =========================
@@ -441,12 +491,15 @@ document.querySelector('#tbl tbody').innerHTML = D.slice().reverse().map(x => `
 def main():
     ap = argparse.ArgumentParser(description=f"{CODE_A} / {CODE_B} 每日漲跌分析")
     ap.add_argument("--days", type=int, default=60, help="分析的交易日數(預設 60)")
+    ap.add_argument("--since", help="固定起日 YYYY-MM-DD(給了就忽略 --days)")
     ap.add_argument("--tail", type=int, default=20, help="終端顯示最近幾筆(預設 20)")
     ap.add_argument("--html", action="store_true", help="產出 lev2_site/index.html")
     ap.add_argument("--json", action="store_true", help="輸出 JSON 到 stdout")
     args = ap.parse_args()
 
-    data = analyse(fetch(args.days))
+    _since = (datetime.datetime.strptime(args.since, "%Y-%m-%d").date()
+              if args.since else None)
+    data = analyse(fetch(args.days, since=_since))
 
     if args.json:
         print(json.dumps(data, ensure_ascii=False, indent=2))

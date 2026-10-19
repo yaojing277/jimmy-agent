@@ -110,7 +110,12 @@ DAILY_TAB = "02_每日漲跌"
 # 資料源在 TWSE 而非表內,故全部寫死為數值,不寫公式。
 # 抓取失敗只警告不中斷 —— wealth_sync.yml 每日排程會跑 --full,不能因外部 API 抖動整批失敗。
 LEV2_TAB = "00_正二分析"
-LEV2_DAYS = 60
+# 00_正二分析的資料區間:2026-10-20 Jimmy 指示改為**固定起日**(原為滾動近 60 個交易日)。
+# 固定起日的好處是每天看到的是同一段期間的累積比較,不會因為視窗往前滑而讓
+# 「累積差」這類指標無聲改變;代價是列數隨時間成長(分頁為資料驅動,不需改版面)。
+# ⚠ 這是寫死的年份,不是「每年 7/1」。要換區間只改這一行。
+LEV2_SINCE = datetime(2026, 7, 1).date()
+LEV2_DAYS = 60            # 僅 lev2_analysis CLI 的預設值;本腳本一律走 LEV2_SINCE
 
 # 06_阿良資產負債表:每次 --full 由 lev2_balance 以 03 現值 + 12_設定 參數整張重建(數值寫死)
 # 12_設定 缺參數只警告不中斷,理由同上
@@ -2406,7 +2411,7 @@ def _refresh_lev2(zin, styles=("58", "5")):
             print(f"  ⚠ 找不到分頁「{LEV2_TAB}」,跳過正二分析。")
             return None, None
         import lev2_analysis
-        data = lev2_analysis.analyse(lev2_analysis.fetch(LEV2_DAYS))
+        data = lev2_analysis.analyse(lev2_analysis.fetch(since=LEV2_SINCE))
     except SystemExit as e:                      # fetch 查無資料會 sys.exit
         print(f"  ⚠ 正二分析取價失敗,跳過:{e}")
         return None, None

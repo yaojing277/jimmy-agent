@@ -53,7 +53,7 @@
     自動化真正執行的地方在那邊；本機 `jimmy_scripts/` 改完對應腳本後，要同步過去並 push 才會生效。
   - 同步時注意路徑：workflows 執行的是 `stock_notify_tmp/jimmy_scripts/` **子目錄**下的腳本
     （`stock_notify.py`、`stock_alert.py`、`stock_alert_v2.py`、`stock_notify_gmail.py`、`price_source.py`、`auth_sheets.py`、
-    `update_stock_price.py`、`update_wealth_os.py`、`twse_hist.py`、`etf_ex_dividend_calendar.py`、`drop_stats_publish.py`、`drop_stats_web.html`），
+    `update_stock_price.py`、`update_wealth_os.py`、`twse_hist.py`、`lev2_analysis.py`、`etf_ex_dividend_calendar.py`、`drop_stats_publish.py`、`drop_stats_web.html`），
     但 `check_reminders.py`、`youtube_notify.py`、`reminders.json` 放在 `stock_notify_tmp/` **根目錄**。
   - **雲端執行**：`wealth_sync.yml` workflow，認證走 Service Account（Secret `GOOGLE_SA_JSON`，永不過期），跑完 LINE 通知。
     - **每日自動排程**（2026-07-25 起）：每天台北 **14:17**（cron `17 6 * * *`；2026-10-06 由 14:30 改為 :17，避開整點／半點的擁塞時段）觸發，跑「更新股價＋同步＋全分頁」；
@@ -310,6 +310,24 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   限速時 YouTube 會回「結構正常但不含字幕軌」的頁面，套件判成 `TranscriptsDisabled`
   ——那是**合法回應、不是傳輸層錯誤**，`TranscriptBlocked` 攔不到。
   那 15 秒重試是唯一能擋下「對其實有字幕的影片白跑幾分鐘 Whisper」的防線。
+- **`00_正二分析` 改為固定起日，並補上分割還原（2026-10-20）**：
+  區間由「滾動近 60 個交易日」改為 **`LEV2_SINCE = 2026-07-01` 固定起日**
+  （`update_wealth_os.py` 一個常數；`lev2_analysis.py` 另加 `--since` 供 CLI 試算）。
+  固定起日每天看到的是同一段期間的累積比較，不會因視窗往前滑而讓「累積差」無聲改變；
+  代價是列數隨時間成長（分頁為資料驅動，不必改版面）。
+  ⚠ **踩到的坑：TWSE 歷史收盤價不還原分割**。`twse_hist.daily_closes` 原樣回傳，
+  而 **00685L 於 2026-07-07 由 1 拆 24**——固定起日一跨過分割日，
+  `306 → 12.23` 會被當成單日約 **−96%** 的假崩跌，整組統計全毀：
+  實測相關係數 **0.9967 → 0.4161**、追蹤差標準差 **0.27pp → 11.02pp**。
+  ⚠ **滾動 60 日視窗永遠看不到這個坑**（分割日早已滑出視窗），
+  是改成固定起日才浮現的——**換取樣區間等於換一組會踩到的歷史事件**。
+  已在 `lev2_analysis.py` 加 `SPLITS` 表與 `_split_adj()`，**日後再有分割要同步加一列**
+  （來源以「股價試算／股票分割」分頁為準）。修正後相關 0.9964、追蹤差 0.2653pp，
+  且 `--days 60` 回歸測試數值與先前完全一致。
+  ⚠ **分頁標題顯示的起日是 2026-07-07 而非 7/01**：00685L 在 7/01~7/06 因分割停牌無資料，
+  兩檔的共同交易日最早就是 7/07，不是設定沒生效。
+  ⚠ `lev2_analysis.py` **其實有部署到雲端**（`update_wealth_os.py --full` 會 import 它），
+  但先前不在本檔的同步清單裡——已補上。改了它一定要一起同步，否則雲端排程跑的是舊版。
 - **版本紀錄與 devlog 不寫絕對金額（2026-10-14 起）**：`projects.html` 與兩份 devlog 都發佈到
   **Public** repo `yaojing277/projects`，說明文字任何人可見。一律改用**相對描述**——
   保留 %、pp、倍數、比例、安全指數分數，但**不寫投資組合的絕對金額**
