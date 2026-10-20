@@ -128,6 +128,7 @@
 | `publish_projects.py` | 排程跑完把執行結果寫進 `yaojing277/projects` 的 `runlog.json`（同交易日重跑覆蓋、留 90 天），並同步 `projects.html`/`index.html`/兩份 devlog/`schedule_runlog.html`；需 secret `PAGES_PAT` |
 | `check_reminders.py` | 日期到期提醒（讀 `reminders.json`，需環境變數 `LINE_TOKEN`/`LINE_USER_ID`） |
 | `notes_audio_digest.py` | 「**備忘錄錄音整理**」把「備忘錄」(Notes.app) 裡**內文只有錄音**的備忘錄補上 AI 標題／摘要／逐字稿並集中搬到同一資料夾：七階段可中斷續跑（`scan`／`export`／`transcribe`／`summarize`／`preview`／`apply --yes`／`move --yes`，另有 `status`），狀態與產出落在 `.notes_audio_cache/`（**私人錄音與逐字稿，不進版控**）。標題格式**日期在前**（`2026-10-07 16:10 主題`，資料夾按標題排序仍是時間順序）；**沒偵測到語音的直接刪除**（Jimmy 2026-10-13 指示，進「最近刪除」）。轉錄預設 `mlx-whisper`＋`large-v3-turbo`（GPU、**全本機**，約 9.5 倍速；沒裝則退回 faster-whisper CPU），摘要送 claude CLI（雲端）。⚠ **只有錄音的備忘錄 body 不含附件**，用 AppleScript `set body` 寫回會把錄音洗掉（2026-10-13 實測）——`apply` 改用 `notes_ax_insert.swift`（輔助使用 API）只把文字插到錄音前面，寫完驗證附件數與標題；執行期間備忘錄視窗會逐則切換，**勿操作備忘錄**，且**螢幕鎖定時無法寫入**。⚠ **AppleScript `save attachment`／介面「儲存附件」拿到的常只是片段**（實測 1:06:54 的錄音只拿到 56 秒，93 則中 15 則中招）——`export` 改為直接讀備忘錄資料庫的子附件取完整檔，需「**完全取用磁碟**」權限，且要加在**實際執行的程式**上（由 Claude 執行時是 `~/Library/Application Support/Claude/claude-code/<版本>/<雜湊>/claude.app`，不是 `/Applications/Claude.app`；路徑含版本號，更新後失效）。⚠ 寫入時偶發多出「音訊・0 秒」空卡片（成因未明，87 則中 1 則），腳本會在標題最前面加「⚠有空卡片」註記、不中斷。⚠ `scan` 會覆寫 `manifest.json`，批次進行中勿重跑 |
+| `rebuild_cost_basis.py` | 「**重算成本**」依「股票買賣紀錄」重建加權平均成本，校正 `Jimmy_YYMMDD` 快照的 B 欄買進價：`check`（只比對）／`apply --yes`（寫回）。**記帳流程的第三步**：寫買賣紀錄 → 併入快照股數 → 跑這支 → 「更新所有分頁」。口徑＝Σ 買進應收付(含手續費)，賣出以**加權平均**扣除，分割前股數依「股票分割」換算。⚠ 三道護欄缺一不可：**股數對不上就跳過**（買賣紀錄只涵蓋 2025-06 後，硬套會把成本改到大錯）、**`_刪` 字尾的作廢列排除**、**差異超過 5% 就跳過**（擋下員工認股這種成本口徑不同的標的）|
 | `backup_private.sh` | 「**備份私密設定**」把不進版控、又無法重新產生的檔案同步到 `yaojing277/dotfiles`（Private）的 `jimmy_scripts_private/`：`cathay_report_notes.json`（人工註記，**救不回**）、`loan_config.json`、`line_secrets.json`。預覽／`--push`，冪等（內容沒變不產生空提交）。⚠ **憑證刻意不備份**（`gh_pat`／`credentials.json`／`token.json` 都能重新產生，不該進 git） |
 | `auth_sheets.py` / `reauth_sheets.py` | Google Sheets OAuth 授權／重授權（token 約 7 天過期）；`reauth_sheets.py --drive` 可加授 Google Drive 權限 |
 
@@ -328,6 +329,26 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   兩檔的共同交易日最早就是 7/07，不是設定沒生效。
   ⚠ `lev2_analysis.py` **其實有部署到雲端**（`update_wealth_os.py --full` 會 import 它），
   但先前不在本檔的同步清單裡——已補上。改了它一定要一起同步，否則雲端排程跑的是舊版。
+- **快照 B 欄「買進價」不可再用滾動均價維護（2026-10-20 定案）**：
+  起因 Jimmy 發現券商 App 的成本與試算表對不上。查下來**App 是對的**——
+  以買賣紀錄重建的成本與 App 只差 3.96 元（賣出時加權平均扣成本的進位差），
+  而試算表少 1,182 元。成因是記帳時用
+  `新均價 = (舊均價×舊股數 + 應收付) ÷ 新股數` **滾動**計算且只存 2 位小數，
+  十萬股規模下每次四捨五入可達數百元，多次累積成千元級。
+  ✅ **已以 `rebuild_cost_basis.py` 校正 13 檔**（最大 00919 +3,123、00878 +5,534、00631L −1,182）。
+  **日後記帳一律跑這支，不要自己滾均價。**
+  ⚠ **影響僅限成本面**（持有成本／D 未實現損益／E 成本報酬率），
+  **市值、淨投入、TWR 完全不受影響**——又一次印證「談績效只引用 TWR」那條慣例。
+  ⚠ **踩到三個坑，每個都會讓「自動校正」變成災難**：
+  ① **同一檔有多個名稱**：買賣紀錄裡台積電／2330、穎崴／6515、台達電／2308、國巨／2327 並存，
+  不統一就把同一檔拆成兩堆、算出「股數不符」而誤判為紀錄不完整
+  （實測 台達電 50＋2308 70 ＝ 快照的 120）。已用 `ALIAS` ＋ `EXTRA_ALIAS` 統一。
+  ② **`_刪` 字尾是作廢重複列**：計入會多算（00878 排除後剛好等於快照股數）。
+  ③ **員工認股的成本口徑不同**：6515 股數對得上，成本卻差 150 萬——
+  買賣紀錄 J 欄是認購價的名目金額，快照用的是到手收盤價口徑。
+  **「股數對得上」不等於「可以照抄成本」**，故另加「差異超過 5% 就跳過」的護欄。
+  ⚠ 仍有 4 檔無法校正（`0050`／`TSMC`／`凱基金`／`00934`）：買賣紀錄早期不全或查無紀錄，
+  **刻意不動**，不要為了湊數硬改。
 - **版本紀錄與 devlog 不寫絕對金額（2026-10-14 起）**：`projects.html` 與兩份 devlog 都發佈到
   **Public** repo `yaojing277/projects`，說明文字任何人可見。一律改用**相對描述**——
   保留 %、pp、倍數、比例、安全指數分數，但**不寫投資組合的絕對金額**
