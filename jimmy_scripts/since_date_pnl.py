@@ -16,6 +16,12 @@
   python3 since_date_pnl.py --dry-run                   # 只印結果，不寫入
   python3 since_date_pnl.py --date 2026-10-02           # 指定結算日（預設今天；非交易日取最近收盤）
   python3 since_date_pnl.py --date ... --line-file since_pnl_line.txt
+  python3 since_date_pnl.py --date 2026-10-16 --dry-run --html investment_since_0703_report.html
+  python3 since_date_pnl.py --until 2026-10-16 --dry-run --html investment_since_0703_1016_report.html
+                                                        # 只算 7/3～10/16 買進的批次（結算日預設今天）
+  python3 since_date_pnl.py --since 2026-10-20 --dry-run --html investment_since_1020_report.html
+                                                        # 另一波加碼：10/20 起買進的批次
+                                                        # 產出完整 HTML 報告（--dry-run 則只產 HTML、不寫分頁）
 """
 import argparse
 import collections
@@ -33,6 +39,7 @@ import twse_hist as th
 from update_stock_price import get_service, ALIAS, SPREADSHEET_ID
 
 SINCE = dt.date(2026, 7, 3)
+UNTIL = None   # 買進結束日（含）；None＝不設上限（每日排程）。由 --until 設定，只影響「哪些買進算加碼」
 OUT_SHEET = "加碼損益_0703"
 TRADE_SHEET = "股票買賣紀錄"
 SPLIT_SHEET = "股票分割"
@@ -40,6 +47,98 @@ FEE_RATE, FEE_DISCOUNT, FEE_MIN = 0.001425, 0.6, 20
 EXTRA_ALIAS = {"穎崴": "6515", "台積電": "2330"}
 BASE = dt.date(1899, 12, 30)
 HIST_COL = "M"   # 每日走勢 M:P
+
+
+# HTML 報告樣式（--html；cathay_since_pnl.py 會從產出的報告讀這段 <style> 沿用）
+REPORT_CSS = """
+/* 版面：單欄報表。摘要在上、損益分布圖居中、明細與計算依據在下；台股慣例紅漲綠跌 */
+:root{
+  --bg:#f6f5f2; --surface:#ffffff; --ink:#1d2129; --muted:#646b78; --line:#e2e0da;
+  --accent:#1f4e79;            /* 深藍：標題與連結 */
+  --up:#c8102e; --up-soft:#f7dde1;      /* 台股：賺＝紅 */
+  --down:#13804b; --down-soft:#d9efe3;  /* 台股：賠＝綠 */
+  --warn:#9a6700; --warn-soft:#fbefd0;
+  --f-display:"Noto Serif TC","Songti TC",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171c; --surface:#1c2027; --ink:#e7e9ee; --muted:#9aa1ad; --line:#2d323b;
+  --accent:#8fb8e3; --up:#ff6b7d; --up-soft:#3a1e24; --down:#4cc98a; --down-soft:#173326;
+  --warn:#e3b34a; --warn-soft:#3a2f14; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171c; --surface:#1c2027; --ink:#e7e9ee; --muted:#9aa1ad; --line:#2d323b;
+  --accent:#8fb8e3; --up:#ff6b7d; --up-soft:#3a1e24; --down:#4cc98a; --down-soft:#173326;
+  --warn:#e3b34a; --warn-soft:#3a2f14; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font:15px/1.65 var(--f-body)}
+.wrap{max-width:960px;margin:0 auto;padding-inline:16px;padding-block:32px 56px;display:grid;gap:36px}
+h1,h2{font-family:var(--f-display);text-wrap:balance;margin:0;color:var(--ink)}
+h1{font-size:clamp(26px,4.5vw,36px);line-height:1.25}
+h2{font-size:20px}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase}
+.lede{color:var(--muted);max-width:62ch;margin:8px 0 0}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.up{color:var(--up)} .down{color:var(--down)}
+section{display:grid;gap:14px;min-width:0}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
+.sec-head p{margin:0;color:var(--muted);font-size:13px}
+
+/* 摘要 */
+.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:stretch}
+.big{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px 24px;display:grid;gap:6px;align-content:start}
+.big .label{font-size:13px;color:var(--muted)}
+.big .value{font-family:var(--f-num);font-size:clamp(34px,7vw,48px);font-weight:600;line-height:1.1;color:var(--up)}
+.big .pct{font-family:var(--f-num);font-size:18px;color:var(--up)}
+.ledger{display:grid;gap:0;align-content:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 20px}
+.ledger div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.ledger div:last-child{border-bottom:0;font-weight:700}
+.ledger span:last-child{font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* 損益分布 */
+.bars{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px;display:grid;gap:7px}
+.bar-row{display:grid;grid-template-columns:72px minmax(0,1fr) 96px;gap:10px;align-items:center;font-size:13px}
+.bar-row .name{white-space:nowrap}
+.bar-row .amt{text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.track{position:relative;height:14px}
+.track::before{content:"";position:absolute;top:-4px;bottom:-4px;left:var(--zero);border-left:1px solid var(--muted);opacity:.5}
+.track i{position:absolute;top:0;height:100%;border-radius:2px}
+.track i.pos{background:var(--up)} .track i.neg{background:var(--down)}
+
+/* 表格 */
+.table-box{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:13.5px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{font-weight:500;color:var(--muted);font-size:12px;letter-spacing:.04em;background:var(--bg)}
+th:first-child,td:first-child{text-align:left}
+td{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+td:first-child{font-family:var(--f-body)}
+tbody tr:last-child td{border-bottom:0}
+tfoot td{font-weight:600;border-top:2px solid var(--line);border-bottom:0}
+.chip{display:inline-block;font-family:var(--f-body);font-size:11px;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:1px}
+.chip.sold{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.code{color:var(--muted);font-family:var(--f-num);font-size:12px;margin-left:4px}
+
+/* 註記 */
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.note h3{margin:0 0 6px;font-size:14px}
+.note p,.note ul{margin:0;color:var(--muted);font-size:13.5px}
+.note ul{padding-left:18px;display:grid;gap:4px}
+.note.warn{border-color:var(--warn);background:var(--warn-soft)}
+.note.warn h3{color:var(--warn)}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+
+@media (max-width:640px){
+  .hero{grid-template-columns:1fr}
+  .bar-row{grid-template-columns:58px minmax(0,1fr) 82px;font-size:12px}
+}
+/* 走勢 */
+.trend{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.trend svg{display:block;width:100%;height:auto}
+.trend text{font-family:var(--f-num);font-size:11px;fill:var(--muted)}
+"""
 
 
 # ───────────────────────── 讀資料 ─────────────────────────
@@ -71,7 +170,8 @@ def read_trades(svc):
             continue
         if serial(r[5]) and num(r[6]) and num(r[7]):
             tx.append(dict(row=i, name=name, code=to_code(name), d=serial(r[5]), side="B",
-                           q=r[7], amt=r[9] if num(r[9]) else r[6] * r[7]))
+                           q=r[7], amt=r[9] if num(r[9]) else r[6] * r[7],
+                           warn=any("待確認" in str(c) for c in r)))
         if serial(r[10]) and num(r[11]) and num(r[12]):
             tx.append(dict(row=i, name=name, code=to_code(name), d=serial(r[10]), side="S",
                            q=r[12], amt=r[16] if num(r[16]) else r[11] * r[12]))
@@ -96,8 +196,13 @@ def read_splits(svc):
 
 
 # ───────────────────────── 計算 ─────────────────────────
+def period(sep="～"):
+    """區間字樣：「7/3 起」或「7/3～10/16」。"""
+    return f"{SINCE:%-m/%-d}{sep}{UNTIL:%-m/%-d}" if UNTIL else f"{SINCE:%-m/%-d} 起"
+
+
 def fifo(tx, splits):
-    """回傳 since 之後買進的批次清單：每批 {code,name,d,q,cost,sold:[(d,q,cost,proceeds)]}，剩餘以 q/cost 表示。"""
+    """回傳 since（～until）之間買進的批次清單：每批 {code,name,d,q,cost,sold:[(d,q,cost,proceeds)]}，剩餘以 q/cost 表示。"""
     lots = collections.defaultdict(list)
     tracked = []
     for t in tx:
@@ -107,9 +212,9 @@ def fifo(tx, splits):
                 q *= ratio
         if t["side"] == "B":
             lot = dict(code=t["code"], name=t["name"], d=t["d"], q=q, cost=t["amt"],
-                       q0=q, cost0=t["amt"], sold=[])
+                       q0=q, cost0=t["amt"], sold=[], warn=t.get("warn", False))
             lots[t["code"]].append(lot)
-            if t["d"] >= SINCE:
+            if t["d"] >= SINCE and (UNTIL is None or t["d"] <= UNTIL):
                 tracked.append(lot)
             continue
         need, per = q, t["amt"] / q
@@ -182,8 +287,10 @@ def compute(tracked, asof):
     for lot in tracked:
         p = per.setdefault(lot["code"], dict(code=lot["code"], name=lot["name"], q=0, cost=0.0,
                                              hold_q=0, hold_cost=0.0, sold_q=0, sold_cost=0.0,
-                                             proceeds=0.0, div=0.0))
+                                             proceeds=0.0, div=0.0, warn=False, n_buy=0))
         p["name"] = lot["name"]
+        p["warn"] = p["warn"] or lot["warn"]
+        p["n_buy"] += 1
         p["q"] += lot["q0"]
         p["cost"] += lot["cost0"]
         p["hold_q"] += lot["q"]
@@ -303,7 +410,7 @@ def write_sheet(svc, per, divs, s, asof, hist):
           ["・成本取「股票買賣紀錄」J 欄（含買進手續費）；賣出部位以 FIFO 配對，只計起算日後買進、後來賣出的那段"],
           ["・仍持有部位假設結算日全部賣出：手續費 0.1425%×6 折（捨去、最低 20 元）、證交稅 ETF 0.1%／個股 0.3%"],
           ["・配息：上市取 TWSE 除權息計算結果表、上櫃取櫃買中心；未扣匯費與二代健保補充保費"],
-          ["・分割前股數依「股票分割」分頁換算；【待確認】補登列（如國巨 7/07）照表上數字計算"]]
+          ["・分割前股數依「股票分割」分頁換算；買賣紀錄備註標【待確認】的列照表上數字計算"]]
 
     # 報酬率欄（L）：與明細同列
     L = [["報酬率"]] + [[(p["net"] / p["cost"]) if p["cost"] else ""] for p in per] + \
@@ -370,8 +477,212 @@ def write_sheet(svc, per, divs, s, asof, hist):
     return delta
 
 
+def _esc(x):
+    return str(x).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _sg(n, dec=0):
+    """帶正負號的金額；負號用全形減號（與舊報告一致）。"""
+    v = f"{abs(n):,.{dec}f}"
+    return ("+" if n > 0 else "−" if n < 0 else "") + v
+
+
+def _cls(n):
+    return "up" if n > 0 else "down" if n < 0 else ""
+
+
+def _trend_svg(hist):
+    """每日淨總損益折線（hist：[(date, net, pct)]，任意順序）。少於 2 筆不畫。"""
+    pts = sorted((h for h in hist if h[0]), key=lambda h: h[0])
+    if len(pts) < 2:
+        return ""
+    W, H, PL, PR, PT, PB = 900, 240, 64, 12, 14, 26
+    vals = [n for _, n, _ in pts] + [0]
+    lo, hi = min(vals), max(vals)
+    pad = (hi - lo) * .08 or 1
+    lo, hi = lo - pad, hi + pad
+    n = len(pts)
+    X = lambda i: PL + (W - PL - PR) * i / (n - 1)
+    Y = lambda v: PT + (H - PT - PB) * (hi - v) / (hi - lo)
+    step = 10 ** max(len(str(int(hi - lo))) - 1, 0)
+    step = step * (5 if (hi - lo) / step > 8 else 2 if (hi - lo) / step > 4 else 1)
+    g = []
+    t = (lo // step + 1) * step
+    while t < hi:
+        st = 'stroke="var(--muted)" stroke-width="1.5"' if t == 0 else 'stroke="var(--line)"'
+        g.append(f'<line x1="{PL}" x2="{W - PR}" y1="{Y(t):.1f}" y2="{Y(t):.1f}" {st}/>'
+                 f'<text x="{PL - 6}" y="{Y(t) + 4:.1f}" text-anchor="end">{t / 10000:+.0f}萬</text>')
+        t += step
+    lastm = None
+    for i, (d, _, _) in enumerate(pts):
+        if d.month != lastm:
+            g.append(f'<text x="{X(i):.1f}" y="{H - 6}" text-anchor="middle">{d.month}月</text>')
+            lastm = d.month
+    line = " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, (_, v, _) in enumerate(pts))
+    d1, v1, _ = pts[-1]
+    color = "var(--up)" if v1 >= 0 else "var(--down)"
+    return (f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="每日淨總損益走勢">{"".join(g)}'
+            f'<polyline points="{line}" fill="none" stroke="{color}" stroke-width="2"/>'
+            f'<circle cx="{X(n - 1):.1f}" cy="{Y(v1):.1f}" r="4" fill="{color}"/></svg>')
+
+
+def render_html(per, divs, s, asof, hist, delta):
+    """完整自足 HTML（含 doctype 與 charset，直接以瀏覽器開檔也不會亂碼）。"""
+    now = dt.datetime.now(dt.timezone(dt.timedelta(hours=8)))
+    since = period()
+    n_buy = sum(p["n_buy"] for p in per)
+    value = s["cost"] + s["net"]
+    total_fee = sum(p["fee"] for p in per)
+    total_tax = sum(p["tax"] for p in per)
+    sold_proceeds = round(sum(p["proceeds"] for p in per))
+    wan = lambda x: f"{x / 10000:,.0f} 萬" if abs(x) >= 10000 else f"{x:,.0f} 元"   # 未滿 1 萬顯示實數，免得「賠了 0 萬」
+    verb = "賺了" if s["net"] >= 0 else "賠了"
+
+    rows = []
+    for p in per:
+        is_etf = p["code"].startswith("00")
+        name = _esc(p["name"]) + ("" if is_etf else f'<span class="code">{_esc(p["code"])}</span>')
+        sold_all = p["close"] is None
+        if sold_all:
+            name += '<span class="chip sold">已賣出</span>'
+        elif p["sold_q"] > 1e-9:
+            name += '<span class="chip sold">部分賣出</span>'
+        if p["warn"]:
+            name += '<span class="chip warn">待確認</span>'
+        mv = round(p["proceeds"]) if sold_all else p["mv"]
+        close, proceeds, fee, tax, div = p["close"], round(p["proceeds"]), p["fee"], p["tax"], p["div"]
+        pct = p["net"] / p["cost"] * 100 if p["cost"] else 0
+        rows.append(
+            f'<tr><td>{name}</td><td>{p["q"]:,.0f}</td><td>{p["cost"]:,.0f}</td>'
+            f'<td>{"—" if sold_all else f"{close:,.2f}"}</td>'
+            f'<td>{mv:,.0f}{"" if sold_all or p["sold_q"] < 1e-9 else f" ＋ {proceeds:,}"}</td>'
+            f'<td>{"已含" if sold_all else f"{fee:,}"}</td>'
+            f'<td>{"已含" if sold_all else f"{tax:,}"}</td>'
+            f'<td>{f"{div:,.0f}" if p["div"] else "—"}</td>'
+            f'<td class="{_cls(p["net"])}">{_sg(p["net"])}</td>'
+            f'<td class="{_cls(p["net"])}">{pct:+.1f}%</td></tr>')
+
+    # 各檔貢獻：發散長條，同一比例尺
+    nets = [p["net"] for p in per] + [0]
+    mx, mn = max(nets), min(nets)
+    span = (mx - mn) or 1
+    zero = -mn / span * 100
+    bars = []
+    for p in sorted(per, key=lambda p: -p["net"]):
+        g = p["net"]
+        w = abs(g) / span * 100
+        left = zero if g >= 0 else zero - w
+        bars.append(f'<div class="bar-row"><span class="name">{_esc(p["name"])}</span>'
+                    f'<div class="track" style="--zero:{zero:.2f}%"><i class="{"pos" if g >= 0 else "neg"}" '
+                    f'style="left:{left:.2f}%;width:{max(w, .4):.2f}%"></i></div>'
+                    f'<span class="amt {_cls(g)}">{_sg(g)}</span></div>')
+
+    div_rows = "".join(
+        f'<tr><td>{_esc(n)}<span class="code">{_esc(c)}</span></td><td>{d:%Y/%m/%d}</td><td>{cash:,.4g}</td>'
+        f'<td>{q:,.0f}</td><td class="up">{amt:,}</td></tr>' for n, c, d, cash, q, amt in divs
+    ) or '<tr><td colspan="5" style="text-align:left;color:var(--muted)">期間無符合條件的配息</td></tr>'
+
+    trend = _trend_svg([h for h in hist if h[0] != asof] + [(asof, s["net"], s["pct"] / 100)])
+    trend_sec = f"""<section aria-labelledby="trend-h">
+  <div class="sec-head"><h2 id="trend-h">每日走勢</h2><p>淨總損益（含息、扣完賣出成本），每個交易日排程結算</p></div>
+  <div class="trend">{trend}</div>
+</section>""" if trend else ""
+    warn_names = "、".join(p["name"] for p in per if p["warn"])
+    warn_note = f"""<div class="note warn"><h3>待確認的補登列</h3>
+      <p>{_esc(warn_names)} 有標記【待確認】的買進列，股數或價格為推估；確認後改「股票買賣紀錄」即可，下次結算自動更正。</p></div>""" if warn_names else ""
+    delta_txt = f"，較前一交易日 <span class=\"{_cls(delta)}\">{_sg(delta)}</span>" if delta is not None else ""
+
+    return f"""<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{since}{" " if UNTIL else ""}加碼損益</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>{REPORT_CSS}</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">股價試算 · 股票買賣紀錄 · 結算日 {asof:%Y/%m/%d} 收盤</div>
+  <h1>{since}{" " if UNTIL else ""}加碼的 {wan(s["cost"])}，{verb} {wan(abs(s["net"]))}</h1>
+  <p class="lede">{SINCE.year} 年 {SINCE.month} 月 {SINCE.day} 日（含）{f"至 {UNTIL.month} 月 {UNTIL.day} 日（含）" if UNTIL else "起"}的 {n_buy} 筆買進，計入已賣出部分的實收、期間配息，並把仍持有的部位以 {asof:%m/%d} 收盤價扣除賣出手續費與證交稅後結算{delta_txt}。</p>
+</header>
+<section class="hero" aria-label="總結">
+  <div class="big">
+    <span class="label">淨總損益（含息、扣完賣出成本）</span>
+    <span class="value" style="color:var(--{"up" if s["net"] >= 0 else "down"})">{_sg(s["net"])}</span>
+    <span class="pct" style="color:var(--{"up" if s["net"] >= 0 else "down"})">{s["pct"]:+.2f}%</span>
+    <span class="label" style="margin-top:8px">投入 {s["cost"]:,} 元，目前價值約 {value:,} 元</span>
+  </div>
+  <div class="ledger">
+    <div><span>買進總成本（含買進手續費）</span><span>{s["cost"]:,}</span></div>
+    <div><span>仍持有部分 淨損益</span><span class="{_cls(s["unreal"])}">{_sg(s["unreal"])}</span></div>
+    <div><span>已賣出部分 已實現損益</span><span class="{_cls(s["real"])}">{_sg(s["real"])}</span></div>
+    <div><span>現金配息</span><span class="{_cls(s["div"])}">{_sg(s["div"])}</span></div>
+    <div><span>淨總損益</span><span class="{_cls(s["net"])}">{_sg(s["net"])}</span></div>
+  </div>
+</section>
+{trend_sec}
+<section aria-labelledby="dist-h">
+  <div class="sec-head"><h2 id="dist-h">各檔貢獻</h2><p>含配息、已扣賣出成本；紅色賺、綠色賠</p></div>
+  <div class="bars">{"".join(bars)}</div>
+</section>
+<section aria-labelledby="detail-h">
+  <div class="sec-head"><h2 id="detail-h">逐檔明細</h2><p>依投入金額排序；表格可左右捲動</p></div>
+  <div class="table-box">
+    <table>
+      <thead><tr>
+        <th>股票</th><th>{since} 買進股數</th><th>成本</th><th>{asof:%m/%d} 收盤</th><th>市值／賣出實收</th>
+        <th>賣出手續費</th><th>證交稅</th><th>配息</th><th>淨損益</th><th>報酬率</th>
+      </tr></thead>
+      <tbody>{"".join(rows)}</tbody>
+      <tfoot><tr>
+        <td>合計</td><td></td><td>{s["cost"]:,}</td><td></td><td>{s["mv"]:,} ＋ {sold_proceeds:,}</td>
+        <td>{total_fee:,}</td><td>{total_tax:,}</td><td>{s["div"]:,}</td>
+        <td class="{_cls(s["net"])}">{_sg(s["net"])}</td><td class="{_cls(s["net"])}">{s["pct"]:+.2f}%</td>
+      </tr></tfoot>
+    </table>
+  </div>
+</section>
+<section aria-labelledby="div-h">
+  <div class="sec-head"><h2 id="div-h">期間配息</h2><p>買進日早於除息日、且除息日當天仍持有才計入</p></div>
+  <div class="table-box">
+    <table style="min-width:520px">
+      <thead><tr><th>股票</th><th>除息日</th><th>每股配息</th><th>符合股數</th><th>配息金額</th></tr></thead>
+      <tbody>{div_rows}</tbody>
+    </table>
+  </div>
+</section>
+<section aria-labelledby="notes-h">
+  <h2 id="notes-h">計算依據與限制</h2>
+  <div class="notes">
+    <div class="note"><h3>成本與已實現</h3><ul>
+      <li>成本取「股票買賣紀錄」J 欄，已含買進手續費。</li>
+      <li>已賣出部位以先進先出（FIFO）配對，只計 {since} 買進、後來賣出的那一段；實收已扣手續費與證交稅。</li>
+      <li>分割前股數依「股票分割」分頁換算成分割後。</li></ul></div>
+    <div class="note"><h3>賣出成本假設</h3><ul>
+      <li>仍持有部位假設結算日一次全部賣出。</li>
+      <li>手續費 0.1425% × 6 折，未滿 1 元捨去，最低 20 元。</li>
+      <li>證交稅：ETF（含槓桿 ETF）0.1%，個股 0.3%。</li></ul></div>
+    <div class="note"><h3>資料來源</h3><ul>
+      <li>收盤價：TWSE／TPEx 官方收盤（{asof:%Y/%m/%d}）。</li>
+      <li>配息：上市取 TWSE 除權息計算結果表（TWT49U）、上櫃取櫃買中心。</li>
+      <li>配息未扣匯費與二代健保補充保費。</li></ul></div>
+    {warn_note}
+  </div>
+</section>
+<footer>產出時間 {now:%Y/%m/%d %H:%M}（結算日 {asof:%Y/%m/%d} 收盤）。由 since_date_pnl.py --html 產生，資料來源：Google 試算表「股價試算」。</footer>
+</div>
+</body>
+</html>
+"""
+
+
 def print_report(per, divs, s, asof):
-    print(f"結算日 {asof}｜{SINCE} 起 {s['n']} 檔")
+    print(f"結算日 {asof}｜{SINCE} {'～ ' + str(UNTIL) if UNTIL else '起'} {s['n']} 檔")
     for p in per:
         tag = "已賣出" if p["close"] is None else f"{p['close']:>9,.2f}"
         print(f"  {p['name']:<7}{p['q']:>8,.0f} 股 成本{p['cost']:>11,.0f} {tag:>9} "
@@ -387,8 +698,21 @@ def main():
     ap.add_argument("--date", help="結算日 YYYY-MM-DD 或 YYYY/MM/DD（預設今天）")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--line-file", help="輸出 LINE 摘要一行到此檔")
+    ap.add_argument("--html", metavar="PATH", help="另產出完整 HTML 報告（例：investment_since_0703_report.html）")
+    ap.add_argument("--since", help="起算日（含）YYYY-MM-DD，預設 2026-07-03；改了就是另一波加碼，須搭配 --dry-run")
+    ap.add_argument("--until", help="買進結束日（含）YYYY-MM-DD：只算起算日～此日之間買進的批次；"
+                                    "結算日（--date）可以更晚。分頁走勢是不設上限的那組，故須搭配 --dry-run")
     a = ap.parse_args()
     asof = dt.date.fromisoformat(a.date.replace("/", "-")) if a.date else dt.date.today()
+    global SINCE, UNTIL
+    if a.since:
+        SINCE = dt.date.fromisoformat(a.since.replace("/", "-"))
+    if a.until:
+        UNTIL = dt.date.fromisoformat(a.until.replace("/", "-"))
+    if (a.since or a.until) and not a.dry_run:
+        sys.exit("✗ --since／--until 只能搭配 --dry-run：「加碼損益_0703」分頁與走勢是 7/3 起、不設結束日的那組，混寫會讓走勢失真")
+    if UNTIL and UNTIL < SINCE:
+        sys.exit(f"✗ 結束日 {UNTIL} 早於起算日 {SINCE}")
 
     svc = get_service()
     # 只計入結算日（含）以前的交易：補算過去某天時，不能把之後才發生的買賣算進去
@@ -397,6 +721,13 @@ def main():
     per, divs = compute(tracked, asof)
     s = summary(per)
     print_report(per, divs, s, asof)
+    if a.html:
+        # 分頁走勢是不設結束日的那組；設了 --until 就不引用（不畫走勢、不算較前一交易日）
+        hist = [] if (UNTIL or a.since) else [h for h in read_history(svc) if h[0] and h[0] <= asof]
+        prev = next((n for d, n, _ in sorted(hist, reverse=True) if d < asof), None)
+        with open(a.html, "w", encoding="utf-8") as f:
+            f.write(render_html(per, divs, s, asof, hist, s["net"] - prev if prev is not None else None))
+        print(f"✓ 已產出 {a.html}")
     if a.dry_run:
         print("（dry-run：未寫入）")
         return
