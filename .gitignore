@@ -22,6 +22,7 @@ jimmy_scripts/drop_stats_*.html
 # 個人資產數字(公開 repo 不放):改公式前的數值快照、加碼損益報告
 jimmy_scripts/.value_snapshots/
 jimmy_scripts/investment_since_*_report.html
+jimmy_scripts/investment_since_*_report.pdf
 jimmy_scripts/cathay_since_*_report.*
 jimmy_scripts/cathay_report_notes.json
 
@@ -39,9 +40,14 @@ DerivedData/
 jimmy_scripts/loan_config.json
 # 市值成長拆解問答整理與員工認股診斷（含個人財務數字，不進公開 repo）
 jimmy_scripts/2026市值成長拆解_問答整理.html
+jimmy_scripts/2026市值成長拆解_問答整理.pdf
 jimmy_scripts/穎崴員工認股_成本基礎失真診斷_*.md
 # 備忘錄錄音整理快取（私人錄音與逐字稿，絕不進版控）
 jimmy_scripts/.notes_audio_cache/
 
 # 整頻道批次摘要的續跑狀態（本機執行紀錄，不需版控）
 jimmy_scripts/.yt_channel_state.json
+
+# 會員影片摘要（付費牆後內容，只留本機）與 YouTube 登入 cookie（帳號憑證）
+jimmy_scripts/.yt_private_summaries/
+*cookies*.txt

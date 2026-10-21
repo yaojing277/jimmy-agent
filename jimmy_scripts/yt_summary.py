@@ -42,6 +42,10 @@ OUT_DIR = BASE_DIR / "yt_summaries"
 # 字幕／轉錄快取（放在摘要庫外，避免被 deploy 一起推上 GitHub）
 TRANSCRIPT_CACHE_DIR = BASE_DIR / ".yt_transcript_cache"
 INDEX_JSON = OUT_DIR / "summaries.json"
+# 帶 cookie(會員影片)的產出:只留本機,刻意**不**放進 OUT_DIR——
+# 摘要庫會被 deploy_yt_summaries.sh 推上 Public GitHub Pages,
+# 付費牆後的內容不該上線,也不寫進 summaries.json。
+PRIVATE_OUT_DIR = BASE_DIR / ".yt_private_summaries"
 
 # 字幕語言優先序（人工字幕優先於自動字幕）
 LANG_PRIORITY = ["zh-TW", "zh-Hant", "zh", "zh-Hans", "en", "ja"]
@@ -165,7 +169,45 @@ class TranscriptBlocked(RuntimeError):
     """
 
 
-def fetch_transcript(video_id: str):
+def cookie_session(cookies: str):
+    """用 Netscape 格式 cookie 檔建 requests.Session（給會員影片用）。
+
+    ⚠ cookie 是帳號憑證,與 token.json／gh_pat 同級:**不要進版控**。
+    ⚠ cookie 過期時的症狀是「影片不存在或無法存取」,與影片真的下架
+      長得一樣,所以這裡先驗檔案存在與格式,讓失敗點盡量提前。
+    """
+    import http.cookiejar
+    path = Path(cookies).expanduser()
+    if not path.is_file():
+        raise RuntimeError(f"找不到 cookie 檔：{path}")
+    jar = http.cookiejar.MozillaCookieJar(str(path))
+    try:
+        jar.load(ignore_discard=True, ignore_expires=True)
+    except Exception as e:
+        raise RuntimeError(
+            f"cookie 檔無法解析（需 Netscape 格式）：{type(e).__name__}") from e
+    if not any(c.name == "SID" or c.name.endswith("SAPISID") for c in jar):
+        print("⚠️  cookie 檔裡找不到登入用的 SID/SAPISID，可能不是登入狀態的匯出檔。")
+    ses = requests.Session()
+    ses.cookies = jar
+    ses.headers.update({"User-Agent": "Mozilla/5.0"})
+    return ses
+
+
+def ydl_metadata(video_id: str, cookies: str = None) -> dict:
+    """用 yt-dlp 取標題／頻道（會員影片 oEmbed 與觀看頁抓法都拿不到）。"""
+    import yt_dlp
+    opts = {"quiet": True, "no_warnings": True, "skip_download": True,
+            "extractor_args": {"youtube": {"player_client": ["android"]}}}
+    if cookies:
+        opts["cookiefile"] = str(Path(cookies).expanduser())
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        d = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}",
+                             download=False)
+    return {"title": d.get("title") or video_id, "channel": d.get("uploader") or ""}
+
+
+def fetch_transcript(video_id: str, cookies: str = None):
     """回傳 (snippets, 語言碼, 是否自動字幕)；snippets = [{text, start}, ...]。
 
     完全沒字幕時丟出 NoCaptionsError（可 fallback 至 Whisper）。
@@ -179,7 +221,8 @@ def fetch_transcript(video_id: str):
         VideoUnavailable,
     )
 
-    api = YouTubeTranscriptApi()
+    api = YouTubeTranscriptApi(
+        http_client=cookie_session(cookies)) if cookies else YouTubeTranscriptApi()
     try:
         tlist = list(api.list(video_id))
     except (TranscriptsDisabled, NoTranscriptFound) as e:
@@ -273,7 +316,8 @@ def save_cached_transcript(video_id: str, snippets, lang: str, auto: bool, sourc
 
 # ---------------------------------------------------------------- Whisper fallback（無字幕影片）
 
-def transcribe_with_whisper(video_id: str, model_size: str = WHISPER_MODEL_SIZE):
+def transcribe_with_whisper(video_id: str, model_size: str = WHISPER_MODEL_SIZE,
+                            cookies: str = None):
     """下載音軌並用本地 Whisper 轉錄，回傳格式與 fetch_transcript 相同：
     (snippets, 語言碼, 是否自動字幕=True)。失敗丟出 RuntimeError。
     """
@@ -291,6 +335,8 @@ def transcribe_with_whisper(video_id: str, model_size: str = WHISPER_MODEL_SIZE)
             # web client 目前常被 YouTube 要求 PO Token 而失敗，android client 不需要
             "extractor_args": {"youtube": {"player_client": ["android"]}},
         }
+        if cookies:
+            ydl_opts["cookiefile"] = str(Path(cookies).expanduser())
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([f"https://www.youtube.com/watch?v={video_id}"])
@@ -682,11 +728,15 @@ def update_index(entry: dict):
 # ---------------------------------------------------------------- 主流程
 
 def summarize_video(url: str, model: str = "sonnet", whisper_model: str = WHISPER_MODEL_SIZE,
-                    fallback_meta: dict = None) -> Path:
+                    fallback_meta: dict = None, cookies: str = None) -> Path:
     """核心流程，回傳產出的 HTML 路徑。可供其他腳本 import。
 
     fallback_meta：oEmbed 失敗時的備援 {"title": ..., "channel": ...}
     （yt_auto_summary.py 會把 RSS 已知的標題/頻道傳進來）。
+
+    cookies：Netscape 格式 cookie 檔，用於會員限定影片。
+    ⚠ 給了 cookie 的產出一律落在 PRIVATE_OUT_DIR、**不進摘要庫索引**——
+      摘要庫會被推上 Public GitHub Pages，付費牆後的內容不該上線。
     """
     video_id = parse_video_id(url)
     print(f"🎯 video id：{video_id}")
@@ -697,6 +747,13 @@ def summarize_video(url: str, model: str = "sonnet", whisper_model: str = WHISPE
             meta["title"] = fallback_meta["title"]
         if not meta["channel"] and fallback_meta.get("channel"):
             meta["channel"] = fallback_meta["channel"]
+    if cookies and meta["title"] == video_id:
+        # 會員影片對訪客不存在,oEmbed 與觀看頁抓法都只會拿到 video id
+        print("   🔑 改用 yt-dlp（帶 cookie）取標題／頻道…")
+        try:
+            meta.update(ydl_metadata(video_id, cookies))
+        except Exception as e:
+            print(f"   ⚠️  yt-dlp 取 metadata 失敗（{type(e).__name__}），標題留 video id")
     print(f"🎬 {meta['title']}（{meta['channel'] or '未知頻道'}）")
 
     cached = load_cached_transcript(video_id)
@@ -707,7 +764,7 @@ def summarize_video(url: str, model: str = "sonnet", whisper_model: str = WHISPE
         print("📥 抓取字幕中...")
         source = "caption"
         try:
-            snippets, lang, auto = fetch_transcript(video_id)
+            snippets, lang, auto = fetch_transcript(video_id, cookies=cookies)
         except NoCaptionsError:
             # ⚠ 「沒字幕」有可能是**假的**：YouTube 對字幕 API 限速時會回一個不含
             #   字幕軌的頁面,youtube_transcript_api 會判成 TranscriptsDisabled。
@@ -717,10 +774,11 @@ def summarize_video(url: str, model: str = "sonnet", whisper_model: str = WHISPE
             print("   ⏳ 判定無字幕,15 秒後重試一次以排除限速誤判…")
             time.sleep(15)
             try:
-                snippets, lang, auto = fetch_transcript(video_id)
+                snippets, lang, auto = fetch_transcript(video_id, cookies=cookies)
                 print("   ✅ 重試後取得字幕(前一次是限速誤判)")
             except NoCaptionsError:
-                snippets, lang, auto = transcribe_with_whisper(video_id, model_size=whisper_model)
+                snippets, lang, auto = transcribe_with_whisper(
+                    video_id, model_size=whisper_model, cookies=cookies)
                 source = "whisper"
         save_cached_transcript(video_id, snippets, lang, auto, source)
 
@@ -739,18 +797,24 @@ def summarize_video(url: str, model: str = "sonnet", whisper_model: str = WHISPE
     n_pts = len(summary.get("key_points", []))
     print(f"✅ 摘要完成：{n_pts} 條重點、{len(summary.get('chapters', []))} 個章節")
 
-    OUT_DIR.mkdir(exist_ok=True)
+    out_dir = PRIVATE_OUT_DIR if cookies else OUT_DIR
+    out_dir.mkdir(exist_ok=True)
     today = datetime.now().strftime("%Y%m%d")
     info = {"lang": lang, "auto": auto, "source": source,
             "date": datetime.now().strftime("%Y-%m-%d"), "truncated": truncated}
-    out_file = OUT_DIR / f"{today}_{video_id}.html"
+    out_file = out_dir / f"{today}_{video_id}.html"
 
     # 同影片重跑：移除舊日期檔，避免摘要庫連到失效檔案
-    for old in OUT_DIR.glob(f"*_{video_id}.html"):
+    for old in out_dir.glob(f"*_{video_id}.html"):
         if old != out_file:
             old.unlink()
 
     out_file.write_text(render_summary_html(meta, summary, info), encoding="utf-8")
+
+    if cookies:
+        # 會員影片:不寫索引、不上線
+        print(f"📄 已輸出（本機私人目錄，不進摘要庫）：{out_file}")
+        return out_file
 
     total = update_index({
         "video_id": video_id,
@@ -776,10 +840,15 @@ def main():
                     help=f"無字幕時 fallback 用的 Whisper 模型大小"
                          f"（tiny/base/small/medium/large-v3，預設 {WHISPER_MODEL_SIZE}）")
     ap.add_argument("--no-open", action="store_true", help="產出後不自動開啟瀏覽器")
+    ap.add_argument("--cookies", metavar="檔案",
+                    help="Netscape 格式 cookie 檔，用於會員限定影片；"
+                         "產出只留本機 .yt_private_summaries/，不進摘要庫、不上線")
     args = ap.parse_args()
 
     try:
-        out_file = summarize_video(args.url, model=args.model, whisper_model=args.whisper_model)
+        out_file = summarize_video(args.url, model=args.model,
+                                   whisper_model=args.whisper_model,
+                                   cookies=args.cookies)
     except RuntimeError as e:
         print(f"❌ {e}")
         sys.exit(1)
