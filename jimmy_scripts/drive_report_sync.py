@@ -1,5 +1,5 @@
 """
-本機 HTML 報告同步到 Google 雲端硬碟（2026-10-19 起；排程：wealth_sync.yml 每個交易日）。
+本機 HTML／PDF 報告同步到 Google 雲端硬碟（2026-10-19 起；排程：wealth_sync.yml 每個交易日）。
 
 做法與 Wealth OS xlsm 相同：檔案由 yaojing277@gmail.com 建立（擁有者是本人、佔本人空間），
 分享給 Service Account（writer），排程用 SA 以 files().update 就地覆蓋——檔案 ID 不變，
@@ -46,7 +46,11 @@ def drive_service():
 def media(path):
     if not os.path.exists(path) or os.path.getsize(path) == 0:
         sys.exit(f"✗ 找不到或是空檔：{path}（不上傳，避免把雲端那份蓋成空白）")
-    return MediaFileUpload(path, mimetype="text/html", resumable=False)
+    return MediaFileUpload(path, mimetype=mime(path), resumable=False)
+
+
+def mime(path):
+    return "application/pdf" if path.lower().endswith(".pdf") else "text/html"
 
 
 def main():
@@ -55,6 +59,7 @@ def main():
     c = sub.add_parser("create")
     c.add_argument("path")
     c.add_argument("--name", help="雲端檔名（預設同本機檔名）")
+    c.add_argument("--no-share", action="store_true", help="不分享給 SA（一次性上傳、不需排程覆蓋時用）")
     u = sub.add_parser("update")
     u.add_argument("path")
     u.add_argument("file_id")
@@ -64,11 +69,12 @@ def main():
     if a.cmd == "create":
         if get_sa_creds():
             sys.exit("✗ create 需用本人帳號（SA 沒有儲存空間）；請在本機、未設定 GOOGLE_SA_JSON 時執行")
-        f = drive.files().create(body={"name": a.name or os.path.basename(a.path), "mimeType": "text/html"},
+        f = drive.files().create(body={"name": a.name or os.path.basename(a.path), "mimeType": mime(a.path)},
                                  media_body=media(a.path), fields="id,name,webViewLink").execute()
-        drive.permissions().create(fileId=f["id"], sendNotificationEmail=False,
-                                   body={"type": "user", "role": "writer", "emailAddress": SA_EMAIL}).execute()
-        print(f"✓ 已建立「{f['name']}」並分享給 SA\n  檔案 ID：{f['id']}\n  {f['webViewLink']}")
+        if not a.no_share:
+            drive.permissions().create(fileId=f["id"], sendNotificationEmail=False,
+                                       body={"type": "user", "role": "writer", "emailAddress": SA_EMAIL}).execute()
+        print(f"✓ 已建立「{f['name']}」{'（未分享）' if a.no_share else '並分享給 SA'}\n  檔案 ID：{f['id']}\n  {f['webViewLink']}")
     else:
         f = drive.files().update(fileId=a.file_id, media_body=media(a.path),
                                  fields="name,modifiedTime").execute()

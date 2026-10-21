@@ -300,7 +300,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-20</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-21</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -988,6 +988,14 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-21</td>
+          <td>📄 <b>加碼損益報告：可分波次計算、每天自動出 PDF 到雲端硬碟</b>。<code>since_date_pnl.py</code> 新增 <code>--html</code>（完整自足報告，含每日走勢）、<code>--since</code>／<code>--until</code>（起算日／買進結束日），同一套 FIFO 口徑可以另算任一波加碼；目前追蹤兩波，<b>買進區間互不重疊</b>。<br>
+          <b>雲端硬碟同步</b>：新增 <code>drive_report_sync.py</code>（<code>create</code>／<code>update</code>）與 <code>html_to_pdf.py</code>（無頭瀏覽器列印成 A4 PDF，雲端排程直接用 runner 內建的 Chrome、不必下載瀏覽器）。每個交易日以收盤重算後<b>就地覆蓋同一個檔</b>（ID 與連結不變、保留版本歷史）。報告含個人金額，只放本人雲端硬碟、<b>不發佈到本頁</b>。<br>
+          <b>LINE 每日訊息改版</b>：兩波加碼各一行（皆含較前日）＋國泰報酬；信貸負債比率改為只在試算表分頁顯示。另一波沒有分頁可存歷史，<b>較前日改以前一交易日收盤把同一波重算再相減</b>（無狀態，補登交易也自動算對）。<br>
+          <b>踩坑</b>：① 報告原是給 Artifact 包外框的 HTML 片段，<b>缺 <code>&lt;meta charset&gt;</code></b>，直接開檔被瀏覽器猜錯編碼而成亂碼。② <b>Service Account 沒有儲存空間</b>，不能自己建檔——檔案一律由本人帳號建立再分享給 SA，排程只做覆蓋（與 Wealth OS xlsm 同一招）。③ 結算日落在週末時，取「最接近」的收盤會挑到<b>之後</b>的週一，等於用未來價格結算；改為先退回最近一個交易日（排程一律傳交易日，原本不受影響）。<br>
+          <b>驗證</b>：新算法重算的較前日與既有分頁走勢逐元一致；兩次手動觸發排程全部步驟成功，LINE 內容與本機模擬一致</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-20</td>
           <td>🧮 <b>持股成本改由交易紀錄重算，不再滾動均價</b>。起因是券商 App 的成本與試算表對不上。查下來<b>App 是對的</b>——以交易紀錄重建的結果與 App 只差個位數元（賣出時加權平均扣成本的進位差），試算表則有千元級偏差。<br>

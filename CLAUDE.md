@@ -53,7 +53,7 @@
     自動化真正執行的地方在那邊；本機 `jimmy_scripts/` 改完對應腳本後，要同步過去並 push 才會生效。
   - 同步時注意路徑：workflows 執行的是 `stock_notify_tmp/jimmy_scripts/` **子目錄**下的腳本
     （`stock_notify.py`、`stock_alert.py`、`stock_alert_v2.py`、`stock_notify_gmail.py`、`price_source.py`、`auth_sheets.py`、
-    `update_stock_price.py`、`update_wealth_os.py`、`twse_hist.py`、`lev2_analysis.py`、`etf_ex_dividend_calendar.py`、`drop_stats_publish.py`、`drop_stats_web.html`），
+    `update_stock_price.py`、`update_wealth_os.py`、`twse_hist.py`、`lev2_analysis.py`、`etf_ex_dividend_calendar.py`、`drop_stats_publish.py`、`drop_stats_web.html`、`since_date_pnl.py`、`drive_report_sync.py`、`html_to_pdf.py`），
     但 `check_reminders.py`、`youtube_notify.py`、`reminders.json` 放在 `stock_notify_tmp/` **根目錄**。
   - **雲端執行**：`wealth_sync.yml` workflow，認證走 Service Account（Secret `GOOGLE_SA_JSON`，永不過期），跑完 LINE 通知。
     - **每日自動排程**（2026-07-25 起）：每天台北 **14:17**（cron `17 6 * * *`；2026-10-06 由 14:30 改為 :17，避開整點／半點的擁塞時段）觸發，跑「更新股價＋同步＋全分頁」；
@@ -89,6 +89,9 @@
       真要補跑得先給 workflow 加 `target_date` input，而且「更新股價」的快照滾動假設日期往前推進，
       倒著建快照會讓分頁順序與 H~K 欄錯亂，必須另外處理。目前策略：**只偵測警示，人工決定怎麼補**。
     - 注意：GitHub 排程在 repo 連續 60 天無活動會自動停用；PAT 內嵌於 remote（與到期日綁定）。
+    - **每日 LINE 訊息格式（2026-10-21 Jimmy 指定）**：第 1 行執行結果 → `7/3～10/16加碼損益` → `10/20起加碼損益` → `國泰6/8起`，
+      三行皆含較前日；組裝邏輯在 `wealth_sync.yml` 最後一步，訊息會 `echo` 到 log（私人 repo）供核對。
+      「7/3起全部合計」（`加碼損益_0703` 分頁）與信貸負債比率仍每日更新，只是**不推送**。
     - **ETF 除息日／發放日同步日曆**（`etf_ex_dividend_calendar.py sync`，2026-08-24 起隨每日排程跑）：
       抓 TWSE 官方「ETF 收益分配彙整表」（`etfDiv` API，已公告的除息交易日／發放日／金額，
       涵蓋未來已公告但尚未發生的），對「股價試算」持股中 ETF（代號 `00` 開頭）各建兩筆全天事件
@@ -120,10 +123,11 @@
 | `sheet_value_guard.py` | 改公式前後的安全網：`snapshot`/`diff` 比對計算值 |
 | `trade_entry_server.py` / `trade_entry_appscript.gs` | 買進紀錄輸入網頁（localhost:8765）與 Apps Script 後端橋接 |
 | `etf_ex_dividend_calendar.py` | ETF 除息日／發放日同步 Google 日曆：`sync`（Service Account 全自動，排程用）／`check`+`mark`（本機無 SA 時，搭配 Calendar MCP 手動建） |
-| `since_date_pnl.py` | 「**7/3 起加碼損益**」每日結算（2026-10-04 起隨 `wealth_sync.yml` 每個交易日跑）：讀「股票買賣紀錄」依「股票分割」換算後逐代號 FIFO，對起算日（`SINCE`，含）後買進的批次算已實現＋未實現（以結算日收盤價、扣假設賣出的手續費 0.1425%×6 折與證交稅 ETF 0.1%／個股 0.3%）＋期間配息（上市 TWT49U、上櫃櫃買 exDailyQ）；整張重寫「股價試算」分頁 `加碼損益_0703`（右側 M:P 為每日走勢、由新到舊、同日覆寫），並以 `--line-file` 輸出一行摘要併進每日 LINE 通知；`--dry-run`／`--date`。**金額屬個人資料，刻意不發佈到公開 GitHub Pages** |
+| `since_date_pnl.py` | 「**7/3 起加碼損益**」每日結算（2026-10-04 起隨 `wealth_sync.yml` 每個交易日跑）：讀「股票買賣紀錄」依「股票分割」換算後逐代號 FIFO，對起算日（`SINCE`，含）後買進的批次算已實現＋未實現（以結算日收盤價、扣假設賣出的手續費 0.1425%×6 折與證交稅 ETF 0.1%／個股 0.3%）＋期間配息（上市 TWT49U、上櫃櫃買 exDailyQ）；整張重寫「股價試算」分頁 `加碼損益_0703`（右側 M:P 為每日走勢、由新到舊、同日覆寫），並以 `--line-file` 輸出一行摘要；`--dry-run`／`--date`。**金額屬個人資料，刻意不發佈到公開 GitHub Pages**。[2026-10-21 起] `--html PATH` 產完整自足報告（含 charset、`@media print` A4 樣式）、`--since`／`--until` 另算任一波加碼（**只能搭配 `--dry-run`**，分頁走勢是 7/3 起不設結束日那組）；dry-run 的 `--line-file` 以「前一交易日收盤重算同一波再相減」算較前日；結算日非交易日會先退回最近交易日。**目前追蹤兩波、互不重疊**：7/3～10/16（`--until 2026-10-16`）與 10/20 起（`--since 2026-10-20`）；**10/19 兩筆 00631L 依 Jimmy 指示不計入任何一波**。報告檔名一律 `investment_since_*_report.html/.pdf`（`.gitignore` 靠這個樣式擋住） |
+| `drive_report_sync.py` / `html_to_pdf.py` | 加碼損益報告同步 Google 雲端硬碟（2026-10-19 起）：`create`（**本機**以本人帳號建檔並分享給 SA；`--no-share` 一次性上傳不分享）／`update <檔案ID>`（排程用 SA 就地覆蓋，ID 不變）。⚠ **SA 沒有儲存空間、不能自己建檔**。`html_to_pdf.py` 以無頭瀏覽器列印成 PDF（雲端排程用 runner 內建 Chrome，`pip install playwright` 不下載瀏覽器；本機用 Playwright Chromium），頁面沒寫 `@page` 時預設 A4＋頁邊距。雲端硬碟不會把 HTML 當網頁顯示，**要看請開 PDF**。排程每個交易日覆蓋兩波各一份 HTML＋PDF（檔案 ID 寫在 `wealth_sync.yml`） |
 | `patch_asset_history.py` | 「16_資產歷史」補登／更正指定日期（寫完一併依買賣紀錄重寫 I 欄淨投入）（`rows.json`：`{"YYYY/MM/DD": [總市值, 成本]}`），沿用 `surgical_write`／`_update_history`（2026-10-09 起依日期排序插入，補過去日期會落在正確位置）＋`full_refresh` 重建 02_每日漲跌；預設只預覽並驗證日期順序，`--yes` 才上傳 |
 | `cathay_since_pnl.py` | 「**國泰 6/8 起報酬**」（2026-10-09 起隨 `wealth_sync.yml` 每個交易日跑，排在國泰漲跌之後、該步成功才跑）：讀雲端 xlsm 的 `03_國泰漲跌` 每日表，算淨損益（期末−基準−淨投入，與單日損益加總雙向驗算）、簡單／Modified Dietz／TWR 三種報酬、各月貢獻、資金投入與單日極值；`--sheet` 整張重寫「股價試算」分頁 `國泰報酬_0608`（M:P 每日走勢、由新到舊、同日覆寫）、`--line-file` 併入每日 LINE 第三行、`--expect-date` 防呆（xlsm 最新日期不是今天就中止不寫）、`--no-files` 不產報告。本機不帶參數則產 Markdown＋HTML 報告（不進版控）；含帳戶金額的人工註記放 `cathay_report_notes.json`（不進版控，缺檔照常產出）。⚠ 帳戶市值口徑、**未扣假設賣出成本**，與「加碼損益_0703」口徑不同、不可直接相加 |
-| `loan_funding.py` | 「**資金來源**」信貸投入與報酬覆蓋追蹤（2026-10-11 起隨 `wealth_sync.yml` 每個交易日跑，排在「同步股價」之後）：等額本息攤還表（**以設定檔月付為準，不自套公式**；不自洽會印殘額警告）算累計利息／本金／餘額，投資報酬以逐日報酬率歸屬到信貸投入金額，寫「股價試算」的 `資金來源` 分頁。給兩種檢驗：**vs 累計利息**（划不划算，利息才是真實成本）與 **vs 累計月付**（現金流）。⚠ **歸因假設影響極大**：依「撥款後實際淨投入逐筆建批、每批各自從投入日起算」，而非「撥款日全額進場」（同一期間差 40 萬、結論從未覆蓋翻成覆蓋 9.58 倍）；假設是「信貸的錢先被花掉」，已寫進分頁口徑說明。設定走 `loan_config.json`（**含個人財務數字、不進版控**）或 secret `LOAN_CONFIG_JSON`；`--skip-if-no-config` 缺設定時 exit 0 不拖垮排程。**只追蹤信貸，房貸為自住房與投資無關**。[2026-10-13 起] 另算**信貸負債比率**＝信貸餘額 ÷ 投資淨資產（分母＝主帳戶市值＋現金＋複委託台幣市值−信貸餘額；自住房與房貸不計入），對 `12_設定` B33／B34 的 `debt_max`／`debt_warn` 門檻（2026-10-13 Jimmy 定為 **0.4／0.3**——把 EP132 的「合理上限 30%」當保守線、「40% 以上效果就爛」當上限；清空則退回同值預設，出自 A8 阿吧 EP132）判定，寫進分頁並以 `--line-file` 併入每日 LINE；`overseas_twd()` 另讀「複委託」分頁（該帳戶未併入 16_資產歷史，不另讀會低估比率），讀不到只標示不完整 |
+| `loan_funding.py` | 「**資金來源**」信貸投入與報酬覆蓋追蹤（2026-10-11 起隨 `wealth_sync.yml` 每個交易日跑，排在「同步股價」之後）：等額本息攤還表（**以設定檔月付為準，不自套公式**；不自洽會印殘額警告）算累計利息／本金／餘額，投資報酬以逐日報酬率歸屬到信貸投入金額，寫「股價試算」的 `資金來源` 分頁。給兩種檢驗：**vs 累計利息**（划不划算，利息才是真實成本）與 **vs 累計月付**（現金流）。⚠ **歸因假設影響極大**：依「撥款後實際淨投入逐筆建批、每批各自從投入日起算」，而非「撥款日全額進場」（同一期間差 40 萬、結論從未覆蓋翻成覆蓋 9.58 倍）；假設是「信貸的錢先被花掉」，已寫進分頁口徑說明。設定走 `loan_config.json`（**含個人財務數字、不進版控**）或 secret `LOAN_CONFIG_JSON`；`--skip-if-no-config` 缺設定時 exit 0 不拖垮排程。**只追蹤信貸，房貸為自住房與投資無關**。[2026-10-13 起] 另算**信貸負債比率**＝信貸餘額 ÷ 投資淨資產（分母＝主帳戶市值＋現金＋複委託台幣市值−信貸餘額；自住房與房貸不計入），對 `12_設定` B33／B34 的 `debt_max`／`debt_warn` 門檻（2026-10-13 Jimmy 定為 **0.4／0.3**——把 EP132 的「合理上限 30%」當保守線、「40% 以上效果就爛」當上限；清空則退回同值預設，出自 A8 阿吧 EP132）判定，寫進分頁（[2026-10-21 起依 Jimmy 指示**不再推 LINE**，`loan_line.txt` 照產但不讀）；`overseas_twd()` 另讀「複委託」分頁（該帳戶未併入 16_資產歷史，不另讀會低估比率），讀不到只標示不完整 |
 | `overseas_sync.py` | 「**複委託**」海外帳戶追蹤（2026-10-12 起隨 `wealth_sync.yml` 每個交易日跑）：持股人工維護於「股價試算／複委託持股」（`--init` 建範本；欄位 代號/名稱/股數/買進均價/幣別/買進日/備註），yfinance 抓收盤＋`TWD=X` 匯率，寫 `複委託` 分頁。**原幣與台幣雙口徑分開列**（原幣＝真實投資績效、台幣另含匯率變動，不可混談）；報價或匯率抓不到就留白並列警告，不用舊值硬湊。`--skip-if-empty` 無持股時 exit 0。⚠ **美股收盤在台灣凌晨，14:30 排程抓到的是前一個美股交易日收盤**，每列標報價日。⚠ **尚未併入 `16_資產歷史`／`04_ETF分析`**，總資產與曝險比例不含此帳戶 |
 | `publish_projects.py` | 排程跑完把執行結果寫進 `yaojing277/projects` 的 `runlog.json`（同交易日重跑覆蓋、留 90 天），並同步 `projects.html`/`index.html`/兩份 devlog/`schedule_runlog.html`；需 secret `PAGES_PAT` |
 | `check_reminders.py` | 日期到期提醒（讀 `reminders.json`，需環境變數 `LINE_TOKEN`/`LINE_USER_ID`） |

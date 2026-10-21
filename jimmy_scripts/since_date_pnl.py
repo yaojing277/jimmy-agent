@@ -138,6 +138,23 @@ footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);paddin
 .trend{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
 .trend svg{display:block;width:100%;height:auto}
 .trend text{font-family:var(--f-num);font-size:11px;fill:var(--muted)}
+/* 列印／PDF（html_to_pdf.py）：A4 直式、表格不裁切、區塊不跨頁截斷 */
+@page{size:A4;margin:12mm 10mm}
+@media print{
+  :root{--bg:#fff}
+  body{font-size:13px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .screen-only{display:none}
+  .wrap{max-width:none;padding:0;gap:22px}
+  .hero{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+  .table-box{overflow:visible}
+  table{min-width:0;font-size:11px}
+  th,td{padding:6px 5px}
+  th{vertical-align:bottom}
+  td:first-child{white-space:normal}
+  .hero,.trend,.bars,.note,.sec-head{break-inside:avoid}
+  tr{break-inside:avoid}
+  h2{break-after:avoid}
+}
 """
 
 
@@ -631,12 +648,12 @@ def render_html(per, divs, s, asof, hist, delta):
   <div class="bars">{"".join(bars)}</div>
 </section>
 <section aria-labelledby="detail-h">
-  <div class="sec-head"><h2 id="detail-h">逐檔明細</h2><p>依投入金額排序；表格可左右捲動</p></div>
+  <div class="sec-head"><h2 id="detail-h">逐檔明細</h2><p>依投入金額排序<span class="screen-only">；表格可左右捲動</span></p></div>
   <div class="table-box">
     <table>
       <thead><tr>
-        <th>股票</th><th>{since} 買進股數</th><th>成本</th><th>{asof:%m/%d} 收盤</th><th>市值／賣出實收</th>
-        <th>賣出手續費</th><th>證交稅</th><th>配息</th><th>淨損益</th><th>報酬率</th>
+        <th>股票</th><th>{since}<br>買進股數</th><th>成本</th><th>{asof:%m/%d}<br>收盤</th><th>市值／<br>賣出實收</th>
+        <th>賣出<br>手續費</th><th>證交稅</th><th>配息</th><th>淨損益</th><th>報酬率</th>
       </tr></thead>
       <tbody>{"".join(rows)}</tbody>
       <tfoot><tr>
@@ -681,6 +698,27 @@ def render_html(per, divs, s, asof, hist, delta):
 """
 
 
+def trading_days_around(asof):
+    """回 (結算交易日, 前一交易日)：以 0050 的 TWSE 月收盤日期判斷（含跨月）。
+    結算日本身不是交易日（週末）時，先退回最近一個交易日。"""
+    days = set()
+    y, m = asof.year, asof.month
+    for _ in range(2):
+        days |= set(th.month_closes("0050", y, m))
+        y, m = (y, m - 1) if m > 1 else (y - 1, 12)
+    eff = max((d for d in days if d <= asof), default=None)
+    prev = max((d for d in days if eff and d < eff), default=None)
+    return eff, prev
+
+
+def net_on(tx, splits, day):
+    """重算某交易日的淨總損益（只計當天以前的交易）；起算日之後才有批次。"""
+    if day is None or day < SINCE:
+        return 0
+    tracked = fifo([t for t in tx if t["d"] <= day], splits)
+    return summary(compute(tracked, day)[0])["net"] if tracked else 0
+
+
 def print_report(per, divs, s, asof):
     print(f"結算日 {asof}｜{SINCE} {'～ ' + str(UNTIL) if UNTIL else '起'} {s['n']} 檔")
     for p in per:
@@ -714,10 +752,19 @@ def main():
     if UNTIL and UNTIL < SINCE:
         sys.exit(f"✗ 結束日 {UNTIL} 早於起算日 {SINCE}")
 
+    # 結算日不是交易日（週末／假日）就退回最近一個交易日：close_on 取「最接近」的收盤，
+    # 週日會挑到之後的週一，等於用未來的價格結算（排程一律傳交易日，不受影響）
+    eff, _ = trading_days_around(asof)
+    if eff and eff != asof:
+        print(f"結算日 {asof} 非交易日，改以 {eff} 收盤結算")
+        asof = eff
+
     svc = get_service()
     # 只計入結算日（含）以前的交易：補算過去某天時，不能把之後才發生的買賣算進去
-    tx = [t for t in read_trades(svc) if t["d"] <= asof]
-    tracked = fifo(tx, read_splits(svc))
+    all_tx = read_trades(svc)
+    splits = read_splits(svc)
+    tx = [t for t in all_tx if t["d"] <= asof]
+    tracked = fifo(tx, splits)
     per, divs = compute(tracked, asof)
     s = summary(per)
     print_report(per, divs, s, asof)
@@ -728,17 +775,29 @@ def main():
         with open(a.html, "w", encoding="utf-8") as f:
             f.write(render_html(per, divs, s, asof, hist, s["net"] - prev if prev is not None else None))
         print(f"✓ 已產出 {a.html}")
+    def write_line(delta):
+        # 「7/3起加碼損益」或「10/20起加碼損益」／「7/3～10/16加碼損益」
+        line = f"{period().replace(' ', '')}加碼損益 {s['net']:+,}（{s['pct']:+.2f}%）"
+        if delta is not None:
+            line += f"，較前日 {delta:+,}"
+        with open(a.line_file, "w", encoding="utf-8") as f:
+            f.write(line)
+        print(f"[line-file] {line}")
+
     if a.dry_run:
+        # dry-run 不寫分頁、沒有走勢可存：「較前日」改為以前一交易日收盤重算同一波再相減
+        # （無狀態，日後補登交易也自動算對；給 --since 另一波加碼併入 LINE 用）
+        if a.line_file:
+            eff, prev = trading_days_around(asof)
+            delta = s["net"] - net_on(all_tx, splits, prev) if prev else None
+            print(f"較前日：{prev} → {eff}")
+            write_line(delta)
         print("（dry-run：未寫入）")
         return
     delta = write_sheet(svc, per, divs, s, asof, read_history(svc))
     print(f"✓ 已寫入分頁「{OUT_SHEET}」" + (f"，較前一交易日 {delta:+,}" if delta is not None else ""))
     if a.line_file:
-        line = f"{SINCE:%-m/%-d}起加碼損益 {s['net']:+,}（{s['pct']:+.2f}%）"
-        if delta is not None:
-            line += f"，較前日 {delta:+,}"
-        with open(a.line_file, "w", encoding="utf-8") as f:
-            f.write(line)
+        write_line(delta)
 
 
 if __name__ == "__main__":
