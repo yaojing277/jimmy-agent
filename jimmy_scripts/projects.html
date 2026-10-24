@@ -300,7 +300,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-21</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-25</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -988,6 +988,13 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-25</td>
+          <td>📅 <b>除息日曆納入個股</b>：原本只同步持股 ETF，現在連上市個股的除息日與發放日也一起寫進 Google 日曆（A 欄是中文名稱的列沿用 <code>ALIAS</code> 轉代號）。今年以來補上 9 檔個股、12 次除息。<br>
+          <b>資料來源</b>：除息日與每股現金股利取 TWSE 官方——已發生用 TWT49U（除權除息計算結果表）、未發生用 TWT48U（除權除息預告表）；<b>TWSE 不提供個股發放日</b>，改取 Yahoo 股市股利頁的 <code>cashPayDate</code>，以除息日對應。<br>
+          <b>踩坑</b>：① TWT49U 的「權值＋息值」是<b>除權息參考價的扣減值</b>，純除息時剛好等於實際每股現金（含股本變動調整，例如公告 7.2 實配 7.1718），但<b>除權息時混有股票股利</b>，照抄會把配股價值算成現金——權息一律改用 Yahoo 的現金股利，取不到就標「待公告」，不拿混算值充數。② Yahoo 從本機常逾時或斷線，第一版整輪跑了近 7 分鐘，超過排程該步的上限；改為<b>先一次讀進整段日曆，只對缺發放日或缺權息金額的紀錄查 Yahoo</b>，並設整輪時間上限，平常一天完全不碰 Yahoo（實測 23 秒）。③ 原本每筆事件各打一次日曆 API 查重，ETF＋個股逾百次，改成一次讀取後本機比對。<br>
+          <b>驗證</b>：連跑兩輪，新增／更新皆為 0（冪等）；workflow 該步加 <code>continue-on-error</code> 與 6 分鐘上限，Yahoo 偶發失敗不會連坐後續步驟，缺的發放日隔天自動補</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-21</td>
           <td>📄 <b>加碼損益報告：可分波次計算、每天自動出 PDF 到雲端硬碟</b>。<code>since_date_pnl.py</code> 新增 <code>--html</code>（完整自足報告，含每日走勢）、<code>--since</code>／<code>--until</code>（起算日／買進結束日），同一套 FIFO 口徑可以另算任一波加碼；目前追蹤兩波，<b>買進區間互不重疊</b>。<br>

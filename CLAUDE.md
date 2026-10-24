@@ -101,6 +101,14 @@
       且 **GCP 專案已啟用 Google Calendar API**（兩者已設定完成）。本機沒有 `GOOGLE_SA_JSON` 時
       改用 `check`/`mark` 搭配 Claude 對話裡的 Calendar MCP 手動建事件（state 存
       `etf_dividend_calendar_state.json`）。
+      **[2026-10-25 起] 個股（上市）也納入**：A 欄非 ETF 的列用 `update_stock_price.ALIAS` 轉四位數代號
+      （對不到會印警告略過——新增個股若 A 欄寫中文名，記得補 ALIAS）。除息日＋每股現金股利取 TWSE
+      TWT49U（已發生，`twse_hist._fetch_exright`）／TWT48U（預告）；**TWSE 沒有個股發放日**，改取 Yahoo 股市
+      股利頁 `cashPayDate`（以除息日對應）。⚠ TWT49U「權值＋息值」是參考價扣減值：**純「息」＝實際每股現金**
+      （含股本變動調整，鴻海公告 7.2 實配 7.1718），**「權息」混有股票股利**→ 改用 Yahoo 現金股利，
+      取不到標「待公告」。⚠ Yahoo 從本機常逾時：**只對缺發放日或缺權息金額的紀錄查 Yahoo**、整輪上限 180 秒，
+      平常一天不碰 Yahoo（約 23 秒跑完）；workflow 該步 `continue-on-error`＋`timeout-minutes: 6`。
+      上櫃個股目前未涵蓋（TWT48U／TWT49U 只收上市）。
 
 ### 股票／試算表自動化
 
@@ -122,7 +130,7 @@
 | `sheets_writer.py` | 「股票買賣紀錄」分頁匯入（交割明細擷圖 → 寫入） |
 | `sheet_value_guard.py` | 改公式前後的安全網：`snapshot`/`diff` 比對計算值 |
 | `trade_entry_server.py` / `trade_entry_appscript.gs` | 買進紀錄輸入網頁（localhost:8765）與 Apps Script 後端橋接 |
-| `etf_ex_dividend_calendar.py` | ETF 除息日／發放日同步 Google 日曆：`sync`（Service Account 全自動，排程用）／`check`+`mark`（本機無 SA 時，搭配 Calendar MCP 手動建） |
+| `etf_ex_dividend_calendar.py` | ETF＋上市個股 除息日／發放日同步 Google 日曆（個股 2026-10-25 起）：`sync`（Service Account 全自動，排程用）／`check`+`mark`（本機無 SA 時，搭配 Calendar MCP 手動建） |
 | `since_date_pnl.py` | 「**7/3 起加碼損益**」每日結算（2026-10-04 起隨 `wealth_sync.yml` 每個交易日跑）：讀「股票買賣紀錄」依「股票分割」換算後逐代號 FIFO，對起算日（`SINCE`，含）後買進的批次算已實現＋未實現（以結算日收盤價、扣假設賣出的手續費 0.1425%×6 折與證交稅 ETF 0.1%／個股 0.3%）＋期間配息（上市 TWT49U、上櫃櫃買 exDailyQ）；整張重寫「股價試算」分頁 `加碼損益_0703`（右側 M:P 為每日走勢、由新到舊、同日覆寫），並以 `--line-file` 輸出一行摘要；`--dry-run`／`--date`。**金額屬個人資料，刻意不發佈到公開 GitHub Pages**。[2026-10-21 起] `--html PATH` 產完整自足報告（含 charset、`@media print` A4 樣式）、`--since`／`--until` 另算任一波加碼（**只能搭配 `--dry-run`**，分頁走勢是 7/3 起不設結束日那組）；dry-run 的 `--line-file` 以「前一交易日收盤重算同一波再相減」算較前日；結算日非交易日會先退回最近交易日。**目前追蹤兩波、互不重疊**：7/3～10/16（`--until 2026-10-16`）與 10/20 起（`--since 2026-10-20`）；**10/19 兩筆 00631L 依 Jimmy 指示不計入任何一波**。報告檔名一律 `investment_since_*_report.html/.pdf`（`.gitignore` 靠這個樣式擋住） |
 | `drive_report_sync.py` / `html_to_pdf.py` | 加碼損益報告同步 Google 雲端硬碟（2026-10-19 起）：`create`（**本機**以本人帳號建檔並分享給 SA；`--no-share` 一次性上傳不分享）／`update <檔案ID>`（排程用 SA 就地覆蓋，ID 不變）。⚠ **SA 沒有儲存空間、不能自己建檔**。`html_to_pdf.py` 以無頭瀏覽器列印成 PDF（雲端排程用 runner 內建 Chrome，`pip install playwright` 不下載瀏覽器；本機用 Playwright Chromium），頁面沒寫 `@page` 時預設 A4＋頁邊距。雲端硬碟不會把 HTML 當網頁顯示，**要看請開 PDF**。排程每個交易日覆蓋兩波各一份 HTML＋PDF（檔案 ID 寫在 `wealth_sync.yml`） |
 | `patch_asset_history.py` | 「16_資產歷史」補登／更正指定日期（寫完一併依買賣紀錄重寫 I 欄淨投入）（`rows.json`：`{"YYYY/MM/DD": [總市值, 成本]}`），沿用 `surgical_write`／`_update_history`（2026-10-09 起依日期排序插入，補過去日期會落在正確位置）＋`full_refresh` 重建 02_每日漲跌；預設只預覽並驗證日期順序，`--yes` 才上傳 |
@@ -551,6 +559,8 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   - 今年以來（2026）已補齊 21 筆除息 + 21 筆發放，共 42 筆事件
   - 本機沒有 `GOOGLE_SA_JSON` 時的輔助路徑：`check`（印出還沒同步的紀錄 JSON）+ `mark`（標記已同步），
     搭配 Claude 對話裡已連線的 Calendar MCP 手動建事件；state 存 `etf_dividend_calendar_state.json`
+  - [2026-10-25] **個股納入**（上市 9 檔：2308/2317/2327/2330/2454/2883/2887/2891/6515），今年補上 12 次除息＋發放；
+    ETF 清單隨持股自動更新（現 13 檔，含新增的 00406A／00675L）
   - 說「除息日同步」或「檢查除息日」即可接手，細節記錄於 memory（[[project-etf-dividend-calendar]]）
 
 - [2026-08-19] **正二 ETF 每日漲跌分析**（v1.0 完成）
