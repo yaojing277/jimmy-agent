@@ -30,6 +30,7 @@
 #
 # 【手動測試】./trigger_wealth_sync.sh --dry-run   (只判斷不觸發)
 #             ./trigger_wealth_sync.sh --now       (跳過交易日判斷,直接觸發)
+#             TRIGGER_SCHED_HHMM=0000 ./trigger_wealth_sync.sh --dry-run  (解除時間閘)
 #             TRIGGER_RETRIES=1 TRIGGER_RETRY_GAP=0 ./trigger_wealth_sync.sh --dry-run
 set -uo pipefail
 
@@ -57,6 +58,32 @@ for a in "$@"; do
     *) log "✗ 未知參數:$a(可用 --dry-run / --now)"; exit 2 ;;
   esac
 done
+
+# ── 0. 時間閘:早於排定時間就不動作(讓「開機自動補跑」得以成立) ──
+# plist 的 RunAtLoad=true 會在每次登入/載入時叫起這支腳本,目的是補跑
+# 「14:30 當下 Mac 是關機狀態」那一天——launchd 的 StartCalendarInterval
+# 睡眠醒來會補跑,**關機後開機不會**(2026-10-27 實測 runs=0,當天全靠人工觸發)。
+#
+# 設計上刻意只加這一道閘、不開新的 job、不存任何狀態檔:
+#   早於排定時間 → 安靜結束,交給 StartCalendarInterval 照原時間跑
+#   晚於排定時間 → 當成補跑繼續走下去
+# 後面三道既有防呆讓「補跑」天然安全:週末跳過、TWSE 當日無收盤資料跳過、
+# 今天已有成功執行就不重複觸發。所以同一天被叫起幾次都不會重複觸發。
+SCHED_HHMM="${TRIGGER_SCHED_HHMM:-1430}"   # 要與 plist 的 StartCalendarInterval 一致
+NOW_HHMM=$(date '+%H%M')
+# 10# 前綴:避免 "0930" 這種前導零被當成八進位
+if [ "$FORCE" -eq 0 ] && [ "$((10#$NOW_HHMM))" -lt "$((10#$SCHED_HHMM))" ]; then
+  log "— 現在 ${NOW_HHMM:0:2}:${NOW_HHMM:2:2},未到排定時間 ${SCHED_HHMM:0:2}:${SCHED_HHMM:2:2},不觸發(等排程)"
+  exit 0
+fi
+
+# 遠晚於排定時間才被叫起(典型的開機補跑)→ TWSE 資料早已上架,不必等 60 分鐘。
+# 這條是為了非交易日:否則開機補跑會白佔一小時才判定「今天沒交易」
+# (2026-10-26 那次就是在那裡耗了 60 分鐘)。手動指定 TRIGGER_RETRIES 時不覆寫。
+if [ "$FORCE" -eq 0 ] && [ "$((10#$NOW_HHMM))" -ge 1600 ] && [ -z "${TRIGGER_RETRIES:-}" ]; then
+  RETRIES=1
+  log "— 補跑模式(已過 16:00):TWSE 資料應早已上架,不做等待重試"
+fi
 
 # ── 1. 週末直接結束(不必打 TWSE) ─────────────────────────────
 DOW=$(date '+%u')                   # 1=一 … 7=日

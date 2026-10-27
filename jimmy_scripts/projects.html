@@ -300,7 +300,7 @@
     <h1>Jimmy 專案總覽</h1>
     <p>個人開發專案、工具程式與自動化腳本</p>
   </div>
-  <div class="last-updated" id="lastUpdated">最後更新：2026-10-25</div>
+  <div class="last-updated" id="lastUpdated">最後更新：2026-10-28</div>
 </header>
 
 <!-- ═══════════════════════════════════════
@@ -988,6 +988,14 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-10-28</td>
+          <td>⏰ <b>排程觸發：開機後自動補跑</b>。本機 launchd 每個交易日 14:30 觸發雲端排程，但 10-27 那天 14:30 Mac 是關機狀態，整天沒跑、最後靠人工補。<br>
+          <b>原因</b>：launchd 的 <code>StartCalendarInterval</code> 在「睡眠中錯過排定時間」會於喚醒後補跑，<b>關機後開機卻不會</b>——事後查 <code>launchctl print</code> 仍是 <code>runs = 0</code>，不是腳本的問題。<br>
+          <b>作法</b>：<code>RunAtLoad</code> 改為 <code>true</code>（每次登入叫起腳本一次），並在腳本最前面加一道<b>時間閘</b>：早於 14:30 一律安靜結束（早上開機只空跑一瞬）、晚於 14:30 才當補跑處理。<b>不新增 job、不存任何狀態檔</b>——既有三道防呆已讓重複叫起天然安全：週末跳過、TWSE 當日無收盤資料跳過、今天已有成功執行就不重複觸發。<br>
+          <b>順手修掉一個浪費</b>：已過 16:00 才被叫起時，重試次數由 6 次×10 分鐘降為 1 次。TWSE 收盤資料那時早已上架，原本的設定會讓「非交易日開機」白佔 launchd 一小時才判定不跑（10-26 就是這樣）。<br>
+          <b>驗證</b>：邊界算術逐一驗過（14:29 擋下／14:30 通過／16:00 起降重試，含前導零不被當八進位）；安裝後 <code>runs = 1</code>、<code>exit 0</code>，日誌顯示當下 01:09 被時間閘正確擋下。<b>非交易日的補跑仍不會發生</b>，而過去某一天也依舊無法補——<code>workflow_dispatch</code> 只能處理今天，那是另一個限制</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-10-25</td>
           <td>📅 <b>除息日曆納入個股</b>：原本只同步持股 ETF，現在連上市個股的除息日與發放日也一起寫進 Google 日曆（A 欄是中文名稱的列沿用 <code>ALIAS</code> 轉代號）。今年以來補上 9 檔個股、12 次除息。<br>

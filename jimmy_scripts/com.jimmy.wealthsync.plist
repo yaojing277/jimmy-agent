@@ -26,8 +26,9 @@
 
   時間為什麼挑 14:30:台股 13:30 收盤,TWSE 收盤資料通常 14:00~14:30 之間上架。
   腳本本身會重試最多 6 次 x 10 分鐘,所以就算 TWSE 晚上架也等得到(最晚約 15:30)。
-  Mac 在 14:30 處於睡眠時,launchd 會在喚醒後補跑這一次;完全關機那天不會跑,
-  由 GitHub cron 當備援(晚幾小時,就是改用 launchd 之前的現狀)。
+  Mac 在 14:30 處於睡眠時,launchd 會在喚醒後補跑這一次;**完全關機那天 launchd
+  不會補跑**,改由 RunAtLoad 在下次登入時叫起腳本補跑(見下方 RunAtLoad 說明)。
+  兩者都沒成功時,GitHub cron 仍是最後一道備援(晚幾小時,就是改用 launchd 之前的現狀)。
   日誌:~/Library/Logs/wealth_sync_trigger.log
 -->
 <plist version="1.0">
@@ -50,9 +51,21 @@
         <integer>30</integer>
     </dict>
 
-    <!-- 載入時不要馬上執行,只等排定時間(避免每次 bootstrap 都打一次 API) -->
+    <!--
+      開機/登入後自動補跑(2026-10-28 起由 false 改為 true)
+
+      為什麼需要:StartCalendarInterval 在「睡眠中錯過排定時間」會於喚醒後補跑,
+      但「14:30 當下完全關機」那一天**不會**補跑(2026-10-27 實測 runs=0,
+      當天的資料全靠人工觸發才補上)。RunAtLoad 讓每次登入都叫起腳本一次,
+      由腳本自己決定要不要補。
+
+      為什麼這樣不會重複觸發:腳本第 0 節有時間閘——早於 14:30 一律安靜結束
+      (所以平常早上開機只是空跑一瞬),晚於 14:30 才當補跑;再加上既有的
+      週末跳過、TWSE 當日無收盤資料跳過、今天已有成功執行就不重複觸發,
+      同一天被叫起幾次結果都一樣。不需要任何狀態檔。
+    -->
     <key>RunAtLoad</key>
-    <false/>
+    <true/>
 
     <key>StandardOutPath</key>
     <string>/Users/jimmy/Library/Logs/wealth_sync_trigger.out.log</string>

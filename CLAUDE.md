@@ -75,6 +75,15 @@
     - **本機 launchd 當主要觸發源（2026-10-08 起）**：`jimmy_scripts/trigger_wealth_sync.sh`
       ＋`com.jimmy.wealthsync.plist`，每天 **14:30** 打 API 觸發 `workflow_dispatch`（秒級啟動）。
       GitHub cron（14:17）**保留當備援**——Mac 沒開機那天仍會跑，只是晚幾小時（＝原本的現狀）。
+      **[2026-10-28] 開機後自動補跑**：`RunAtLoad` 由 `false` 改為 `true`，腳本加第 0 節「時間閘」。
+      ⚠ **`StartCalendarInterval` 睡眠會補跑、關機不會**——2026-10-27 的 14:30 Mac 關機，
+      開機後 `launchctl print` 仍是 `runs = 0`，當天資料全靠人工觸發才補上。
+      現在每次登入都會叫起腳本一次，由它自己決定要不要補：**早於 14:30 一律安靜結束**
+      （早上開機只空跑一瞬）、晚於 14:30 才當補跑；**已過 16:00 時重試降為 1 次**
+      （TWSE 早已上架，免得非交易日開機白等 60 分鐘——2026-10-26 就耗在那裡）。
+      之所以不必新增 job、也不需任何狀態檔，是因為既有三道防呆已讓重複叫起天然安全：
+      週末跳過、TWSE 當日無收盤資料跳過、今天已有成功執行就不重複觸發。
+      閘門時間 `TRIGGER_SCHED_HHMM` 要與 plist 的 `StartCalendarInterval` 一致（測試可 `=0000` 解除）。
       ⚠ **腳本必須完全自足、且安裝到 `~/Library/Application Support/wealth-sync/`**：launchd 叫起的
       程序受 macOS TCC 限制，**讀不到 `~/Downloads` 底下任何檔案**（實測 `Operation not permitted`），
       所以不能 `import twse_hist` 或 `source _load_pat.sh`，交易日判斷與 PAT 讀取都內建。
