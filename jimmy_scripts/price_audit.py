@@ -28,6 +28,7 @@ import argparse
 import datetime
 import json
 import sys
+import time
 import urllib.request
 
 from sheets_writer import get_service, SPREADSHEET_ID
@@ -67,41 +68,61 @@ KNOWN = {
 _cache = {}
 
 
+def _fetch(url, tpex=False):
+    """回 (rows, ok)。ok=False 代表**查詢失敗**(連線/限流/非 OK),不是「查無這檔」。"""
+    try:
+        d = json.load(urllib.request.urlopen(
+            urllib.request.Request(url, headers=UA), timeout=20))
+    except Exception:
+        return [], False
+    if tpex:
+        return ((d.get("tables") or [{}])[0].get("data") or []), True
+    if d.get("stat") != "OK":
+        return [], False          # 含主端點對個別代號的假錯誤,交給備援端點再試
+    return d.get("data", []), True
+
+
 def _hl_month(code, y, m):
-    """{日期: (最低, 最高)};上市走 TWSE、上櫃走 TPEx,都查不到回 {}。"""
+    """回 ({日期: (最低, 最高)}, 狀態)。狀態:'ok' / 'empty'(查無這檔) / 'fail'(查詢失敗)。
+
+    ⚠ **必須把「查無」和「查詢失敗」分開**(2026-10-28 血淚):第一版兩者都回 {},
+      於是 TWSE 一限流,428 筆裡 155 筆變成「無法驗證」——而那在報表上看起來
+      跟「沒問題」只差一行小字,**先前抓到的兩筆打錯就這樣安靜消失了**。
+      更糟的是失敗結果被寫進快取,一次失敗污染整輪。
+      現在:失敗會重試、**不進快取**、而且單獨列出並大聲提示重跑。
+    """
     key = (code, y, m)
     if key in _cache:
         return _cache[key]
-    out = {}
-    # TWSE:主端點會間歇回假錯誤,故備用 /exchangeReport/(策略同 twse_hist._twse_month)
-    for path in ("rwd/zh/afterTrading", "exchangeReport"):
-        url = (f"https://www.twse.com.tw/{path}/STOCK_DAY"
-               f"?date={y}{m:02d}01&stockNo={code}&response=json")
-        try:
-            d = json.load(urllib.request.urlopen(
-                urllib.request.Request(url, headers=UA), timeout=20))
-        except Exception:
-            continue
-        if d.get("stat") != "OK":
-            continue
-        for row in d.get("data", []):
-            dt, hi, lo = T._roc_date(row[0]), T._f(row[4]), T._f(row[5])
-            if dt and lo and hi:
-                out[dt] = (lo, hi)
-        if out:
-            break
-    if not out:                                   # 上櫃:欄位順序與 TWSE 相同
-        try:
-            d = T._get_json("https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock"
-                            f"?code={code}&date={y}/{m:02d}/01&response=json")
-            for row in ((d.get("tables") or [{}])[0].get("data") or []):
+    out, failed = {}, False
+    for attempt in range(3):
+        for path in ("rwd/zh/afterTrading", "exchangeReport"):
+            rows, ok = _fetch(f"https://www.twse.com.tw/{path}/STOCK_DAY"
+                              f"?date={y}{m:02d}01&stockNo={code}&response=json")
+            failed = failed or not ok
+            for row in rows:
                 dt, hi, lo = T._roc_date(row[0]), T._f(row[4]), T._f(row[5])
                 if dt and lo and hi:
                     out[dt] = (lo, hi)
-        except Exception:
-            pass
-    _cache[key] = out
-    return out
+            if out:
+                break
+        if out:
+            break
+        rows, ok = _fetch("https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock"
+                          f"?code={code}&date={y}/{m:02d}/01&response=json", tpex=True)
+        failed = failed or not ok
+        for row in rows:                       # 上櫃欄位順序與 TWSE 相同
+            dt, hi, lo = T._roc_date(row[0]), T._f(row[4]), T._f(row[5])
+            if dt and lo and hi:
+                out[dt] = (lo, hi)
+        if out or not failed:
+            break
+        time.sleep(2 * (attempt + 1))          # 限流時退避重試
+    res = (out, "ok" if out else ("fail" if failed else "empty"))
+    if res[1] != "fail":                       # ⚠ 失敗絕不進快取,否則一次失敗污染整輪
+        _cache[key] = res
+    time.sleep(0.15)                           # 放慢一點,別再自己把自己打到限流
+    return res
 
 
 def read_trades(svc, since=None, only=None):
@@ -149,10 +170,13 @@ def main():
     if not args.quiet:
         print(f"待驗 {len(rows)} 筆,涉及 {len(months)} 個(代號,月份)組合", flush=True)
 
-    bad, known, nodata = [], [], []
+    bad, known, nodata, failed = [], [], [], []
     for n, (i, name, code, d, px, qty, kind) in enumerate(rows, 1):
-        hl = _hl_month(code, d.year, d.month).get(d)
-        if not hl:
+        data, st = _hl_month(code, d.year, d.month)
+        hl = data.get(d)
+        if st == "fail":
+            failed.append((i, name, code, d))
+        elif not hl:
             nodata.append((i, name, d, px))
         else:
             lo, hi = hl
@@ -190,9 +214,19 @@ def main():
         if len(nodata) > 15:
             print(f"   …另 {len(nodata) - 15} 筆")
 
-    ok = len(rows) - len(bad) - len(known) - len(nodata)
-    print(f"\n小結：驗過 {ok:,} 筆正常、{len(bad)} 筆可疑、"
-          f"{len(known)} 筆已知例外、{len(nodata)} 筆無法驗證")
+    if failed:
+        print(f"\n{'='*78}\n❌ 查詢失敗（{len(failed)} 筆）——這不是「沒問題」\n{'='*78}")
+        print("  行情查不回來（多半是 TWSE 限流），**這些筆等於沒驗到**，請稍後重跑。")
+        for i, name, code, d in sorted(failed, key=lambda t: t[3], reverse=True)[:10]:
+            print(f"   列{i:>3}  {name:<8}({code}) {d}")
+        if len(failed) > 10:
+            print(f"   …另 {len(failed) - 10} 筆")
+
+    ok = len(rows) - len(bad) - len(known) - len(nodata) - len(failed)
+    print(f"\n小結：驗過 {ok:,} 筆正常、{len(bad)} 筆可疑、{len(known)} 筆已知例外、"
+          f"{len(nodata)} 筆查無這檔、{len(failed)} 筆查詢失敗")
+    if failed:
+        print("❌ 有查詢失敗，本輪結果不完整——別把它當成「全部通過」。")
     if bad:
         print("⚠ 可疑的那幾筆請翻對帳單或券商 App 的成交明細確認；"
               "改完價格記得連 J 欄金額一起更正。")
