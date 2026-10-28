@@ -65,6 +65,21 @@ DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
 XLSM_FILE_ID = "1WCx7vav1olLNs8WJ7EQ4nr6zqG9csCGj"   # Jimmy_Wealth_OS_Master_V4.4_Google.xlsm
 XLSM_MIME = "application/vnd.ms-excel.sheet.macroenabled.12"
 TARGET_TAB = "03_持股總表"
+
+# ===== 賺賠口徑:扣「假設現在全部賣出」的交易成本(2026-10-28 Jimmy 指示) =====
+# 讓 03 的 G 欄與元大 App 的「損益」同口徑。實測 00675L/00685L/00878 三檔逐元吻合。
+# ⚠ 手續費用**全額 0.1425%**,不是 Jimmy 實際的 6 折——那是 App 的保守估法,照抄才對得上。
+# ⚠ 兩者都**無條件捨去**(INT),不是四捨五入。
+SELL_FEE_RATE = 0.001425
+SELL_TAX_STOCK = 0.003            # 個股證交稅 0.3%
+SELL_TAX_ETF = 0.001              # ETF 證交稅 0.1%
+NOTE_ROW = 30                     # 03_持股總表 口徑說明的起始列
+
+
+def sell_cost(mv, cat):
+    """假設現在全部賣出的交易成本;與下方 G 欄公式(IF(B=\"個股\",…))同口徑。"""
+    tax = SELL_TAX_STOCK if str(cat).strip() == "個股" else SELL_TAX_ETF
+    return int(mv * SELL_FEE_RATE) + int(mv * tax)
 HEADER_ROW = 2          # A2=股票
 DATA_START_ROW = 3
 
@@ -2625,11 +2640,16 @@ def full_refresh(path_in, path_out, date_str):
                       buy=float(ws.cell(r, 3).value), sh=float(ws.cell(r, 4).value),
                       px=float(ws.cell(r, 12).value), avg=float(ws.cell(r, 15).value), row=r))
     for d in S:
-        d['E'] = d['buy'] * d['sh']; d['F'] = d['px'] * d['sh']; d['G'] = d['F'] - d['E']
+        d['E'] = d['buy'] * d['sh']; d['F'] = d['px'] * d['sh']
+        # G 已扣假設賣出成本(與 App 同口徑);公式由下方 setf 以同一個 sell_cost 口徑產生,
+        # 兩邊不會各自飄移——只改一邊會變成「快取說 A、Excel 重算說 B」,而那種不一致不報錯。
+        d['SC'] = sell_cost(d['F'], d['cat'])
+        d['G'] = d['F'] - d['E'] - d['SC']
         d['H'] = d['G'] / d['E'] if d['E'] else 0
         d['P'] = d['px'] - d['avg']; d['Q'] = d['px'] - d['buy']; d['R'] = d['P'] - d['Q']
     E27 = sum(d['E'] for d in S); F27 = sum(d['F'] for d in S)
-    G27, H27 = F27 - E27, (F27 - E27) / E27
+    G27 = sum(d['G'] for d in S)          # 已扣賣出成本,不可再寫成 F27-E27
+    H27 = G27 / E27 if E27 else 0
     for d in S:
         d['S'] = d['F'] / F27
     N = {d['name']: d for d in S}
@@ -2717,11 +2737,50 @@ def full_refresh(path_in, path_out, date_str):
                    + escape(formula, {'"': "&quot;"}) + "</f></c>"
                    + xml[m.end():])
 
+    def setnote(part, ref, text):
+        """把說明文字寫進「XML 中有該列、但列內沒有任何儲存格」的空列(03 的列30 之後)。
+        ⚠ 不能用 setstr/_set_cell:那兩個遇到不存在的格會 sys.exit。
+        ⚠ 找不到該列時只警告不中止——說明是附加資訊,不該讓整個排程掛掉。"""
+        r_ = re.match(r"[A-Z]+(\d+)", ref).group(1)
+        xml = X[part]
+        cell = (f'<c r="{ref}" t="inlineStr"><is><t xml:space="preserve">'
+                + escape(text) + "</t></is></c>")
+        m = re.search(rf'<c r="{ref}"[^>]*?(?:/>|>.*?</c>)', xml, re.S)
+        if m:                                    # 該格已存在 → 整格換掉(冪等)
+            X[part] = xml[:m.start()] + cell + xml[m.end():]
+            return
+        m = re.search(rf'<row r="{r_}"([^>]*?)(/>|>)', xml)
+        if not m:
+            print(f"  ⚠ {TARGET_TAB} 列{r_} 不存在,跳過口徑說明 {ref}")
+            return
+        if m.group(2) == "/>":                   # 自閉合空列 → 展開成有內容的列
+            X[part] = (xml[:m.start()] + f'<row r="{r_}"{m.group(1)}>' + cell
+                       + "</row>" + xml[m.end():])
+        else:                                    # 已有其他格 → A 欄插最前,維持欄序遞增
+            X[part] = xml[:m.end()] + cell + xml[m.end():]
+
     # 02:全公式快取
     p = tabs[TARGET_TAB]
+    # G 欄＝市值 − 成本 − 假設賣出成本。用 IF(B=…) 而非寫死稅率,這樣就算沒跑 --full、
+    # 只是在 Excel 裡改了類別,公式仍然正確;且與 Python 的 sell_cost() 同一個口徑。
+    for d in S:
+        r_ = d['row']
+        setf(p, f"G{r_}",
+             f'F{r_}-E{r_}-(INT(F{r_}*{SELL_FEE_RATE})'
+             f'+INT(F{r_}*IF(B{r_}="個股",{SELL_TAX_STOCK},{SELL_TAX_ETF})))')
     for d in S:
         for col in "EFGHPQRS":
             C(p, f"{col}{d['row']}", d[col])
+
+    # 列30 起:賺賠口徑說明(每次 --full 重寫,內容不會飄)
+    for i, t in enumerate([
+        "【賺賠口徑】G 欄「賺賠」已扣掉「假設現在全部賣出」的交易成本,與元大 App 的「損益」同口徑。",
+        "　公式 ＝ 市值 − 持有成本 − INT(市值×0.1425%) − INT(市值×證交稅率);證交稅 ETF 0.1%、個股 0.3%,兩者皆無條件捨去。",
+        "　⚠ 手續費刻意用全額 0.1425%,不是實際的 6 折折扣——那是券商 App 的保守估法,照抄才對得上(實測三檔逐元吻合)。",
+        "　⚠ 16_資產歷史 的未實現損益仍是「市值 − 持有成本」、不扣交易成本(資產負債口徑)。兩者本就不同,不要互相對帳。",
+        "　⚠ 若 App 的「持有成本」與 E 欄對不上,那是買賣紀錄早期不完整(例:00878 少 5,770),與本口徑無關。",
+    ]):
+        setnote(p, f"A{NOTE_ROW + i}", t)
     total_row = None
     m = re.search(r'<c r="E(\d+)"[^>]*><f[^>]*>SUM\(E', X[p])
     total_row = int(m.group(1)) if m else 27
