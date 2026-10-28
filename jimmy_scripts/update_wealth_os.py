@@ -224,10 +224,21 @@ def read_source(creds):
         if not label:                      # 合計列 A 欄為空,之後不再有資料
             break
         code = to_code(label)
+        shares = num(r[2])
+        # ⚠ 買進價一律由「D 持有成本 ÷ 股數」還原,不要直接用 B 欄(2026-10-28)。
+        #   B 欄只存到小數 2 位,而 xlsm 的 E 欄公式是 =C*D——等於拿四捨五入後的
+        #   均價再乘一次股數,成本被系統性地截掉。實測全表合計少 1,157 元
+        #   (00631L −336、00878 −466、00685L −291),`16_資產歷史` 的持有成本同源。
+        #   C 欄格式是 #,##0.00,存完整精度顯示仍是兩位小數,畫面不變。
+        #   這是 2026-10-20「滾動均價進位誤差」的下游,當時只修到快照沒往下追。
+        cost = num(r[3])                   # D 持有成本(精確,非 B×C)
+        buy = num(r[1])
+        if cost is not None and shares:
+            buy = cost / shares
         data[code] = {
             "label": label,
-            "buy":    num(r[1]),           # B 買進價
-            "shares": num(r[2]),           # C 持有股數
+            "buy":    buy,                 # C 買進價(完整精度)
+            "shares": shares,              # C 持有股數
             "hist":   [num(r[7]), num(r[8]), num(r[9])],   # H,I,J 歷史價
             "price":  num(r[10]),          # K 現今價
             "add_qty":  num(r[11]),        # L 購入數
@@ -330,7 +341,12 @@ def _set_cell(xml, ref, val=None, string_idx=None):
     elif val is None:
         new = f'<c r="{ref}"{attrs}/>'
     else:
-        v = f"{val:g}" if isinstance(val, float) else str(val)
+        # ⚠ 不可用 "{:g}":它只給 **6 位有效數字**(2026-10-28 發現)。
+        #   小數會被截(11.0536375 → 11.0536,乘上股數就少算成本),
+        #   而 ≥100 萬的浮點數會變成科學記號且失真(2033466.0 → 2.03347e+06,
+        #   憑空少 1,466 元)。目前多數值經 num() 轉成 int 才僥倖沒出事。
+        #   .12g 保留同樣的「不留贅餘 .0」風格,但精度足夠且不會誤入科學記號。
+        v = f"{val:.12g}" if isinstance(val, float) else str(val)
         new = f'<c r="{ref}"{attrs}><v>{v}</v></c>'
     return pat.sub(new.replace("\\", "\\\\"), xml, count=1)
 
