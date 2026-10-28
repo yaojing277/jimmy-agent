@@ -103,6 +103,11 @@ OPTIONAL_SETTINGS_MAP = {
     #   改門檻直接改那兩格;清空會退回下面的預設值並印一行提示(不影響排程)。
     "debt_max":  (33, 0.40),   # 2026-10-13 Jimmy 定為 0.4(EP132 原話:40% 以上效果就爛)
     "debt_warn": (34, 0.30),   # 保守線 0.3 = EP132 的「合理上限」
+    # 質押借款餘額(2026-10-28 Jimmy 指示納入負債比率):拿投資部位去借的錢,
+    # 性質與信貸相同都是投資槓桿,故進分子、並從分母扣除。
+    # ⚠ 自住房房貸刻意**不**計入(與投資無關),這條界線沒有改變。
+    # 預設 0 → 這格留空時行為與納入前完全相同,不會驚動既有結果。
+    "pledge": (35, 0.0),
 }
 # 設定表沒有對應項目、維持字面值的門檻
 LEV_LOWER = 0.20          # 正二下緣(低於此顯示「可分批增加」)
@@ -2635,6 +2640,13 @@ def full_refresh(path_in, path_out, date_str):
     for r in range(DATA_START_ROW, ws.max_row + 1):
         n = ws.cell(r, 1).value
         if not n or str(n).strip() in ("", "合計"):
+            continue
+        # ⚠ 合計列之後還有列30~34 的口徑說明(A 欄有字、C/D 空),不是持股。
+        #   只靠「A 欄有值」判斷會把它們當成股票,float(None) 直接炸掉
+        #   ——2026-10-28 加說明時實際踩到。改以「C 買進價與 D 股數都是數字」為準,
+        #   與列位置脫鉤,日後在下方再加任何註記都不會影響。
+        if not isinstance(ws.cell(r, 3).value, (int, float)) \
+                or not isinstance(ws.cell(r, 4).value, (int, float)):
             continue
         S.append(dict(name=str(n).strip(), cat=str(ws.cell(r, 2).value).strip(),
                       buy=float(ws.cell(r, 3).value), sh=float(ws.cell(r, 4).value),

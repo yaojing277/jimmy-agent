@@ -83,7 +83,37 @@ def read_splits(svc):
     return out
 
 
-BAD = []          # 日期欄空白而無法採計的列(代號, 原因)
+BAD = []          # 日期欄空白而無法採計的列(代號, 原因)——會影響排序,故另列
+EST = []          # 手續費只能以公式推算的列(代號, 列號)
+MISSING = []      # 有股數卻完全還原不出金額的列(代號, 列號)
+
+FEE_RATE = 0.001425 * 0.6          # 手續費 0.1425% 打 6 折
+
+
+def _fee(gross, qty):
+    """手續費 = max(最低收費, floor(價金 × 0.1425% × 6折));整股低消 20、零股 1。
+    ⚠ 無條件捨去,不是四捨五入(2026-10-13 以元大成交明細校準)。"""
+    return max(20 if qty and qty % 1000 == 0 else 1, int(gross * FEE_RATE))
+
+
+def buy_amount(px, qty, j, q):
+    """買進實際扣款,回 (金額, 來源)。
+
+    ⚠ 買賣紀錄有**兩代寫法**(2026-10-28 查明):
+        舊列:J 是 `=G*H` 的**純價金**,真正的扣款手動填在 **Q 欄**(負數)
+        新列:J 是**已含手續費**的常數,Q 空白
+      只讀 J 會對所有舊列漏算手續費——實測全表少 36,052 元,
+      其中 00878 的 24 列、00919 的 9 列、0056 的 6 列都中招。
+      **這就是為什麼「股數對得上」卻仍可能成本偏低。**
+    """
+    gross = (px or 0) * (qty or 0)
+    if q:                                      # Q 欄有實際扣款,外部佐證最可信
+        return q, "Q"
+    if j and abs(j - gross) > 0.5:             # J 已含手續費
+        return j, "J"
+    if gross:                                  # J 只有價金或空白 → 依公式推算
+        return gross + _fee(gross, qty), "推算"
+    return 0.0, "缺"
 
 
 def read_events(svc):
@@ -92,7 +122,7 @@ def read_events(svc):
         spreadsheetId=SPREADSHEET_ID, range=f"{SHEET_NAME}!A2:Q1000",
         valueRenderOption="UNFORMATTED_VALUE").execute().get('values', [])
     ev = {}
-    for r in rows:
+    for i, r in enumerate(rows, start=2):
         r = list(r) + [""] * (17 - len(r))
         raw = str(r[0]).strip()
         if not raw or VOID_SUFFIX in raw:          # 空白列與作廢列直接略過
@@ -100,17 +130,34 @@ def read_events(svc):
         code = canon(raw)
         # ⚠ 少數列只填了股數、日期欄空白(或反之)。沒有日期就無法排序,
         #   硬轉會 ValueError;這種列一律跳過並記錄,不默默當成 0 吃掉。
-        if r[7] not in ("", None) and isinstance(r[5], (int, float)):
-            ev.setdefault(code, []).append((_d(r[5]), "B", float(r[7]), float(r[9] or 0)))
-        elif r[7] not in ("", None):
-            BAD.append((code, "買進列缺買進日"))
-            ev.setdefault(code, []).append((datetime.date.min, "B", float(r[7]), float(r[9] or 0)))
+        if r[7] not in ("", None):
+            qty = float(r[7])
+            # Q 只在負數時當成「買進扣款」——正數是賣出的應收付,不可混用
+            q = abs(float(r[16])) if isinstance(r[16], (int, float)) and r[16] < 0 else 0
+            amt, src = buy_amount(_f(r[6]), qty, float(r[9] or 0), q)
+            if src == "推算":
+                EST.append((code, i))
+            elif src == "缺":
+                MISSING.append((code, i))
+            if isinstance(r[5], (int, float)):
+                ev.setdefault(code, []).append((_d(r[5]), "B", qty, amt))
+            else:
+                BAD.append((code, f"列{i} 買進列缺買進日"))
+                ev.setdefault(code, []).append((datetime.date.min, "B", qty, amt))
+        # 賣出只用股數扣加權平均成本,金額不參與計算(故不檢查 Q)
         if r[12] not in ("", None) and isinstance(r[10], (int, float)):
             ev.setdefault(code, []).append((_d(r[10]), "S", float(r[12]), float(r[16] or 0)))
         elif r[12] not in ("", None):
-            BAD.append((code, "賣出列缺賣出日"))
+            BAD.append((code, f"列{i} 賣出列缺賣出日"))
             ev.setdefault(code, []).append((datetime.date.min, "S", float(r[12]), float(r[16] or 0)))
     return ev
+
+
+def _f(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def rebuild(events, split):
@@ -189,6 +236,24 @@ def main():
             print(f"    {code:<9}{why}")
     net = sum(f['old_cost'] - f['new_cost'] for f in fixes)
     print(f"\n  可校正 {len(fixes)} 檔，其中需異動 {len(todo)} 檔；累計差額 {net:,.0f}")
+
+    # 資料品質警示:這些不會讓程式出錯,但會讓結果**安靜地**偏低或錯序
+    def _warn(title, lst):
+        if not lst:
+            return
+        by = {}
+        for code, i in lst:
+            by.setdefault(code, []).append(str(i))
+        print(f"\n  ⚠ {title}（{len(lst)} 列）")
+        for code, ids in sorted(by.items()):
+            head = "、".join(ids[:12]) + ("…" if len(ids) > 12 else "")
+            print(f"    {code:<9}{len(ids):>3} 列　列 {head}")
+    _warn("有股數但完全還原不出金額（當 0 計，成本會偏低）", MISSING)
+    _warn("手續費只能以公式推算（J 只有價金、Q 也空白）", EST)
+    if BAD:
+        print(f"\n  ⚠ 日期欄空白（{len(BAD)} 列，排序可能錯亂）")
+        for code, why in BAD:
+            print(f"    {code:<9}{why}")
 
     if args.mode == "check" or not todo:
         if args.mode == "apply":

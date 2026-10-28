@@ -139,9 +139,15 @@ def overseas_twd(creds):
 
 
 def debt_ratio(bal, mv_main, cash, mv_os, cfg):
-    """信貸負債比率＝信貸餘額 ÷ 投資淨資產。
+    """投資負債比率＝(信貸餘額 ＋ 質押餘額) ÷ 投資淨資產。
 
-    淨資產＝(主帳戶股票市值 ＋ 現金 ＋ 複委託台幣市值) − 信貸餘額。
+    淨資產＝(主帳戶股票市值 ＋ 現金 ＋ 複委託台幣市值) − 投資負債。
+
+    ⚠ **質押借款自 2026-10-28 起納入**(Jimmy 指示):拿投資部位去借的錢,
+      性質與信貸相同都是投資槓桿。先前只算信貸,比率被低估約 4 pp
+      ——實測 29.57%「保守線內」→ 33.66%「已超過保守線」,剛好跨過門檻。
+      質押餘額讀 `12_設定` B35,留空則為 0(行為與納入前相同)。
+      ⚠ 自住房房貸仍**不**計入(與投資無關),這條界線沒有改變。
     口徑依 A8 阿吧 EP132：**自住房與房貸不計入**(與投資槓桿無關),
     他的例子是「淨資產 1000 萬借 300 萬＝1.3 倍槓桿」,即借款疊在自有本金之上。
 
@@ -150,15 +156,18 @@ def debt_ratio(bal, mv_main, cash, mv_os, cfg):
     ⚠ 借錢**不改變淨資產**(現金增、負債同步增),所以「再借」只會單向推高比率;
       額度只能靠攤還本金或淨資產成長來擴張。
     """
+    pledge = cfg.get("pledge", 0.0) or 0.0
+    debt = bal + pledge                      # 投資性負債總額(信貸＋質押)
     assets = mv_main + cash + mv_os
-    equity = assets - bal
+    equity = assets - debt
     if equity <= 0:
         return None
     return {
-        "assets": assets, "equity": equity, "ratio": bal / equity,
+        "assets": assets, "equity": equity, "ratio": debt / equity,
+        "debt": debt, "pledge": pledge,
         "cap_max": equity * cfg["debt_max"], "cap_warn": equity * cfg["debt_warn"],
-        "room_max": equity * cfg["debt_max"] - bal,
-        "room_warn": equity * cfg["debt_warn"] - bal,
+        "room_max": equity * cfg["debt_max"] - debt,
+        "room_warn": equity * cfg["debt_warn"] - debt,
         "max": cfg["debt_max"], "warn": cfg["debt_warn"],
     }
 
@@ -298,14 +307,16 @@ def main():
     print(f"    歸屬損益      {attributed:>12,.0f}")
     if DR:
         over = DR["ratio"] > DR["max"]
-        print(f"\n{'─'*64}\n  負債比率（信貸餘額 ÷ 投資淨資產）\n{'─'*64}")
+        print(f"\n{'─'*64}\n  投資負債比率（信貸＋質押 ÷ 投資淨資產）\n{'─'*64}")
         print(f"    主帳戶股票市值  {mv_main:>12,.0f}   （{mv_date} 收盤）")
         print(f"    ＋ 現金         {scfg['cash']:>12,.0f}")
         print(f"    ＋ 複委託       {mv_os:>12,.0f}" + (f"   ⚠ {os_note}" if os_note else ""))
         print(f"    ＝ 投資資產     {DR['assets']:>12,.0f}")
         print(f"    − 信貸餘額      {bal:>12,.0f}")
+        if DR["pledge"]:
+            print(f"    − 質押餘額      {DR['pledge']:>12,.0f}   （12_設定 B35）")
         print(f"    ＝ 投資淨資產   {DR['equity']:>12,.0f}   ← 門檻的分母")
-        print(f"\n    負債比率 {DR['ratio']:.2%}"
+        print(f"\n    投資負債 {DR['debt']:,.0f}　比率 {DR['ratio']:.2%}"
               f"   {'✗ 已超過' if over else '✓ 未超過'} {DR['max']:.0%} 上限")
         for label, cap, room in (("上限", DR["cap_max"], DR["room_max"]),
                                  ("保守線", DR["cap_warn"], DR["room_warn"])):
@@ -355,7 +366,7 @@ def main():
         room = DR["room_max"]
         tail = (f"尚可借 {room/10000:,.0f} 萬" if room > 0
                 else f"⚠ 已超 {-room/10000:,.1f} 萬")
-        line = (f"信貸負債比率 {DR['ratio']:.1%}"
+        line = (f"投資負債比率 {DR['ratio']:.1%}"
                 f"（上限 {DR['max']:.0%}，{tail}）")
         with open(args.line_file, "w", encoding="utf-8") as f:
             f.write(line)
@@ -378,13 +389,16 @@ def main():
             ["加權累計報酬", cum - 1],
             ["歸屬損益", round(attributed)], []]
     if DR:
-        rows += [["─ 負債比率：信貸餘額 ÷ 投資淨資產 ─", "金額", "比率"],
+        rows += [["─ 投資負債比率：(信貸＋質押) ÷ 投資淨資產 ─", "金額", "比率"],
                  [f"主帳戶股票市值（{mv_date}）", round(mv_main)],
                  ["＋ 現金（12_設定 B6）", round(scfg["cash"])],
                  ["＋ 複委託台幣市值" + (f"　⚠ {os_note}" if os_note else ""), round(mv_os)],
                  ["＝ 投資資產", round(DR["assets"])],
-                 ["− 信貸餘額", round(bal)],
-                 ["＝ 投資淨資產（門檻分母）", round(DR["equity"])],
+                 ["− 信貸餘額", round(bal)]]
+        if DR["pledge"]:
+            rows += [["− 質押餘額（12_設定 B35）", round(DR["pledge"])]]
+        rows += [["＝ 投資淨資產（門檻分母）", round(DR["equity"])],
+                 ["投資負債（信貸＋質押）", round(DR["debt"])],
                  ["負債比率", "", DR["ratio"]],
                  [f"{DR['max']:.0%} 上限：可借上限", round(DR["cap_max"]),
                   f"{'尚可借' if DR['room_max'] > 0 else '已超出'} "
