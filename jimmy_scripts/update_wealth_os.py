@@ -158,7 +158,7 @@ REC_ALIAS = {"穎崴": "6515", "台積電": "2330", "統一超": "2912", "寶成
 # 15_資產歷史:每次同步附加一列凍結快照(同日期重跑則覆寫該列)
 HIST_TAB = "16_資產歷史"
 HIST_HOUSE = 9_000_000               # 房屋市值(沿用原 F 欄公式常數)
-HIST_DEBT = 8_400_000 + 5_000_000    # 負債備援值;實際以 01_Dashboard!E5(房貸)+H5(信貸) 動態讀取為準
+HIST_DEBT = 8_400_000 + 5_000_000    # 負債備援值;實際以 12_設定 的房貸+信貸+質押動態讀取為準
 HIST_CASH = 4_598_541                # 現金池備援值;實際以 01_Dashboard!B6 動態讀取為準(2026-07-15 Jimmy 確認)
 
 # xlsm 用中文全名,股價試算部分用英文;統一經代號比對
@@ -3269,6 +3269,11 @@ def sync(args):
         label = ws.cell(r, 1).value
         if label is None or str(label).strip() in ("", "合計"):
             continue
+        # ⚠ 與 full_refresh 同一個理由:合計列之後的口徑說明(A 欄有字、C/D 空)不是持股。
+        #   只看 A 欄會讓它們被列進「只在 xlsm、股價試算已無」的警告裡(2026-10-28 實際發生)。
+        if not isinstance(ws.cell(r, 3).value, (int, float)) \
+                or not isinstance(ws.cell(r, 4).value, (int, float)):
+            continue
         xl_rows[to_code(label)] = r
 
     only_src = [c for c in src_order if c not in xl_rows]
@@ -3372,7 +3377,10 @@ def sync(args):
         "cost": sum(src[c]["shares"] * src[c]["buy"] for c in common
                     if src[c]["shares"] and src[c]["buy"]),
         "cash":  cfg["cash"],
-        "debt":  cfg["mortgage"] + cfg["loan"],
+        # 總負債＝房貸＋信貸＋質押(2026-10-28 起納入質押,Jimmy 指示)。
+        # ⚠ 與 loan_funding.py 的「投資負債比率」口徑不同:那邊刻意**不含房貸**
+        #   (自住房與投資無關),這裡是資產負債表口徑、要算全部負債。兩者都對。
+        "debt":  cfg["mortgage"] + cfg["loan"] + (cfg.get("pledge") or 0.0),
         "house": cfg["house"],
     }
     out = os.path.join(workdir, "updated.xlsm")
