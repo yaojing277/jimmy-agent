@@ -51,3 +51,9 @@ jimmy_scripts/.yt_channel_state.json
 # 會員影片摘要（付費牆後內容，只留本機）與 YouTube 登入 cookie（帳號憑證）
 jimmy_scripts/.yt_private_summaries/
 *cookies*.txt
+
+# yt-dlp 下載的影片檔（體積大、有版權，只留本機）
+jimmy_scripts/yt_downloads/
+
+# 個人文件（租賃契約等），本機保留、不進公開版控
+jimmy_scripts/房屋租賃契約.pdf

@@ -170,12 +170,18 @@ def main():
     if not args.quiet:
         print(f"待驗 {len(rows)} 筆,涉及 {len(months)} 個(代號,月份)組合", flush=True)
 
-    bad, known, nodata, failed = [], [], [], []
+    today = datetime.date.today()
+    bad, known, nodata, failed, pending = [], [], [], [], []
     for n, (i, name, code, d, px, qty, kind) in enumerate(rows, 1):
         data, st = _hl_month(code, d.year, d.month)
         hl = data.get(d)
         if st == "fail":
             failed.append((i, name, code, d))
+        elif not hl and d >= today:
+            # ⚠ 當天盤中記帳時行情還沒上架,這**不是**代號錯或查無——
+            #   台股 13:30 收盤、TWSE 約 14:00~14:30 才有當日資料。
+            #   不分開講會讓每次盤中記帳都看到「代號沒送對」的誤導訊息。
+            pending.append((i, name, d, px))
         elif not hl:
             nodata.append((i, name, d, px))
         else:
@@ -204,6 +210,12 @@ def main():
     if known:
         table("已知例外（不必處理）", known)
 
+    if pending and not args.quiet:
+        print(f"\n{'='*78}\n⏳ 當日行情尚未上架（{len(pending)} 筆）\n{'='*78}")
+        print("  台股 13:30 收盤、TWSE 約 14:00~14:30 才有當日資料——收盤後再跑一次即可。")
+        for i, name, d, px in pending:
+            print(f"   列{i:>3}  {name:<8}{d}  @{px:g}")
+
     if nodata and not args.quiet:
         print(f"\n{'='*78}\n無法驗證（{len(nodata)} 筆）\n{'='*78}")
         print("  ⚠ 多半是**代號沒送對**（買賣紀錄只寫中文名、而對照表沒收），不是行情查不到。")
@@ -222,9 +234,11 @@ def main():
         if len(failed) > 10:
             print(f"   …另 {len(failed) - 10} 筆")
 
-    ok = len(rows) - len(bad) - len(known) - len(nodata) - len(failed)
+    ok = len(rows) - len(bad) - len(known) - len(nodata) - len(failed) - len(pending)
     print(f"\n小結：驗過 {ok:,} 筆正常、{len(bad)} 筆可疑、{len(known)} 筆已知例外、"
-          f"{len(nodata)} 筆查無這檔、{len(failed)} 筆查詢失敗")
+          f"{len(nodata)} 筆查無這檔、{len(pending)} 筆尚未上架、{len(failed)} 筆查詢失敗")
+    if pending:
+        print("⏳ 有尚未上架的，收盤後（約 14:30）再跑一次才算驗完。")
     if failed:
         print("❌ 有查詢失敗，本輪結果不完整——別把它當成「全部通過」。")
     if bad:
