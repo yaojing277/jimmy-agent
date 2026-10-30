@@ -2684,8 +2684,21 @@ def full_refresh(path_in, path_out, date_str):
     #   改成自動後,日後新增股票就不會留下「公式只算到舊的最後一列」這種靜默漏算。
     _r0, _r1 = DATA_START_ROW, max(d['row'] for d in S)
     _rg = lambda col: f"'{TARGET_TAB}'!{col}{_r0}:{col}{_r1}"
-    mx_formula = (f'MAXIFS({_rg("S")},{_rg("B")},"<>正二ETF"'
-                  + "".join(f',{_rg("A")},"<>{n}"' for n in SINGLE_MAX_EXEMPT) + ")")
+    # ⚠ 不可用 MAXIFS(2026-10-30 實測於 Google Sheets 確認):
+    #   MAXIFS/SUMIFS/COUNTIFS 的「<>條件」會把看起來像數字的文字做型別轉換,
+    #   "<>00878" 被當成 "<>878",於是 00878 那列根本沒被排除,
+    #   MAXIFS 回傳的是 00878 自己的占比(19.7%)而非個股最大值(6515 7.5%)
+    #   → B8 變成 10 分、安全指數由 85 掉到 75、18_投資規則檢查 D9 寫成「偏高」。
+    #   ⚠ 最陰的是**等於條件是好的**:COUNTIF(A:A,"00878") 數得到 1、A4="00878" 也是 TRUE,
+    #     只有「<>」那條路壞掉——拿 COUNTIF 去試會得到假綠燈。
+    #   SUMPRODUCT(MAX(...)) 用的是一般比較運算子(不經條件字串解析),兩個引擎都算對;
+    #   SUMPRODUCT 本身會強制陣列運算,Excel 不需要 Ctrl+Shift+Enter。
+    #   ⚠ 這條公式平時看不出對錯:Python 會把正確答案寫進快取,
+    #     只有在 Excel／Google Sheets 開啟重算後才會現形(而那個重算結果會被存回雲端)。
+    mx_formula = ("SUMPRODUCT(MAX(("
+                  + f'{_rg("B")}<>"正二ETF")'
+                  + "".join(f'*({_rg("A")}<>"{n}")' for n in SINGLE_MAX_EXEMPT)
+                  + f'*{_rg("S")}))')
     # 全部參數與門檻讀 11_設定(唯一事實來源)
     cfg = read_settings(wb)
     cash, house = cfg["cash"], cfg["house"]
