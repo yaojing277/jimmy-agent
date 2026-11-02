@@ -2623,6 +2623,15 @@ def _xml_cache(xml, ref, value, is_str=False):
     return xml[:m.start()] + f'<c r="{ref}" s="{s}"{t}>{fm.group(0)}<v>{v}</v></c>' + xml[m.end():]
 
 
+def _xlround(x, nd=0):
+    """Excel 的 ROUND:四捨五入且「遠離零」。
+    ⚠ Python 內建 round() 是銀行家捨入(round(0.095, 2) 給 0.09),
+      拿它去重算 04_ETF分析 C 欄那種 ROUND(...,2) 公式會與 Excel 差一個位階。"""
+    import decimal
+    return float(decimal.Decimal(repr(float(x))).quantize(
+        decimal.Decimal(1).scaleb(-nd), rounding=decimal.ROUND_HALF_UP))
+
+
 def _xml_setnum(xml, ref, val):
     m = re.search(rf'<c r="{ref}"([^>]*?)>.*?</c>', xml, re.S)
     if not m:
@@ -2854,8 +2863,7 @@ def full_refresh(path_in, path_out, date_str):
         setstr(p, f"B{18 + i}", t)
 
     # 03_ETF分析
-    # ⚠ 只刷列4~9 的分類市值/占比與 F 欄狀態、以及 D5/E4/E6 這三個引用 12_設定 的目標欄。
-    #   **列11~14(原型/正二/現金/曝險比例)整塊是 Jimmy 手動維護的公式,嚴禁加寫入**
+    # ⚠ 列11~14 的**公式一個字都不改**(Jimmy 手動維護);2026-11-02 起只補寫它們的快取 <v>。
     #   B11=SUM(B4:B9)-B6-B7(原型)  B12=(B6+B7)(正二,**未加倍**)  B13='12_設定'!B6(現金)
     #   B14=B11+B12*2+B13(總曝險,正二在這裡才乘 2)
     #   標題列:B10=金額 C10=曝險比例 D10=成本比例(Jimmy 用詞,照抄勿改)
@@ -2863,7 +2871,9 @@ def full_refresh(path_in, path_out, date_str):
     #   兩欄是兩種口徑、各自加總 100%(目前 C=50:39:11、D=62:25:14),**不要「修正」成一致**。
     #   (2026-10-02 Jimmy 重構定案。⚠B12 以前是 (B6+B7)*2 已加倍,現在沒有,勿沿用舊假設;
     #    D12/D13 原為共用公式已拆成獨立格,否則改 D12 會把 D13 連帶推成錯的相對參照)
-    #   這塊的快取不由本腳本刷新,靠 Jimmy 開檔時 Google Sheets 重算(已實測會正確更新)。
+    #   快取改由本腳本刷新(見下方「列11~14 快取」):先前只在 Jimmy 開檔重算時才更新,
+    #   排程跑完當天讀到的是上次開檔的舊值——2026-11-02 我就因此報錯了曝險比例(拿到 10/30 的數字)。
+    #   口徑完全照這幾條公式走,不另訂一套,所以 Excel 重算後值不會變(已驗證冪等)。
     #   注意別跟下面 01_Dashboard 的 C(p,"D11"/"D12"/"D13",...) 搞混,那是另一張分頁的同名儲存格。
     p = tabs["04_ETF分析"]
     lev_ex = cat.get('正二ETF', 0) - N['00663L']['F']
@@ -2880,6 +2890,26 @@ def full_refresh(path_in, path_out, date_str):
     C(p, "F8", "略高" if oth > 0.05 else "合理", True)
     # 目標欄現為引用 11_設定 的公式,快取一併刷新
     C(p, "E4", cfg["hi_max"]); C(p, "D5", cfg["mkt_min"]); C(p, "E6", cfg["lev_max"])
+
+    # 列11~14 快取(公式不動,只重算 <v>)。每個值都照該格公式算,不自創口徑:
+    #   B11=SUM(B4:B9)-B6-B7  B12=(B6+B7)  B13='12_設定'!B6  B14=B11+B12*2+B13
+    #   C 欄=ROUND(該列/B14, 2)  ← **公式本來就先四捨五入到小數 2 位**,
+    #        所以 C14 那串三個數字相加可能是 101,那是公式的設計、不是算錯。
+    #   D 欄=該列 ÷ SUM(B11:B13)(成本口徑,分母與 C 欄的 B14 不同,刻意不一致)
+    #   C14 是 shared 公式主格、D14 共用同一個 si;_xml_cache 只換 <v>,<f> 原樣保留。
+    b6v, b7v = lev_ex, N['00663L']['F']
+    e11, e12, e13 = F27 - b6v - b7v, b6v + b7v, cash     # SUM(B4:B9) 就是 F27
+    e14 = e11 + e12 * 2 + e13
+    e_cost = e11 + e12 + e13
+    exp_r = [_xlround(v / e14, 2) for v in (e11, e12 * 2, e13)] if e14 else [0, 0, 0]
+    cost_r = [v / e_cost for v in (e11, e12, e13)] if e_cost else [0, 0, 0]
+    for ref, v in (("B11", e11), ("B12", e12), ("B13", e13), ("B14", e14),
+                   ("C11", exp_r[0]), ("C12", exp_r[1]), ("C13", exp_r[2]),
+                   ("D11", cost_r[0]), ("D12", cost_r[1]), ("D13", cost_r[2])):
+        C(p, ref, v)
+    _ratio = lambda xs: ":".join(f"{_xlround(x * 100):.0f}" for x in xs)
+    C(p, "C14", _ratio(exp_r), True); C(p, "D14", _ratio(cost_r), True)
+    print(f"  ✓ 04_ETF分析 列11~14 快取:曝險 {_ratio(exp_r)}｜成本 {_ratio(cost_r)}")
 
     # 04_個股分析(列4起 ↔ 02 個股與其後各列;F 欄為 shared 公式,逐列刷快取)
     p = tabs["05_個股分析"]
