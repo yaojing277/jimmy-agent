@@ -985,6 +985,19 @@ DAILY_COLS = ('<cols><col customWidth="1" min="1" max="1" width="11.5"/>'
               '<col customWidth="1" min="7" max="7" width="11.5"/></cols>')
 
 
+def _hist_modes(hist):
+    """回傳 (flow_mode, div_mode):hist 有沒有淨投入欄(I)／配息欄(J)。
+
+    ⚠ **每日表、報酬日曆、折線圖、長條圖必須共用這一個判斷**,否則會像 2026-11-05
+      抓到的那樣悄悄分歧:每日表早就「市值變化−淨投入+配息」,日曆與折線圖卻漏了配息,
+      同一天兩個數字不一樣、而且**任何一步都不會失敗**。
+      國泰 21_國泰資產歷史 沒有這兩欄,兩者自動為 False、維持舊算法(XML 位元組不變)。"""
+    N = len(hist)
+    flow = N > 1 and all(len(h) > 4 and h[4] is not None for h in hist[1:])
+    div = flow and all(len(h) > 5 and h[5] is not None for h in hist[1:])
+    return flow, div
+
+
 def _build_daily_sheetdata(hist, pct_style="11"):
     """⚠ 已棄用(2026-10-01):這是「日期由舊到新、起點列在第3列」的舊版面,而且假設歷史
     資料表也是舊到新。兩個假設現在都不成立,目前沒有任何呼叫端,保留只為對照舊版行為。
@@ -1170,11 +1183,10 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
     N = len(hist)
     # 有淨投入欄(16_資產歷史 I 欄)時:單日損益＝市值變化−淨投入、淨投入資金＝I 欄;
     # 沒有(國泰 21_國泰資產歷史)時維持舊算法:損益變化／成本變化
-    flow_mode = N > 1 and all(len(h) > 4 and h[4] is not None for h in hist[1:])
     # 配息欄(J):有才把配息算進單日損益。除息當天股價扣掉股息、市值變少,但配息現金
-    # 不在市值裡,不加回來的話除息會被誤記成虧損。國泰 21_國泰資產歷史 沒有這欄,
-    # div_mode 自動為 False、維持原本行為(新舊 XML 位元組相同)。
-    div_mode = flow_mode and all(len(h) > 5 and h[5] is not None for h in hist[1:])
+    # 不在市值裡,不加回來的話除息會被誤記成虧損。判斷集中在 _hist_modes(),
+    # 日曆與折線圖共用同一個,避免口徑分歧。
+    flow_mode, div_mode = _hist_modes(hist)
     FL, DV = HIST_FLOW_COL, HIST_DIV_COL
     # 歷史資料表(16_資產歷史／21_國泰資產歷史)自 2026-10-01 起也改成「新到舊」儲存:
     # 列2 = 最新一天、列 N+1 = 最早一天。hist 這個 list 本身仍維持「舊到新」
@@ -1605,8 +1617,10 @@ def _build_daily_chart_xml_desc(hist, tab, header_row, data_start, data_end):
     dates = [hist[idx][0] for idx in order]
     tot   = [hist[idx][1] for idx in order]
     pnl   = [hist[idx][3] for idx in order]
-    if N > 1 and all(len(h) > 4 and h[4] is not None for h in hist[1:]):   # 與表格 D 欄同口徑
-        dpl = [hist[idx][1] - hist[idx - 1][1] - hist[idx][4] for idx in order]
+    _flow_m, _div_m = _hist_modes(hist)
+    if _flow_m:                           # 與表格 D 欄同口徑(含配息)
+        dpl = [hist[idx][1] - hist[idx - 1][1] - hist[idx][4]
+               + (hist[idx][5] if _div_m else 0) for idx in order]
     else:
         dpl = [hist[idx][3] - hist[idx - 1][3] for idx in order]
 
@@ -1725,14 +1739,17 @@ def _month_calendar_grid(hist, year=None, month=None):
         last_date = datetime.strptime(hist[-1][0], "%Y/%m/%d").date()
         year, month = last_date.year, last_date.month
 
+    _flow_m, _div_m = _hist_modes(hist)
+
     def day_value(d):
         idx = by_date.get(d)
         if idx is None or idx == 0:
             return None, None
         pmv = hist[idx - 1][1]
-        if len(hist[idx]) > 4 and hist[idx][4] is not None:     # 有淨投入:市值變化 − 淨投入
-            amt = hist[idx][1] - pmv - hist[idx][4]
-        else:                                                   # 國泰等沒有淨投入欄:沿用損益變化
+        if _flow_m:                        # 有淨投入:市值變化 − 淨投入 + 配息(與每日表 D 欄同口徑)
+            amt = (hist[idx][1] - pmv - hist[idx][4]
+                   + (hist[idx][5] if _div_m else 0))
+        else:                              # 國泰等沒有淨投入欄:沿用損益變化
             amt = hist[idx][3] - hist[idx - 1][3]
         return amt, (amt / pmv if pmv else None)
 
