@@ -1453,8 +1453,17 @@ BENCHMARK_SPLITS = {"0050": [("2025/06/18", 4)]}
 
 
 def _benchmark_monthly_returns(months, code=BENCHMARK_CODE):
-    """算 code 在 months 這些月份的月報酬(價格報酬)。months: [(y, m), ...]。
-    需要多抓「最早月份的前一個月」當分母。回傳 {(y, m): 報酬率};抓不到就回 {}。
+    """算 code 在 months 這些月份的月報酬,**預設含息(總報酬)**。months: [(y, m), ...]。
+
+    月報酬 = (月末收盤 ＋ 當月除息金額) ÷ 上月末收盤 − 1
+    ——即「配息在除息當月再投入」的總報酬指數作法,各月連乘後自動複利。
+
+    回傳 **({(y, m): 報酬率}, basis)**;basis 是口徑字串,會寫進表頭:
+      "含息" = 價格與配息都取到;"價格" = 配息抓不到,退回純價格報酬。
+    ⚠ **口徑一定要回報給呼叫端,不可靜默退回**:組合 TWR 已認列配息,
+      拿不含息的基準去比會讓超額虛高——2026 YTD 實測差 **2.44pp**,
+      表上的「超額 +0.61pp」同口徑其實是 **−1.83pp**(已落後 0050)。
+    需要多抓「最早月份的前一個月」當分母。抓不到價格就回 ({}, "價格"),呼叫端留白。
     ⚠ 對外部 API 失敗一律寬容(回空字典、呼叫端留白):這支會跑在每日排程裡,
       不能因為 TWSE 抖一下就讓整批同步失敗(與 _refresh_lev2 同樣的原則)。"""
     import datetime as _dt
@@ -1479,17 +1488,53 @@ def _benchmark_monthly_returns(months, code=BENCHMARK_CODE):
             last[(y, m)] = px
     except Exception as e:
         print(f"⚠ 取 {code} 月報酬失敗({e}),月損益表的基準欄留白")
-        return {}
+        return {}, "價格"
+
+    # 配息:只取 months 涵蓋的月份(那個「只當分母的前一個月」的配息屬於更早期間,不計入)。
+    # ⚠ twse_hist.dividends() 內部把例外吞掉、抓不到回空 list,**與「真的沒配息」無法區分**。
+    #   所以這裡直接看「全市場除息筆數」當 API 存活證據:台股任何一個月都有股票除息,
+    #   全市場 0 筆就一定是 API 失敗 → 標示為「價格」口徑,不要假裝自己含息。
+    divs, saw_market = {}, False
+    y1, m1 = min(months)
+    y2, m2 = max(months)
+    d_start = _dt.date(y1, m1, 1)
+    d_end = _dt.date(y2, m2, _calendar_mod.monthrange(y2, m2)[1])
+    try:
+        seg = d_start
+        while seg <= d_end:                       # 跨年分段,與 twse_hist.dividends 同作法
+            seg_end = min(_dt.date(seg.year, 12, 31), d_end)
+            rows = _th._fetch_exright(seg, seg_end)
+            if rows:
+                saw_market = True
+            for dt, c, kind, val in rows:
+                # ⚠ 「息」的比對會一併納入「權息」。0050 是 ETF、不發股票股利,所以安全;
+                #   若日後把基準換成個股,權息的「權值+息值」混有股票股利,需另外處理。
+                if c != code or "息" not in str(kind):
+                    continue
+                amt = float(val)
+                for sd, ratio in splits:          # 分割前的每股配息要同步換算,與價格同一套
+                    if dt < sd:
+                        amt /= ratio
+                divs[(dt.year, dt.month)] = divs.get((dt.year, dt.month), 0.0) + amt
+            seg = _dt.date(seg.year + 1, 1, 1)
+    except Exception as e:
+        print(f"⚠ 取 {code} 配息失敗({e}),基準欄退回價格報酬(不含息)")
+        divs, saw_market = {}, False
+    basis = "含息" if saw_market else "價格"
+    if not saw_market:
+        print(f"⚠ {code} 配息查無資料(全市場除息也是空的,應為 API 異常),"
+              f"基準欄退回價格報酬;超額會因此虛高,表頭已標示口徑")
+
     out = {}
     for (y, m) in months:
         prev = (y - 1, 12) if m == 1 else (y, m - 1)
         if prev in last and last[prev]:
-            out[(y, m)] = last[(y, m)] / last[prev] - 1
-    return out
+            out[(y, m)] = (last[(y, m)] + divs.get((y, m), 0.0)) / last[prev] - 1
+    return out, basis
 
 
 def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench=None,
-                             mwr_all=None):
+                             mwr_all=None, bench_basis="含息"):
     """組「月損益」表的儲存格,回傳 {列號: 該列要補的 <c> 字串} 與 (first_row, last_row)。
 
     欄位(自 col0 起 7 欄,預設 I~O):
@@ -1499,7 +1544,9 @@ def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench
     「月損益」**已含配息**(除息日認列),「配息」欄單獨列出讓它可被稽核。
     「月報酬率」是簡單報酬(月損益÷上月月末市值),月中大額加碼會失真;
     「TWR」逐日連乘、不受金流時點影響,兩欄並列才看得出哪個月的差距是資金時點造成的。
-    「0050當月」是 0050 自己的月報酬(**價格報酬,不含息**),抓不到時整欄留白。
+    「0050含息」是 0050 自己的月報酬,**含息(配息於除息當月再投入)**,抓不到時整欄留白。
+    ⚠ 表頭的後綴就是口徑:正常是「0050含息」,配息抓不到會退成「0050價格」。
+      **看到「價格」就知道那天的超額是虛高的**(組合 TWR 含配息,基準不含,2026 差 2.44pp)。
     表格新到舊,所以**每列報酬率的分母就是下一列的「月末市值」**,可直接在表上對帳;
     同時 **本列月末 = 下一列月末 + 本列月損益 + 本列淨投入 − 本列配息** 也成立。
     ⚠ **那個「− 配息」不可省**:月損益已含配息,但配息現金**不在市值裡**,
@@ -1539,7 +1586,7 @@ def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench
     r += 1
     out[r] = "".join(cell(f"{c}{r}", ST_TXT, v=h, is_str=True)
                      for c, h in zip(C, ["月份", "月末市值", "月損益", "配息", "淨投入",
-                                         "月報酬率", "TWR", "MWR", f"{BENCHMARK_CODE}當月"]))
+                                         "月報酬率", "TWR", "MWR", f"{BENCHMARK_CODE}{bench_basis}"]))
     for (y, m, pnl, flow, mv_end, ret, twr, dv, mwr) in months:
         r += 1
         b = bench.get((y, m))
@@ -3131,7 +3178,7 @@ def full_refresh(path_in, path_out, date_str):
         cal_styles_xml, _m_pct = _ensure_numfmt_style(cal_styles_xml, safe_pct_style, _m_pct_fmt)
         cal_styles_xml, _m_amt_fmt = _ensure_numfmt(cal_styles_xml, CAL_AMT_FMT)
         cal_styles_xml, _m_num = _ensure_numfmt_style(cal_styles_xml, safe_num_style, _m_amt_fmt)
-        _bench = _benchmark_monthly_returns([(x[0], x[1]) for x in _months])
+        _bench, _bench_basis = _benchmark_monthly_returns([(x[0], x[1]) for x in _months])
         # 合計列的 MWR:整段期間(最早→最新)一次解 IRR,不可由各月 MWR 連乘
         _d0 = _parse_rec_date(_hist_sort_key(hist_rows[0][0]))
         _d1 = _parse_rec_date(_hist_sort_key(hist_rows[-1][0]))
@@ -3144,7 +3191,7 @@ def full_refresh(path_in, path_out, date_str):
         m_cells, m_span = _build_monthly_pnl_cells(
             _months, daily_title_row + _span + MONTHLY_GAP,
             {"title": "58", "txt": safe_txt_style, "num": _m_num, "pct": _m_pct},
-            bench=_bench, mwr_all=_mwr_all)
+            bench=_bench, mwr_all=_mwr_all, bench_basis=_bench_basis)
         daily_sheetdata = _merge_cells_into_sheetdata(daily_sheetdata, m_cells)
         monthly_info = {"rows": m_span, "months": len(_months),
                         "total": sum(x[2] for x in _months)}
