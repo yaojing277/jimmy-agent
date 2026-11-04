@@ -393,6 +393,21 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   與 21 表成本首末差完全吻合，所以九欄照用、不必為國泰另做版面。
   📌 國泰基準期間與主帳戶不同（國泰自 2026/02 起、主帳戶自 2026/01 起），
   所以合計基準是 **38.34%** 而非 55.21%（＝ `1.5521/1.1220−1`，已驗算吻合）。
+- **⚠ `continue-on-error` 的步驟在 GitHub UI／API 上顯示 success，但腳本可能是崩的（2026-11-05 踩到）**：
+  國泰配息改好後跑排程，`gh` API 的 step conclusion 全部 `success`、整個 run 也 success，
+  我因此回報「21 步全成功」——**但 log 裡有 Traceback**，`cathay_since_pnl.py` 當場崩掉，
+  LINE 少了第三行「國泰6/8起」。那步設了 `continue-on-error`，所以失敗被吞成 success。
+  📌 **判斷排程有沒有真的成功，要抓 log 裡的 `Traceback`／`AssertionError`，
+  以及 workflow 回報給 runlog 的 `--step "xxx：failure"`，不能只看 conclusion。**
+  （log 下載後用 Python `zipfile` 讀，不要 `unzip`——檔名含特殊字元會卡在互動提示。）
+- **配息口徑改動的下游：`cathay_since_pnl.py` 的雙向驗算（2026-11-05）**：
+  `03_國泰漲跌` 的單日損益開始含配息後，`compute()` 的
+  `assert abs(pnl - sum(單日損益)) < 1` **當場擋下**（差 300 元）——
+  左邊 `ΔMV−ΣCF` 不含配息、右邊已含。✅ 已修：`load_rows` 從 `21_國泰資產歷史` **F 欄**
+  讀配息塞進 rows，`pnl` 改為 `end−base−cf+div`。舊檔沒有 F 欄時讀不到當 0，行為不變。
+  📌 **那條 assert 是對的，它抓到的是真的口徑不一致——不要為了讓它過就把門檻放寬。**
+  這也是「改了上游口徑，要回頭檢查所有讀它的下游」的又一個實例
+  （與 `03_持股總表` 加說明列後兩處掃描都要改同型）。
 - **月損益表完整驗算通過（2026-11-05）**：以 `16_資產歷史` 原始欄位獨立重算（不呼叫
   `_monthly_pnl()`，避免用同一份程式驗同一份程式），11 個月 × 6 欄 **66 項全部吻合**，
   合計列的月損益／配息／淨投入／TWR／0050 也全部吻合。

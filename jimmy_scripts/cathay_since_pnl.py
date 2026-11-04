@@ -53,10 +53,14 @@ def load_rows(path):
             rows.append(dict(d=d.date(), mv=mv, cost=mv - unreal, pnl=pnl or 0, cf=cf or 0))
     rows.sort(key=lambda x: x["d"])
     # 交叉驗證 21_國泰資產歷史（03 由它產生，兩邊應一致）
-    hist = {}
+    hist, divs = {}, {}
     for r in wb[HIST_SHEET].iter_rows(min_row=2, values_only=True):
         if isinstance(r[0], dt.datetime):
             hist[r[0].date()] = (r[1], r[2])
+            # F 欄配息(2026-11-05 起;該欄之前不存在,舊檔讀不到就當 0)
+            divs[r[0].date()] = float(r[5]) if (len(r) > 5 and isinstance(r[5], (int, float))) else 0.0
+    for x in rows:
+        x["div"] = divs.get(x["d"], 0.0)
     diff = [x["d"] for x in rows if x["d"] in hist and
             (round(hist[x["d"]][0]) != round(x["mv"]) or round(hist[x["d"]][1]) != round(x["cost"]))]
     return rows, diff, len(hist)
@@ -83,8 +87,13 @@ def compute(rows, since):
     base, period = rows[i0 - 1], rows[i0:]
     end = period[-1]
     cf = sum(x["cf"] for x in period)
-    pnl = end["mv"] - base["mv"] - cf
-    assert abs(pnl - sum(x["pnl"] for x in period)) < 1, "ΔMV−ΣCF 與單日損益加總不符"
+    div = sum(x.get("div", 0.0) for x in period)
+    # ⚠ **那個「＋配息」不可省**(2026-11-05):03_國泰漲跌 的單日損益自當天起含配息,
+    #   而配息現金不在市值裡,所以 ΔMV−ΣCF 還原不出它——兩邊會差一個配息總額。
+    #   2026-11-05 第一次跑就是這樣被下面那條 assert 擋下來的(差 300 元),
+    #   **那條雙向驗算是對的,它抓到的是真的口徑不一致**,不要為了讓它過就把它放寬。
+    pnl = end["mv"] - base["mv"] - cf + div
+    assert abs(pnl - sum(x["pnl"] for x in period)) < 1, "ΔMV−ΣCF＋配息 與單日損益加總不符"
     span = (end["d"] - base["d"]).days
     dietz_den = base["mv"] + sum(x["cf"] * (end["d"] - x["d"]).days / span for x in period)
 
@@ -105,7 +114,7 @@ def compute(rows, since):
         peak = max(peak, cum)
         mdd = min(mdd, cum - peak)
         curve.append((x["d"], cum))
-    return dict(base=base, end=end, period=period, cf=cf, pnl=pnl,
+    return dict(base=base, end=end, period=period, cf=cf, pnl=pnl, div=div,
                 simple=pnl / (base["mv"] + cf), dietz=pnl / dietz_den, twr=twr(period, base["mv"]),
                 months=months, curve=curve, mdd=mdd, peak=max(c for _, c in curve),
                 up=sum(x["pnl"] > 0 for x in period), down=sum(x["pnl"] < 0 for x in period),
