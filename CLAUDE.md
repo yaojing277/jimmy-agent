@@ -53,7 +53,11 @@
     自動化真正執行的地方在那邊；本機 `jimmy_scripts/` 改完對應腳本後，要同步過去並 push 才會生效。
   - 同步時注意路徑：workflows 執行的是 `stock_notify_tmp/jimmy_scripts/` **子目錄**下的腳本
     （`stock_notify.py`、`stock_alert.py`、`stock_alert_v2.py`、`stock_notify_gmail.py`、`price_source.py`、`auth_sheets.py`、
-    `update_stock_price.py`、`update_wealth_os.py`、`twse_hist.py`、`lev2_analysis.py`、`etf_ex_dividend_calendar.py`、`drop_stats_publish.py`、`drop_stats_web.html`、`since_date_pnl.py`、`drive_report_sync.py`、`html_to_pdf.py`），
+    `update_stock_price.py`、`update_wealth_os.py`、`twse_hist.py`、`lev2_analysis.py`、`etf_ex_dividend_calendar.py`、`drop_stats_publish.py`、`drop_stats_web.html`、`since_date_pnl.py`、`drive_report_sync.py`、`html_to_pdf.py`、
+    **`update_cathay_daily.py`**、`cathay_since_pnl.py`、`loan_funding.py`、`overseas_sync.py`、`publish_projects.py`），
+    ⚠ **這份清單在 2026-11-05 之前漏了 `update_cathay_daily.py`**（`wealth_sync.yml` 第 124 行確實在跑它）
+    ——改了它卻沒同步，雲端排程就會跑舊版。**要確認清單完整，直接抓 `wealth_sync.yml` 裡所有 `python3 *.py` 的檔名，不要憑這份清單**：
+    `grep -oE "python3 [a-z_0-9]+\.py" stock_notify_tmp/.github/workflows/wealth_sync.yml | sort -u`。
     但 `check_reminders.py`、`youtube_notify.py`、`reminders.json` 放在 `stock_notify_tmp/` **根目錄**。
   - **雲端執行**：`wealth_sync.yml` workflow，認證走 Service Account（Secret `GOOGLE_SA_JSON`，永不過期），跑完 LINE 通知。
     - **每日自動排程**（2026-07-25 起）：每天台北 **14:17**（cron `17 6 * * *`；2026-10-06 由 14:30 改為 :17，避開整點／半點的擁塞時段）觸發，跑「更新股價＋同步＋全分頁」；
@@ -358,6 +362,37 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   （排除 3/12 當天後 3 月 TWR 由 −1.42% 只變 −0.82%，影響 0.60pp）。
   📌 7/3 起加碼依類別：**正二 ETF 占投入 70.8%、占虧損 72.0%（−12.04%）**；
   個股占 14.9%／虧損 21.8%（−17.27%）；其他 ETF −5.19%。
+- **國泰那張也有月損益表＋含息基準了（2026-11-05）**：`03_國泰漲跌` 原本**沒有**月損益表、
+  也沒有基準欄（基準是月損益表的最後一欄，先前只做在 `02_每日漲跌`）。現已補上，九欄與主帳戶相同，
+  表頭同樣寫出口徑（`0050含息`）。
+  ⚠ **照字面「把基準改成含息」會製造反向的口徑錯誤**：國泰的報酬率原本是**純價格報酬**
+  （`21_國泰資產歷史` 只有 A~E 欄、沒有配息欄），拿含息基準去比會**低估國泰約 2.33pp**
+  ——正是主帳戶那個問題的鏡像。所以配息必須先認列，才能用含息基準。
+  ✅ **`_hist_modes()` 的 `div` 解除對 `flow` 的依賴**：原本寫 `div = flow and ...`，
+  而國泰沒有淨投入欄 → `flow=False` → **`div` 永遠是 False，加了配息欄也認列不到**。
+  現在三種組合都走得通：`flow+div`（主帳戶：市值變化−淨投入＋配息）／
+  **只有 `div`（國泰：損益變化＋配息）**／兩者皆無（舊算法）。
+  連帶把 `_build_daily_sheetdata_desc`（新增 `elif div_mode` 分支＋`div_col` 參數）、
+  `_monthly_pnl`、`_month_calendar_grid` 的 else 分支都補上配息。
+  ✅ 另抽出 **`_mwr_flows()`**：MWR 的現金流定義與 `_monthly_pnl` 的 `net_f` 共用一份
+  （有淨投入欄用它，沒有就用**持有成本變化**；配息一律算流出）。
+  ⚠ **配息欄在國泰是 `F`、主帳戶是 `J`**，所以 `_build_daily_sheetdata_desc` 要傳 `div_col="F"`，
+  否則公式會去引用一個空的 J 欄。
+  ⚠ **`_write_hist_flows()` 原本只認 sharedString 日期**，而 `21_國泰資產歷史` 的 A 欄是
+  **真日期數值（Excel 序號）**。已加 `row_date()` 兩種都認（主帳戶走原路徑，位元組不變）。
+  ⚠ **國泰的歷史股數沒有被記錄下來**，所以已發生的除息日不能用現在的 `CATHAY_HOLDINGS` 回推。
+  配息改成人工維護常數 **`CATHAY_DIVIDENDS`**（比照 `CATHAY_HOLDINGS`／`CATHAY_DAY_NOTES`），
+  `_check_dividends()` 每次執行比對 TWSE 除權息、**「有除息卻沒登記」就印警告**（只警告、不猜金額）；
+  除息日剛好是執行當天時股數就是當下的，會自動認列並提示固化。
+  📌 **2026/07/21 的 300 元是這樣確定的**：0050 每股 0.6 × 500 股。當天持股由市值回推驗出
+  ＝ 0050 500／00662 500／00631L 14,000／00685L 16,800，且 **7/17~7/27 連續 7 個交易日**
+  用這組持股重建市值與 21 表**差額皆為 0**（4 檔不同價格、7 個日期全中，不是巧合）。
+  ⚠ **2026/01/22 那次（每股 1.0）刻意不認列**：21 表最早只到 2026/01/30，除息日在起點之前，
+  當天是否持有、持有幾股都無從查證。**寧可少記，不要猜。**
+  📌 國泰的「淨投入」欄＝**持有成本變化**（加碼會讓成本增加），實測合計 670,467
+  與 21 表成本首末差完全吻合，所以九欄照用、不必為國泰另做版面。
+  📌 國泰基準期間與主帳戶不同（國泰自 2026/02 起、主帳戶自 2026/01 起），
+  所以合計基準是 **38.34%** 而非 55.21%（＝ `1.5521/1.1220−1`，已驗算吻合）。
 - **月損益表完整驗算通過（2026-11-05）**：以 `16_資產歷史` 原始欄位獨立重算（不呼叫
   `_monthly_pnl()`，避免用同一份程式驗同一份程式），11 個月 × 6 欄 **66 項全部吻合**，
   合計列的月損益／配息／淨投入／TWR／0050 也全部吻合。

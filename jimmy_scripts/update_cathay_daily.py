@@ -78,6 +78,24 @@ CATHAY_HOLDINGS = {
 }
 CATHAY_COST_TOTAL = sum(h["cost"] for h in CATHAY_HOLDINGS.values())
 
+CATHAY_DIV_COL = "F"            # 配息欄(21_國泰資產歷史 只有 A~E,配息接在 F)
+CATHAY_DIV_HEADER = "配息"
+
+# 國泰帳戶已認列的配息(除息日 → 當天實收金額)。比照 CATHAY_HOLDINGS／CATHAY_DAY_NOTES
+# 人工維護,原因是:**歷史上持股變動過,而當時的股數沒有被記錄下來**
+# ——不能拿現在的 CATHAY_HOLDINGS 回推已發生的除息日。
+# 每次執行都會比對 TWSE 除權息資料,「有除息卻沒登記」會印警告(_check_dividends),不會漏;
+# 除息日剛好是執行當天時,股數就是當下的 CATHAY_HOLDINGS,會自動認列並提示固化到這裡。
+#
+# 2026/07/21 的 300 元是這樣確定的:0050 每股 0.6 元 × 500 股。
+#   當天持股由市值回推驗出 = 0050 500／00662 500／00631L 14,000／00685L 16,800,
+#   且 7/17~7/27 **連續 7 個交易日**用這組持股重建市值,與 21 表差額皆為 0。
+# ⚠ 2026/01/22 那次(0050 每股 1.0)**刻意不認列**:21_國泰資產歷史 最早只到 2026/01/30,
+#   除息日落在歷史表起點之前,當天是否持有、持有幾股都無從查證。寧可少記,不要猜。
+CATHAY_DIVIDENDS = {
+    "2026/07/21": 300,          # 0050 0.6 × 500 股(持股以連續 7 日市值回推驗證)
+}
+
 # 報酬日曆裡手動加註的「當天備註」(用日期定位,不用儲存格座標,因為月曆區塊每天都會往下移)。
 # 例如 Jimmy 手動在 6/8 那格寫「8，匯入50萬」＋黃底,要在每次自動重建時都保留,格式:
 #   "YYYY/MM/DD": "顯示文字"
@@ -106,6 +124,50 @@ def fetch_today_snapshot(d):
     return mv, cost, pl, ret
 
 
+def _today_dividend(d):
+    """執行當天若有持股除息,依當下 CATHAY_HOLDINGS 算配息(當天股數就是現在的股數,
+    所以這一天可以自動認列)。回傳金額;沒有就 0。"""
+    tot = 0.0
+    for code, h in CATHAY_HOLDINGS.items():
+        try:
+            for ex, amt in twse_hist.dividends(code, d, d):
+                if ex == d:
+                    cash = float(amt) * h["shares"]
+                    tot += cash
+                    print(f"  ✓ 今日除息:{code} 每股 {amt} × {h['shares']:,} 股 = {cash:,.0f}")
+        except Exception as e:
+            print(f"  ⚠ 查 {code} 除息失敗({e}),今日配息以 0 計")
+    if tot:
+        print(f"  → 今日配息合計 {tot:,.0f};建議寫進 CATHAY_DIVIDENDS[\"{d:%Y/%m/%d}\"] 固化")
+    return tot
+
+
+def _check_dividends(hist_rows):
+    """比對 TWSE 除權息資料,找出「持股有除息、CATHAY_DIVIDENDS 卻沒登記」的日期。
+
+    ⚠ **只警告、不猜金額**:當天的股數可能與現在不同(2026 年已證實變動過好幾次),
+      用現在的 CATHAY_HOLDINGS 回推會寫進錯的數字。要補就人工查對帳單再寫進常數。
+    ⚠ 歷史表起點之前的除息日不列入(當天是否持有無從查證,例如 0050 2026/01/22)。"""
+    if not hist_rows:
+        return
+    lo, hi = hist_rows[0][0], hist_rows[-1][0]
+    d_lo = datetime.strptime(lo, "%Y/%m/%d").date()
+    d_hi = datetime.strptime(hi, "%Y/%m/%d").date()
+    missing = []
+    for code in CATHAY_HOLDINGS:
+        try:
+            for ex, amt in twse_hist.dividends(code, d_lo, d_hi):
+                key = ex.strftime("%Y/%m/%d")
+                if key not in CATHAY_DIVIDENDS:
+                    missing.append((key, code, float(amt)))
+        except Exception:
+            pass
+    if missing:
+        print(f"  ⚠ 有 {len(missing)} 筆除息未登記於 CATHAY_DIVIDENDS(配息未認列,報酬率會略低估):")
+        for key, code, amt in sorted(missing):
+            print(f"      {key} {code} 每股 {amt}  ← 需人工查當天股數後補登")
+
+
 def _read_hist_rows(path):
     """讀「21_國泰資產歷史」現有資料列,回傳 [(日期字串YYYY/MM/DD, mv, cost, pl), ...]。
     A欄正常應是套了日期格式的真日期數值,openpyxl 會自動轉成 datetime;但若該列樣式漂移成
@@ -124,8 +186,13 @@ def _read_hist_rows(path):
             dt_str = (EXCEL_EPOCH + timedelta(days=int(dt))).strftime("%Y/%m/%d")
         else:
             dt_str = str(dt).replace("-", "/")[:10]
+        # 第 5 個元素是「淨投入」:國泰這張表沒有這一欄,固定 None(uwo._hist_modes 會
+        # 因此判成 flow_mode=False,走「損益變化」口徑)。第 6 個是配息,
+        # **以 CATHAY_DIVIDENDS 為唯一事實來源**(不讀 F 欄),所以每次執行都收斂到常數、冪等;
+        # F 欄只是把它落地到表上,好讓每日表 D 欄的公式引用得到。
         rows.append((dt_str, float(hws.cell(r, 2).value), float(hws.cell(r, 3).value),
-                     float(hws.cell(r, 4).value)))
+                     float(hws.cell(r, 4).value),
+                     None, float(CATHAY_DIVIDENDS.get(dt_str, 0.0))))
     # 21_國泰資產歷史 自 2026-10-01 起是「新到舊」儲存(列2=最新一天),但程式內部一律用
     # 「舊到新」(rows[0]=最早),所以讀進來就地排序;排序後不受儲存順序影響
     rows.sort(key=lambda r: datetime.strptime(r[0], "%Y/%m/%d"))
@@ -325,8 +392,11 @@ def _rebuild_inner(zin, hist_rows, repl, new_parts):
 
     # 2. 每日總市值與損益變化:標題+表格(日期新到舊、加總列釘在表頭正下方)
     daily_title_row = row_cursor
+    # div_col="F":這張歷史表的配息欄在 F(主帳戶 16_資產歷史 是 J),
+    # 單日損益公式才會寫成「D 變化 ＋ F 配息」而不是去引用一個空的 J 欄。
     daily_rows_xml, daily_info = uwo._build_daily_sheetdata_desc(
-        hist_rows, safe_pct_style, daily_title_row, txt_style=safe_txt_style)
+        hist_rows, safe_pct_style, daily_title_row, txt_style=safe_txt_style,
+        div_col=CATHAY_DIV_COL)
     blocks.append(daily_rows_xml)
     row_cursor = daily_info["base_row"] + 2
 
@@ -364,6 +434,38 @@ def _rebuild_inner(zin, hist_rows, repl, new_parts):
             daily_sheetdata, [(p[4], p[2]) for p in placed], cal_styles_xml)
         daily_sheetdata, cal_styles_xml = uwo._apply_calendar_day_notes(
             daily_sheetdata, placed, cal_styles_xml, CATHAY_DAY_NOTES)
+    # 月損益表:折線圖正下方,與 02_每日漲跌 共用同一支產生器(uwo._build_monthly_pnl_cells)。
+    # 量不到折線圖佔幾列就整張跳過,不硬猜列號——寧可沒有這張表,也不要疊在圖上面。
+    # ⚠ 國泰沒有「淨投入」欄,但 _monthly_pnl 在沒有該欄時會改用**持有成本變化**,
+    #   加碼會讓成本增加,所以那一欄仍然有意義(實測合計與 21 表成本首末差完全吻合),
+    #   因此九欄照用、不必為國泰另做一套版面。
+    _cp_probe = uwo._locate_chart_parts(zin, DAILY_TAB)
+    _dw_probe = zin.read(_cp_probe["drawing_path"]).decode("utf-8")
+    _line_probe = uwo._find_chart_by_marker(zin, _cp_probe["chart_by_rid"], "單日損益漲跌(真實)")
+    _line_rid = next((rid for rid, pth in _cp_probe["chart_by_rid"].items()
+                      if pth == _line_probe), None)
+    _span = uwo._chart_row_span(_dw_probe, _line_rid) if _line_rid else None
+    _months = uwo._monthly_pnl(hist_rows)
+    if _span and _months:
+        cal_styles_xml, _m_pct_fmt = uwo._ensure_numfmt(cal_styles_xml, "0.0%")
+        cal_styles_xml, _m_pct = uwo._ensure_numfmt_style(cal_styles_xml, safe_pct_style, _m_pct_fmt)
+        cal_styles_xml, _m_amt_fmt = uwo._ensure_numfmt(cal_styles_xml, uwo.CAL_AMT_FMT)
+        cal_styles_xml, _m_num = uwo._ensure_numfmt_style(cal_styles_xml, safe_num_style, _m_amt_fmt)
+        _bench, _bench_basis = uwo._benchmark_monthly_returns([(x[0], x[1]) for x in _months])
+        _d0 = uwo._parse_rec_date(uwo._hist_sort_key(hist_rows[0][0]))
+        _d1 = uwo._parse_rec_date(uwo._hist_sort_key(hist_rows[-1][0]))
+        _mwr_all = uwo._irr(hist_rows[0][1], hist_rows[-1][1],
+                            uwo._mwr_flows(hist_rows), (_d1 - _d0).days)
+        _m_cells, _m_span = uwo._build_monthly_pnl_cells(
+            _months, daily_title_row + _span + uwo.MONTHLY_GAP,
+            {"title": "58", "txt": safe_txt_style, "num": _m_num, "pct": _m_pct},
+            bench=_bench, mwr_all=_mwr_all, bench_basis=_bench_basis)
+        daily_sheetdata = uwo._merge_cells_into_sheetdata(daily_sheetdata, _m_cells)
+        print(f"  ✓ {DAILY_TAB} 月損益表:{len(_months)} 個月、{_m_span} 列,"
+              f"基準口徑「0050{_bench_basis}」")
+    elif _months:
+        print(f"  ⚠ {DAILY_TAB} 量不到折線圖列數,月損益表整張跳過(不硬猜列號)")
+
     daily_sheetdata = uwo.DAILY_COLS + '<sheetData>' + daily_sheetdata + '</sheetData>'
     dxml = re.sub(r"<cols>.*?</sheetData>", daily_sheetdata, dxml, flags=re.S)
     # merge_cells 至少有標題合併這一筆,不管有沒有報酬日曆都要跑
@@ -461,8 +563,19 @@ def sync(args):
 
     hist_rows = _read_hist_rows(path_in)
     date_str = today.strftime("%Y/%m/%d")
-    hist_rows = [r for r in hist_rows if r[0] != date_str] + [(date_str, mv, cost, pl)]
+    # 今天的配息:常數裡有就用它(人工固化優先),否則看今天是不是除息日自動算
+    div_today = CATHAY_DIVIDENDS.get(date_str)
+    if div_today is None:
+        div_today = _today_dividend(today)
+    hist_rows = [r for r in hist_rows if r[0] != date_str] + [
+        (date_str, mv, cost, pl, None, float(div_today))]
     hist_rows.sort(key=lambda r: datetime.strptime(r[0], "%Y/%m/%d"))
+    _check_dividends(hist_rows)
+    _fm, _dm = uwo._hist_modes(hist_rows)
+    _div_total = sum(r[5] for r in hist_rows)
+    print(f"[口徑] flow_mode={_fm} div_mode={_dm}"
+          f"｜已認列配息合計 {_div_total:,.0f} 元"
+          f"（{'單日損益＝損益變化＋配息' if _dm else '單日損益＝損益變化'}）")
 
     if args.dry_run:
         print("--dry-run:只預覽,不寫入。")
@@ -477,6 +590,14 @@ def sync(args):
     hxml = zin.read(hist_part).decode("utf-8")
     new_hxml, note = _upsert_hist_row(hxml, date_str, mv, cost, pl, ret)
     print(f"[{HIST_TAB}] {note}")
+    # F 欄配息整欄重寫(以 CATHAY_DIVIDENDS 為準,每次執行都收斂、冪等)。
+    # ⚠ 這張表的 A 欄是**真日期數值**(Excel 序號),不是 sharedString;
+    #   uwo._write_hist_flows 自 2026-11-05 起兩種都認,所以 sis 傳 [] 不會被用到。
+    _divs = {r[0]: r[5] for r in hist_rows if r[5]}
+    new_hxml = uwo._write_hist_flows(new_hxml, [], _divs,
+                                     col=CATHAY_DIV_COL, header=CATHAY_DIV_HEADER)
+    print(f"[{HIST_TAB}] {CATHAY_DIV_COL} 欄配息:{len(_divs)} 個除息日,合計 "
+          f"{sum(_divs.values()):,.0f} 元")
 
     repl = {hist_part: new_hxml.encode("utf-8")}
     new_parts = {}

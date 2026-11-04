@@ -40,6 +40,7 @@ import tempfile
 import zipfile
 import warnings
 import calendar as _calendar_mod
+import datetime as _dtmod
 from datetime import datetime
 from xml.sax.saxutils import escape
 
@@ -562,6 +563,7 @@ def read_trade_records(creds, since=TRADE_LOG_SINCE):
 
 
 HIST_FLOW_COL = "I"            # 16_資產歷史 淨投入欄(2026-10-10 起,每次同步依買賣紀錄整欄重寫)
+_EXCEL_EPOCH = _dtmod.date(1899, 12, 30)   # Excel 序號日期原點(與 update_cathay_daily.EXCEL_EPOCH 相同)
 HIST_FLOW_HEADER = "淨投入"
 
 
@@ -666,16 +668,29 @@ def _write_hist_flows(hxml, sis, flows, col=HIST_FLOW_COL, header=HIST_FLOW_HEAD
         row_xml = re.sub(rf'<c r="{col}{rn}"[^>]*?(?:/>|>.*?</c>)', "", row_xml, flags=re.S)
         return row_xml.replace("</row>", cell_xml + "</row>")
 
+    def row_date(row_xml, rn):
+        """該列 A 欄的日期(YYYY/MM/DD),取不到回 None。兩種存法都要認:
+        16_資產歷史 的 A 欄是 sharedString／inlineStr 字串日期;
+        **21_國泰資產歷史 的 A 欄是真日期數值(Excel 序號)**,只有 <v>46330</v>。"""
+        a = re.search(rf'<c r="A{rn}"[^>]*?(?:t="s"[^>]*>.*?<v>(\d+)</v>|t="inlineStr"[^>]*>.*?<t>(.*?)</t>)',
+                      row_xml, re.S)
+        if a:
+            return _hist_sort_key(sis[int(a.group(1))] if a.group(1) else a.group(2))
+        n = re.search(rf'<c r="A{rn}"(?![^>]*t=")[^>]*>\s*<v>([\d.]+)</v>', row_xml)
+        if n:
+            d = _EXCEL_EPOCH + _dtmod.timedelta(days=int(float(n.group(1))))
+            return d.strftime("%Y/%m/%d")
+        return None
+
     # 先收集歷史表實際有的日期,把對不上的日期併到「之後最近的一列」
     have = []
     for m in re.finditer(r'<row r="(\d+)"[^>]*>.*?</row>', hxml, flags=re.S):
         rn = int(m.group(1))
         if rn == 1:
             continue
-        a = re.search(rf'<c r="A{rn}"[^>]*?(?:t="s"[^>]*>.*?<v>(\d+)</v>|t="inlineStr"[^>]*>.*?<t>(.*?)</t>)',
-                      m.group(0), re.S)
-        if a:
-            have.append(_hist_sort_key(sis[int(a.group(1))] if a.group(1) else a.group(2)))
+        d0 = row_date(m.group(0), rn)
+        if d0:
+            have.append(d0)
     have_sorted = sorted(set(have))
     merged = {}
     for k, v in (flows or {}).items():
@@ -692,11 +707,9 @@ def _write_hist_flows(hxml, sis, flows, col=HIST_FLOW_COL, header=HIST_FLOW_HEAD
         rn, row = int(m.group(1)), m.group(0)
         if rn == 1:
             return put(row, 1, f'<c r="{col}1" t="inlineStr"><is><t>{header}</t></is></c>')
-        a = re.search(rf'<c r="A{rn}"[^>]*?(?:t="s"[^>]*>.*?<v>(\d+)</v>|t="inlineStr"[^>]*>.*?<t>(.*?)</t>)',
-                      row, re.S)
-        if not a:
+        d = row_date(row, rn)
+        if d is None:
             return row
-        d = _hist_sort_key(sis[int(a.group(1))] if a.group(1) else a.group(2))
         st = re.search(rf'<c r="C{rn}" s="(\d+)"', row)
         style = f' s="{st.group(1)}"' if st else ""
         return put(row, rn, f'<c r="{col}{rn}"{style}><v>{flows.get(d, 0.0):.0f}</v></c>')
@@ -994,7 +1007,13 @@ def _hist_modes(hist):
       國泰 21_國泰資產歷史 沒有這兩欄,兩者自動為 False、維持舊算法(XML 位元組不變)。"""
     N = len(hist)
     flow = N > 1 and all(len(h) > 4 and h[4] is not None for h in hist[1:])
-    div = flow and all(len(h) > 5 and h[5] is not None for h in hist[1:])
+    # ⚠ div **刻意不依賴 flow**(2026-11-05 改):國泰 21_國泰資產歷史 沒有淨投入欄,
+    #   但它可以有配息欄。原本寫成 `flow and ...` 會讓國泰的 div 永遠是 False,
+    #   加了配息欄也認列不到。三種組合都要能走:
+    #     flow+div = 主帳戶(市值變化−淨投入+配息)
+    #     只有 div = 國泰(損益變化+配息)
+    #     兩者皆無 = 舊算法(損益變化)
+    div = N > 1 and all(len(h) > 5 and h[5] is not None for h in hist[1:])
     return flow, div
 
 
@@ -1163,7 +1182,8 @@ def _build_daily_chart_xml(hist):
             '<c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart></c:chartSpace>')
 
 
-def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
+def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5",
+                               div_col=None):
     """跟 _build_daily_sheetdata 欄位定義完全一樣,但日期由新到舊排序(最新在最上面)。
     「加總列」(最早一天,沒有前一天可比,整欄總計=累計報酬率)固定釘在表頭正下方(agg_row),
     逐日資料從 agg_row 下一列(data_start)開始,一樣新到舊排序,每天新資料插進 data_start,
@@ -1187,7 +1207,9 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
     # 不在市值裡,不加回來的話除息會被誤記成虧損。判斷集中在 _hist_modes(),
     # 日曆與折線圖共用同一個,避免口徑分歧。
     flow_mode, div_mode = _hist_modes(hist)
-    FL, DV = HIST_FLOW_COL, HIST_DIV_COL
+    # div_col:配息欄的欄名。主帳戶 16_資產歷史 是 J;國泰 21_國泰資產歷史 只有 A~E,
+    # 配息欄接在 F。不給就用主帳戶的預設。
+    FL, DV = HIST_FLOW_COL, (div_col or HIST_DIV_COL)
     # 歷史資料表(16_資產歷史／21_國泰資產歷史)自 2026-10-01 起也改成「新到舊」儲存:
     # 列2 = 最新一天、列 N+1 = 最早一天。hist 這個 list 本身仍維持「舊到新」
     # (hist[0]=最早),只有「換算成歷史表列號」這一步要倒過來,其餘邏輯完全不動。
@@ -1290,6 +1312,14 @@ def _build_daily_sheetdata_desc(hist, pct_style, title_row=1, txt_style="5"):
                 core += f'+{H}{DV}{hr}'
             D = f'IF({H}A{hr}="","",{core})'
             E = f'IF({H}A{hr}="","",{H}{FL}{hr})'
+            G = f'IF(OR({H}A{hr}="",{H}B{hrp}=0),"",({core})/{H}B{hrp})'
+        elif div_mode:
+            # 國泰:沒有淨投入欄,但有配息欄 → 單日損益＝損益變化 ＋ 配息。
+            # 除息當天持股市值被扣掉股息,而配息現金不在市值裡,不加回來就記成虧損。
+            div = hist[orig_idx][5]
+            dpl += div
+            core = f'{H}D{hr}-{H}D{hrp}+{H}{DV}{hr}'
+            D = f'IF({H}A{hr}="","",{core})'
             G = f'IF(OR({H}A{hr}="",{H}B{hrp}=0),"",({core})/{H}B{hrp})'
         parts = [cell(f"A{dr}", ST_TXT, f=A, v=dt, is_str=True),
                  cell(f"B{dr}", ST_NUM, f=B, v=f"{mv:.0f}"),
@@ -1398,9 +1428,11 @@ def _monthly_pnl(hist):
             div = hist[j][5] if (len(hist[j]) > 5 and hist[j][5] is not None) else 0.0
             pnl = mv - prev_mv - flow + div          # 與每日表 D 欄同式(含配息)
         else:
+            # 沒有淨投入欄(國泰):用損益變化,但**若有配息欄仍要把配息加回來**
+            # (2026-11-05;原本這裡寫死 div = 0.0,國泰加了配息欄也認列不到)
             flow = hist[j][2] - hist[j - 1][2]
-            pnl = hist[j][3] - hist[j - 1][3]
-            div = 0.0
+            div = hist[j][5] if (len(hist[j]) > 5 and hist[j][5] is not None) else 0.0
+            pnl = hist[j][3] - hist[j - 1][3] + div
         day_r = (pnl / prev_mv) if prev_mv else 0.0      # 與每日 G 欄同一條式子
         d_cur = _parse_rec_date(_hist_sort_key(hist[j][0]))
         d_prv = _parse_rec_date(_hist_sort_key(hist[j - 1][0]))
@@ -1531,6 +1563,28 @@ def _benchmark_monthly_returns(months, code=BENCHMARK_CODE):
         if prev in last and last[prev]:
             out[(y, m)] = (last[(y, m)] + divs.get((y, m), 0.0)) / last[prev] - 1
     return out, basis
+
+
+def _mwr_flows(hist):
+    """MWR(IRR)用的外部現金流 [(距期初天數, 金額), ...]。
+
+    金流定義與 _monthly_pnl() 的 net_f **必須一致**,否則各月 MWR 與合計 MWR 會是兩套口徑:
+      有淨投入欄(主帳戶) → 用淨投入;沒有(國泰 21_國泰資產歷史)→ 用**持有成本變化**
+      (加碼會讓成本增加,所以它就是該期間的資金投入)。
+      配息一律算**流出**(錢離開股票部位)。
+    """
+    flow_mode, _ = _hist_modes(hist)
+    if len(hist) < 2:
+        return []
+    d0 = _parse_rec_date(_hist_sort_key(hist[0][0]))
+    out = []
+    for j in range(1, len(hist)):
+        flow = hist[j][4] if flow_mode else (hist[j][2] - hist[j - 1][2])
+        div = hist[j][5] if (len(hist[j]) > 5 and hist[j][5] is not None) else 0.0
+        nf = (flow or 0) - div
+        if nf:
+            out.append(((_parse_rec_date(_hist_sort_key(hist[j][0])) - d0).days, nf))
+    return out
 
 
 def _build_monthly_pnl_cells(months, start_row, styles, col0=MONTHLY_COL0, bench=None,
@@ -1802,8 +1856,9 @@ def _month_calendar_grid(hist, year=None, month=None):
         if _flow_m:                        # 有淨投入:市值變化 − 淨投入 + 配息(與每日表 D 欄同口徑)
             amt = (hist[idx][1] - pmv - hist[idx][4]
                    + (hist[idx][5] if _div_m else 0))
-        else:                              # 國泰等沒有淨投入欄:沿用損益變化
-            amt = hist[idx][3] - hist[idx - 1][3]
+        else:                              # 國泰等沒有淨投入欄:損益變化(有配息欄就加回配息)
+            amt = (hist[idx][3] - hist[idx - 1][3]
+                   + (hist[idx][5] if _div_m else 0))
         return amt, (amt / pmv if pmv else None)
 
     weeks, all_days = [], []
@@ -3182,11 +3237,7 @@ def full_refresh(path_in, path_out, date_str):
         # 合計列的 MWR:整段期間(最早→最新)一次解 IRR,不可由各月 MWR 連乘
         _d0 = _parse_rec_date(_hist_sort_key(hist_rows[0][0]))
         _d1 = _parse_rec_date(_hist_sort_key(hist_rows[-1][0]))
-        _fl = []
-        for _j in range(1, len(hist_rows)):
-            _f = (hist_rows[_j][4] or 0) - (hist_rows[_j][5] or 0)
-            if _f:
-                _fl.append(((_parse_rec_date(_hist_sort_key(hist_rows[_j][0])) - _d0).days, _f))
+        _fl = _mwr_flows(hist_rows)          # 與 _monthly_pnl 的 net_f 同一個定義
         _mwr_all = _irr(hist_rows[0][1], hist_rows[-1][1], _fl, (_d1 - _d0).days)
         m_cells, m_span = _build_monthly_pnl_cells(
             _months, daily_title_row + _span + MONTHLY_GAP,
