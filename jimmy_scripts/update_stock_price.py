@@ -115,17 +115,54 @@ ALIAS = {
 }
 
 # ========================= 認證 =========================
-def get_sa_creds():
-    """GitHub Actions 等無人環境:環境變數 GOOGLE_SA_JSON = Service Account 金鑰 JSON 內容。
-    Service Account 不會過期;試算表與 xlsm 需分享給 SA 的 client_email。"""
+SA_SCOPES = ["https://www.googleapis.com/auth/spreadsheets",
+             "https://www.googleapis.com/auth/drive"]
+# 本機 SA 金鑰檔。glob 樣式與 .gitignore 的 jimmy_scripts/stock-sheet-*.json 一致,
+# 所以換金鑰不必改程式、也不會被誤提交(檔名含隨機碼,故不寫死)。
+SA_FILE_GLOB = os.path.join(HERE, "stock-sheet-*.json")
+SA_FILE_PREFERRED = os.path.expanduser("~/.config/wealth-os-sa.json")
+
+
+def find_sa_file():
+    """本機 Service Account 金鑰檔的路徑,找不到回 None。
+    優先 GOOGLE_SA_FILE,再 ~/.config(不在 repo 內,最安全),最後 jimmy_scripts/。"""
+    import glob as _glob
+    p = os.environ.get("GOOGLE_SA_FILE")
+    if p:
+        p = os.path.expanduser(p)
+        return p if os.path.exists(p) else None
+    if os.path.exists(SA_FILE_PREFERRED):
+        return SA_FILE_PREFERRED
+    # ⚠ 依修改時間取最新,不用字母序:換金鑰若忘了刪舊檔,字母序可能挑到已撤銷的那把。
+    hits = _glob.glob(SA_FILE_GLOB)
+    return max(hits, key=os.path.getmtime) if hits else None
+
+
+def get_sa_creds(allow_file=True):
+    """Service Account 憑證(永不過期);取不到回 None,讓呼叫端退回 OAuth token.json。
+
+    來源優先序:
+      1. 環境變數 GOOGLE_SA_JSON —— 金鑰 JSON 內容本身(GitHub Actions)
+      2. 本機金鑰檔 —— GOOGLE_SA_FILE / ~/.config/wealth-os-sa.json / jimmy_scripts/stock-sheet-*.json
+
+    ⚠ SA 是另一個身份,不是 Jimmy 本人:試算表、xlsm、報告檔、日曆都必須先分享給
+      它的 client_email,否則 403。目前已分享的範圍 = 雲端排程跑過的那些。
+      只在本機跑、從未用過 SA 的腳本(update_close_price.py、sheets_writer.py、
+      sheet_value_guard.py、trade_entry_server.py)有自己的 get_service(),不走這裡,仍是 OAuth。
+
+    ⚠ allow_file=False 的意思是「只問環境變數」,用來回答「這是不是無人環境」。
+      本機有金鑰檔之後,**不能再拿「拿得到 SA」當成「在雲端」**——
+      SA 沒有儲存空間、不能建新檔,drive_report_sync.py 的 create 就靠這個參數區分。
+    """
     sa_json = os.environ.get("GOOGLE_SA_JSON")
-    if not sa_json:
+    path = None if sa_json else (find_sa_file() if allow_file else None)
+    if not sa_json and not path:
         return None
     from google.oauth2 import service_account
-    return service_account.Credentials.from_service_account_info(
-        json.loads(sa_json),
-        scopes=["https://www.googleapis.com/auth/spreadsheets",
-                "https://www.googleapis.com/auth/drive"])
+    if sa_json:
+        return service_account.Credentials.from_service_account_info(
+            json.loads(sa_json), scopes=SA_SCOPES)
+    return service_account.Credentials.from_service_account_file(path, scopes=SA_SCOPES)
 
 
 def get_service():

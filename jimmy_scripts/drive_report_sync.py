@@ -28,8 +28,10 @@ SA_EMAIL = "wealth-os-sync@stock-sheet-498817.iam.gserviceaccount.com"
 DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
 
 
-def drive_service():
-    creds = get_sa_creds()
+def drive_service(force_oauth=False):
+    """預設 Service Account 優先(永不過期),取不到才用 OAuth token.json。
+    force_oauth=True 用於 create:SA 沒有儲存空間,建新檔必須是本人帳號。"""
+    creds = None if force_oauth else get_sa_creds()
     if not creds:
         from google.oauth2.credentials import Credentials
         from google.auth.transport.requests import Request
@@ -65,10 +67,12 @@ def main():
     u.add_argument("file_id")
     a = ap.parse_args()
 
-    drive = drive_service()
     if a.cmd == "create":
-        if get_sa_creds():
+        # ⚠ allow_file=False:本機現在也拿得到 SA 金鑰檔,所以「拿得到 SA」不再等於「在雲端」。
+        #   只有真正的無人環境(GOOGLE_SA_JSON)才禁止 create。
+        if get_sa_creds(allow_file=False):
             sys.exit("✗ create 需用本人帳號（SA 沒有儲存空間）；請在本機、未設定 GOOGLE_SA_JSON 時執行")
+        drive = drive_service(force_oauth=True)
         f = drive.files().create(body={"name": a.name or os.path.basename(a.path), "mimeType": mime(a.path)},
                                  media_body=media(a.path), fields="id,name,webViewLink").execute()
         if not a.no_share:
@@ -76,6 +80,7 @@ def main():
                                        body={"type": "user", "role": "writer", "emailAddress": SA_EMAIL}).execute()
         print(f"✓ 已建立「{f['name']}」{'（未分享）' if a.no_share else '並分享給 SA'}\n  檔案 ID：{f['id']}\n  {f['webViewLink']}")
     else:
+        drive = drive_service()
         f = drive.files().update(fileId=a.file_id, media_body=media(a.path),
                                  fields="name,modifiedTime").execute()
         print(f"✓ 已覆蓋雲端「{f['name']}」（{f['modifiedTime']}）")

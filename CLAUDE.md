@@ -152,7 +152,7 @@
 | `price_audit.py` | 「**驗價格**」以 TWSE／TPEx 官方當日**最高／最低價**檢驗「股票買賣紀錄」每一筆成交價是否可能成交：`--code`／`--since`／`--tol`（預設 0.3%，用來吸收盤中零股與整股的區間差）。**記帳流程的第 0 步**（寫完買賣紀錄、還沒併入快照之前）。⚠ 成交價打錯是**其他檢查全部抓不到**的一類錯誤——手續費公式會自洽、合法跳動價位也過、股數護欄更抓不到，但一筆就可能差上千元。首次執行即抓到 00878 列315（21.19→22.19）與 00919 列360（23.25 落在同日 00878 的區間）|
 | `rebuild_cost_basis.py` | 「**重算成本**」依「股票買賣紀錄」重建加權平均成本，校正 `Jimmy_YYMMDD` 快照的 B 欄買進價：`check`（只比對）／`apply --yes`（寫回）。**記帳流程的第三步**：寫買賣紀錄 → 併入快照股數 → 跑這支 → 「更新所有分頁」。口徑＝Σ 買進應收付(含手續費)，賣出以**加權平均**扣除，分割前股數依「股票分割」換算。⚠ 三道護欄缺一不可：**股數對不上就跳過**（買賣紀錄只涵蓋 2025-06 後，硬套會把成本改到大錯）、**`_刪` 字尾的作廢列排除**、**差異超過 5% 就跳過**（擋下員工認股這種成本口徑不同的標的）|
 | `backup_private.sh` | 「**備份私密設定**」把不進版控、又無法重新產生的檔案同步到 `yaojing277/dotfiles`（Private）的 `jimmy_scripts_private/`：`cathay_report_notes.json`（人工註記，**救不回**）、`loan_config.json`、`line_secrets.json`。預覽／`--push`，冪等（內容沒變不產生空提交）。⚠ **憑證刻意不備份**（`gh_pat`／`credentials.json`／`token.json` 都能重新產生，不該進 git） |
-| `auth_sheets.py` / `reauth_sheets.py` | Google Sheets OAuth 授權／重授權（token 約 7 天過期）；`reauth_sheets.py --drive` 可加授 Google Drive 權限 |
+| `auth_sheets.py` / `reauth_sheets.py` | Google Sheets OAuth 授權／重授權（token 約 7 天過期）；`reauth_sheets.py --drive` 可加授 Google Drive 權限。**2026-11-05 起本機主要走 Service Account、OAuth 只是備援**，一般記帳不會再撞到過期（見重要慣例） |
 
 常用指令：
 ```bash
@@ -204,7 +204,31 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 
 ### 重要慣例
 
-- 憑證/token（`credentials.json`、`token.json`、`token.pickle`、`client_secret_*.json`）為使用中金鑰，勿誤刪或提交版本控制。
+- 憑證/token（`credentials.json`、`token.json`、`token.pickle`、`client_secret_*.json`、`stock-sheet-*.json`）為使用中金鑰，勿誤刪或提交版本控制。
+- **本機認證以 Service Account 為主、OAuth 為備援（2026-11-05 起）**：`get_sa_creds()` 的來源改為
+  **環境變數 `GOOGLE_SA_JSON`（雲端）→ 本機金鑰檔**（`GOOGLE_SA_FILE` → `~/.config/wealth-os-sa.json`
+  → `jimmy_scripts/stock-sheet-*.json`，多把取**修改時間最新**那把）。
+  金鑰本機早就有（`jimmy_scripts/` 下符合該 glob 的那一份，與雲端 Secret `GOOGLE_SA_JSON` 同一組 SA），
+  只是先前只讀環境變數所以沒用到。檔名含隨機碼，**刻意不寫在本檔**（這是 Public repo，寫了等於指路）；
+  要確認是哪一份跑 `python3 -c "from update_stock_price import find_sa_file; print(find_sa_file())"`。
+  ⚠ **動機**：OAuth token 約 7 天過期，2026-11-05 凌晨記帳就是撞到 `invalid_grant` 全部寫不進去，
+  而重新授權**必須本人在瀏覽器登入**——Jimmy 不在電腦旁時整條流程會卡死。SA 永不過期。
+  ✅ 效果：記帳六步全部改走 SA（它們都匯流到 `update_stock_price.get_service()` 或
+  `update_wealth_os.get_creds()`，而這兩個都先問 `get_sa_creds()`）。實測把 `token.json` 搬走後
+  `update_wealth_os.py --dry-run --full` 仍完整跑完。
+  ⚠ **雲端行為一字未變**：有 `GOOGLE_SA_JSON` 時走 `from_service_account_info`，與改動前同一條路。
+  ⚠ **SA 是另一個身份，不是本人**：資源必須先分享給它的 client_email，否則 403。
+  已實測可寫的範圍＝雲端排程跑過的那些（股價試算、V4.4 xlsm、四份報告、`yaojing277@gmail.com` 日曆）。
+  **只在本機跑、從未用過 SA 的腳本刻意不改**（`update_close_price.py`、`sheets_writer.py`、
+  `sheet_value_guard.py`、`trade_entry_server.py`）——它們仍走 OAuth，所以「更新 K欄」這類
+  **還是會撞到 token 過期**，那是刻意把改動範圍限制在「SA 權限已驗證過」的那批。
+  ⚠ **坑：不可再拿「拿得到 SA」當成「在雲端」**。`drive_report_sync.py` 的 `create` 原本以
+  `if get_sa_creds(): sys.exit(...)` 擋雲端（SA 沒有儲存空間、不能建新檔），本機一旦也拿得到 SA，
+  **那道守衛會把只能在本機跑的 create 永久鎖死**。已改為 `get_sa_creds(allow_file=False)`
+  （只問環境變數）＋ `drive_service(force_oauth=True)`，所以 create 一定是本人帳號。
+  **日後再寫「是不是無人環境」的判斷，一律用 `allow_file=False`，不要用「有沒有 SA」。**
+  📌 `etf_ex_dividend_calendar.py sync` 順帶也能在本機全自動跑了（scope 是 `calendar.events`、
+  與 `SA_SCOPES` 不同，所以它自己建憑證、只借用 `find_sa_file()` 找檔案），不必再走 `check`/`mark` 手動路徑。
 - 純數字股票代號（0050／0056／00878…）寫入 Sheets 前要加 `'` 前綴，避免被當數字吃掉前導零。
 - **歷史資料表一律「日期由新到舊」（2026-10-01 起）**：`16_資產歷史`／`21_國泰資產歷史` 的列2＝最新一天，
   新資料由腳本插進列2、其餘整批往下推（`_renumber_row_xml`），跟 `02_每日漲跌`／`03_國泰漲跌` 同方向，

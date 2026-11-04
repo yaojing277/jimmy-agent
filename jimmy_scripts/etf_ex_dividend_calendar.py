@@ -214,15 +214,27 @@ def _events_for(dists):
 
 
 # ========================= sync：Service Account 全自動路徑 =========================
+CAL_SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
+
+
 def get_calendar_service():
-    sa_json = os.environ.get("GOOGLE_SA_JSON")
-    if not sa_json:
-        sys.exit("找不到環境變數 GOOGLE_SA_JSON，sync 只能在有 Service Account 金鑰的環境執行"
-                  "（例如 GitHub Actions）。本機請改用 check / mark。")
+    """Service Account 憑證:雲端讀環境變數 GOOGLE_SA_JSON,本機讀金鑰檔。
+    ⚠ scope 是 calendar.events,與 update_stock_price.get_sa_creds() 的
+      spreadsheets+drive 不同,所以這裡自己建憑證、只借用它找檔案的邏輯。
+    前提:該日曆已分享給 SA 的 client_email(權限「對活動進行變更」)、GCP 已啟用 Calendar API。"""
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
-    creds = service_account.Credentials.from_service_account_info(
-        json.loads(sa_json), scopes=["https://www.googleapis.com/auth/calendar.events"])
+    sa_json = os.environ.get("GOOGLE_SA_JSON")
+    if sa_json:
+        creds = service_account.Credentials.from_service_account_info(
+            json.loads(sa_json), scopes=CAL_SCOPES)
+    else:
+        from update_stock_price import find_sa_file
+        path = find_sa_file()
+        if not path:
+            sys.exit("找不到 Service Account 金鑰（環境變數 GOOGLE_SA_JSON 或本機金鑰檔都沒有），"
+                     "sync 無法執行。本機請改用 check / mark。")
+        creds = service_account.Credentials.from_service_account_file(path, scopes=CAL_SCOPES)
     return build("calendar", "v3", credentials=creds)
 
 
