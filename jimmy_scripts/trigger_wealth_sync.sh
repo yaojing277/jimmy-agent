@@ -68,7 +68,9 @@ done
 #   早於排定時間 → 安靜結束,交給 StartCalendarInterval 照原時間跑
 #   晚於排定時間 → 當成補跑繼續走下去
 # 後面三道既有防呆讓「補跑」天然安全:週末跳過、TWSE 當日無收盤資料跳過、
-# 今天已有成功執行就不重複觸發。所以同一天被叫起幾次都不會重複觸發。
+# 今天這個交易日已處理過就不重複觸發。所以同一天被叫起幾次都不會重複觸發。
+# ⚠ 第三道的判斷依據是 runlog.json 的 target_date(「處理了哪一天」),
+#   不是「今天有沒有建立執行」——理由見第 4 節的註解。
 SCHED_HHMM="${TRIGGER_SCHED_HHMM:-1430}"   # 要與 plist 的 StartCalendarInterval 一致
 NOW_HHMM=$(date '+%H%M')
 # 10# 前綴:避免 "0930" 這種前導零被當成八進位
@@ -253,26 +255,70 @@ if [ "$FORCE" -eq 0 ]; then
   log "✓ TWSE 已有今日收盤資料,判定為交易日"
 fi
 
-# ── 4. 今天是否已經有成功的執行?(避免重複觸發) ───────────────
+# ── 4. 今天這個交易日是否已經處理過?(避免重複觸發) ─────────────
+# ⚠ 2026-11-05 修正:原本的判斷是「今天有沒有建立成功的執行」,那個依據是錯的。
+#   一次在凌晨建立的執行,TWSE 當時還沒有今天的收盤資料,workflow 的守衛會算出
+#   「昨天」當目標日——它確實成功了,但處理的是昨天。於是 14:30 這道防呆照樣跳過,
+#   當天的資料整天空缺,而且**不留任何警示**。
+#   2026-11-05 實測:04:22 的手動執行(目標日 11/04)讓 14:30 靜默跳過,
+#   第二波加碼報告與 LINE 停在 11/04 的收盤,事後才由人工補跑。
+#   GitHub cron 遲到跨午夜也會造成同一種誤判(11/04 的 cron 遲到 10h →
+#   11/05 00:17 才建立、目標日仍是 11/04)。
+#
+#   所以判斷依據改成「那次執行實際處理了哪一天」。這件事只有 runlog.json 記得:
+#   publish_projects.py 於每次執行結束(含失敗,always())寫入 target_date,
+#   同交易日重跑覆蓋,所以「今天的 target_date 有 success」⇔「今天已經處理過」。
+#
+# 回傳:0=今天已處理(stdout 印出判斷依據) / 1=尚未處理,應觸發
 already_ran() {
-  "$PY" - "$REPO" "$WORKFLOW" "$PAT" <<'PY' 2>/dev/null
+  "$PY" - "$REPO" "$WORKFLOW" "$PAT" "$SCHED_HHMM" <<'PY' 2>/dev/null
 import sys, json, datetime, urllib.request
-repo, wf, pat = sys.argv[1], sys.argv[2], sys.argv[3]
+repo, wf, pat, sched = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+today = datetime.datetime.now().astimezone().date()
+
+# 主判斷:runlog.json 的 target_date ＝「那次執行處理了哪一天」
+try:
+    runlog = json.load(urllib.request.urlopen(
+        "https://yaojing277.github.io/projects/runlog.json", timeout=20))
+except Exception:
+    runlog = None
+
+if runlog is not None:
+    key = today.strftime("%Y/%m/%d")
+    for r in runlog:
+        if r.get("target_date") == key and r.get("status") == "success":
+            print("runlog", key, r.get("run_url", ""))
+            sys.exit(0)
+    sys.exit(1)        # runlog 讀得到、裡面沒有今天 → 確定還沒處理
+
+# 備援:runlog 讀不到時才退回 GitHub API。只採計「建立時間 ≥ 排定時間」的成功執行
+# ——早於排定時間建立的執行不可能涵蓋今天的收盤,那正是上面那個誤判的來源。
+# ⚠ 這是保守的啟發式:若 GitHub cron(14:17)罕見地準時跑完、而 runlog 又剛好讀不到,
+#   會多觸發一次(冪等,只多一則 LINE)。方向刻意偏「寧可多跑,不要靜默漏掉一天」。
 req = urllib.request.Request(
     f"https://api.github.com/repos/{repo}/actions/workflows/{wf}/runs?per_page=10",
     headers={"Authorization": f"Bearer {pat}", "Accept": "application/vnd.github+json"})
-runs = json.load(urllib.request.urlopen(req, timeout=20))["workflow_runs"]
-today = datetime.datetime.now().astimezone().date()
+try:
+    runs = json.load(urllib.request.urlopen(req, timeout=20))["workflow_runs"]
+except Exception:
+    sys.exit(1)        # runlog 與 API 都問不到 → 當成「還沒處理」,寧可多跑一次
 for r in runs:
     c = datetime.datetime.fromisoformat(r["created_at"].replace("Z", "+00:00")).astimezone()
-    if c.date() == today and r["conclusion"] == "success":
-        print(r["id"]); sys.exit(0)
+    if (c.date() == today and r["conclusion"] == "success"
+            and int(c.strftime("%H%M")) >= int(sched)):
+        print("api", r["id"], c.strftime("%H:%M"))
+        sys.exit(0)
 sys.exit(1)
 PY
 }
 
-if [ "$FORCE" -eq 0 ] && rid=$(already_ran); then
-  log "— 今天已有成功的執行(run $rid),不重複觸發"
+if [ "$FORCE" -eq 0 ] && basis=$(already_ran); then
+  set -- $basis
+  if [ "$1" = "runlog" ]; then
+    log "— 今天($2)已有成功的執行紀錄,不重複觸發  ${3:-}"
+  else
+    log "⚠ 讀不到 runlog,退回 API 判斷:run $2($3 建立,晚於排定時間)已成功,不重複觸發"
+  fi
   exit 0
 fi
 
