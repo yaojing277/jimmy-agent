@@ -882,10 +882,16 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   每日排程的 `publish_projects.py` 只同步檔案、不會代寫版本紀錄（2026-09-02～09-26 曾因此空窗三週）。
   純使用行為（跑一次摘要、查一次股價）不算異動。細節見 memory（[[feedback-devlog-version-entry]]）。
 - **開發紀錄（HTML，倒序排列，新紀錄加在最上面）**：`stock_automation_devlog.html`（股票自動化家族總表，
-  涵蓋 2026-04-12 起全系列六層架構、18 個項目，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`
-  （Wealth OS 專屬，2026-07-11 起 14 個項目）。格式沿用 `~/Downloads/docs/devlog.html` 模板
+  涵蓋 2026-04-12 起全系列六層架構、**26 則**，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`
+  （Wealth OS 專屬，2026-07-11 起 **42 則**）。格式沿用 `~/Downloads/docs/devlog.html` 模板
   （需求／實作／踩坑與解法／驗證結果 四段式）。兩份都已掛在 `projects.html` 的
   「Wealth OS 資產管理自動化」卡片上；日後有重要開發或踩坑，記得回頭補一筆。
+  ⚠ **[2026-11-08] devlog 曾落後約四週**（家族總表停在 10-08、Wealth OS 停在 10-12），
+  版本紀錄卻是齊的——因為**版本紀錄我每次都順手補，devlog 沒有同樣的習慣**。
+  📌 **這兩者的分工**：版本紀錄記「改了什麼、為什麼」，devlog 記四段式的完整脈絡。
+  有份量的改動要兩邊都補；只補版本紀錄，過幾週就會變成「知道做過、但不知道當時怎麼驗的」。
+  ⚠ 補舊帳時**只補自己確實經手、能如實寫出驗證過程的**——
+  拿 commit message 回填四段式等於編造，寧可留空窗並說明。
 
 ## 進行中專案與背景
 

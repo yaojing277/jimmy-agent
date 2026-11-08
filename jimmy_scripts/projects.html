@@ -552,7 +552,7 @@
         報酬日曆／壓力測試／安全指數等）→ LINE 通知。主帳戶與國泰帳戶各一套，
         每個交易日台北 14:30 由<b>本機 launchd 打 API 觸發</b>（GitHub cron 保留當備援，
         含交易日守衛擋假日）。<code>02_每日漲跌</code> 另有<b>月損益表</b>：月末市值／月損益／配息／
-        淨投入／月報酬率／<b>TWR</b>／<b>MWR</b>／0050 對照，配息依除息日認列，隨排程自動重建。
+        淨投入／月報酬率／<b>TWR</b>／<b>MWR</b>／<b>0050 含息</b>對照，配息依除息日認列，隨排程自動重建；表頭後綴即口徑，配息抓不到會退成「0050價格」並據此標示。國泰帳戶同樣有這張表。
       </div>
       <table class="sub-table">
         <thead>
@@ -575,7 +575,20 @@
         <li class="done">排程遲到＋手動補跑不再連坐失敗（<code>--skip-if-exists</code>）</li>
         <li class="done">禾伸堂成本差額結案（是誤判：扣款紀錄證實買賣紀錄本來就對，錯的是 06/12 快照均價）</li>
         <li class="done">全分頁健檢：修正盤中快照、週末假資料、日誌範本殘留與缺漏手續費</li>
-        <li>補 16_資產歷史 缺漏的 07/03、07/07、07/08（待提供當時交易紀錄）</li>
+        <li class="done">績效三件套：配息依除息日認列、TWR／MWR、月損益表（主帳戶與國泰帳戶各一張）</li>
+        <li class="done">基準改為含息總報酬，口徑寫進表頭（退回價格報酬時看得出來）</li>
+        <li class="done">成本基礎與券商對齊：改由交易紀錄重算（不再滾動均價）、持有成本取精確值</li>
+        <li class="done">成交價以官方當日最高／最低驗證（<code>price_audit.py</code>，記帳流程第 0 步）</li>
+        <li class="done">新增股票進表的完整程序（附加在表尾，牽動 11 張引用分頁）</li>
+        <li class="done">單一持股上限豁免清單：表內公式與 Python 判定由同一份清單產生</li>
+        <li class="done">質押借款納入投資負債比率，資產歷史的總負債一併回補</li>
+        <li class="done">本機認證改以 Service Account 為主（OAuth 過期不再卡住記帳流程）</li>
+        <li class="done">04_ETF分析 新增逐檔持股明細（股數／市價／市值，依類別分組加小計）</li>
+        <li class="done">雲端硬碟呼叫加上重試：一次暫時性錯誤不再讓整天排程報銷</li>
+        <li class="done">排程觸發防呆改依「那次執行處理了哪一天」判斷，不再憑「今天有沒有建立執行」</li>
+        <li>複委託帳戶併入資產歷史與曝險計算（目前獨立追蹤，總資產與曝險比例不含它）</li>
+        <li>00919 與 00878 早期紀錄的幾筆待確認（需券商成交明細）</li>
+        <li class="done">補 16_資產歷史 缺漏的 07/03、07/07、07/08（以前後快照＋交割資料重建，兩組交叉驗證全符）</li>
       </ul>
       <div class="link-row">
         <a class="link-btn" href="stock_automation_devlog.html" target="_blank">📚 家族總表（2026-04 起）</a>
@@ -834,7 +847,7 @@
           <tr><td>監控頻道</td><td>阿良的正二人生 / 槓桿人生 / 卡哇KAWA</td></tr>
           <tr><td>AI 引擎</td><td>claude CLI（訂閱制，免 API key）＋ faster-whisper 轉錄</td></tr>
           <tr><td>摘要庫</td><td class="mono">yt_summaries/index.html</td></tr>
-          <tr><td>目前收錄</td><td><b>80 部</b>（含槓桿人生全頻道 70 部）</td></tr>
+          <tr><td>目前收錄</td><td><b>85 部</b>（含槓桿人生全頻道 70 部）</td></tr>
         </tbody>
       </table>
       <ul class="todo-list">
@@ -935,6 +948,14 @@
     </div>
 
     <div class="tool-item">
+      <div class="tool-icon">🔎</div>
+      <div class="tool-info">
+        <div class="tool-name">驗價格</div>
+        <div class="tool-desc"><code>price_audit.py</code> · 以 TWSE／TPEx 官方當日最高最低，檢驗買賣紀錄每一筆成交價是否可能成交（記帳流程第 0 步）</div>
+      </div>
+    </div>
+
+    <div class="tool-item">
       <div class="tool-icon">🔐</div>
       <div class="tool-info">
         <div class="tool-name">備份私密設定</div>
@@ -988,6 +1009,16 @@
         <tr><th>日期</th><th>異動說明</th></tr>
       </thead>
       <tbody>
+        <tr>
+          <td style="white-space:nowrap; color:var(--text3);">2026-11-08</td>
+          <td>🗂️ <b>總覽盤點：版本紀錄是齊的，開發紀錄落後四週</b>。<br>
+          依「更新專案總覽」做完整一輪盤點，結果有點諷刺：<b>版本紀錄一筆不缺</b>（因為有「做完就順手補」的習慣），
+          但<b>兩份開發紀錄分別停在四週前與五週前</b>——那個習慣只建立在其中一邊。<br>
+          ✅ <b>已補</b>：Wealth OS 開發紀錄三則（配息口徑統一與基準改含息、ETF 分析頁加逐檔明細、國泰持股更新的三階段對帳），家族總表兩則（雲端硬碟重試、以及連續三次「看起來成功」的判斷依據錯誤）。都照四段式寫，重點放在<b>怎麼驗的</b>而不只是改了什麼。<br>
+          ⚠ <b>刻意留下的空窗</b>：10 月中到 11 月初還有數十筆改動沒進開發紀錄。那些我沒有第一手的驗證過程，<b>拿提交訊息回填四段式等於編造</b>——寧可留空窗並寫明，也不要產出看起來完整、實際上是事後想像的紀錄。<br>
+          ✅ <b>卡片也順手校正</b>：摘要庫部數過時、一項四週前就完成的待辦還開著沒打勾、一支記帳流程第一步會用到的驗證腳本<b>從未被列進總覽</b>；主卡片補上這段期間完成的十二項，並加回兩項仍開著的待辦。<br>
+          📌 <b>兩者的分工</b>：版本紀錄記「改了什麼、為什麼」，開發紀錄記完整脈絡與驗證。只補前者，過幾週就會變成「知道做過，但不知道當時怎麼驗的」。</td>
+        </tr>
         <tr>
           <td style="white-space:nowrap; color:var(--text3);">2026-11-08</td>
           <td>📎 <b>四檔明細到齊：推算值其實很準，但那不是重點</b>。<br>
