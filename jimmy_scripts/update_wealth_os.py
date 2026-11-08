@@ -271,14 +271,26 @@ def read_source(creds):
 
 
 # ========================= 目標:xlsm =========================
+# Drive 的暫時性錯誤要重試,否則一次抖動就讓整天的排程報銷。
+# 2026-11-05 實測:下載收到 HttpError 503,download_xlsm 直接拋出 →「同步股價」整步失敗 →
+# 連帶 國泰漲跌／除息日曆／跌幅查詢頁／正二分析／資金來源／國泰報酬 **6 步被連坐跳過**。
+# ⚠ 用 googleapiclient 內建的 num_retries,不自己寫退避迴圈:它已經處理
+#   5xx、429、403-rateLimit(但**不**重試 403 權限不足)與連線層中斷,並做隨機化指數退避。
+#   自己寫很容易把「重試再多次也一樣」的錯誤(權限、檔案不存在)也拖著空轉。
+# ⚠ 重試訊息由 googleapiclient 以 logging WARNING 印出,會進 workflow log,方便事後查。
+DRIVE_RETRIES = 5
+
+
 def download_xlsm(creds, workdir):
     drive = build("drive", "v3", credentials=creds)
-    meta = drive.files().get(fileId=XLSM_FILE_ID, fields="name,mimeType,modifiedTime").execute()
+    meta = drive.files().get(fileId=XLSM_FILE_ID,
+                             fields="name,mimeType,modifiedTime"
+                             ).execute(num_retries=DRIVE_RETRIES)
     buf = io.BytesIO()
     dl = MediaIoBaseDownload(buf, drive.files().get_media(fileId=XLSM_FILE_ID))
     done = False
     while not done:
-        _, done = dl.next_chunk()
+        _, done = dl.next_chunk(num_retries=DRIVE_RETRIES)
     path = os.path.join(workdir, meta["name"])
     with open(path, "wb") as f:
         f.write(buf.getvalue())
@@ -291,8 +303,10 @@ def download_xlsm(creds, workdir):
 
 def upload_xlsm(drive, path):
     media = MediaFileUpload(path, mimetype=XLSM_MIME, resumable=True)
+    # resumable=True 時 execute() 內部會分塊上傳,num_retries 一併套用到每一塊。
     return drive.files().update(fileId=XLSM_FILE_ID, media_body=media,
-                                fields="id,name,size,version,modifiedTime").execute()
+                                fields="id,name,size,version,modifiedTime"
+                                ).execute(num_retries=DRIVE_RETRIES)
 
 
 # ========================= zip 手術式寫入 =========================

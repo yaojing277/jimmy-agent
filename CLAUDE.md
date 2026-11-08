@@ -123,13 +123,26 @@
       舊訊息一律寫「可能是 Mac 關機且 GitHub cron 也被丟掉」，
       **而 2026-11-05 的真相是「排程跑了、但 Drive 回 503 讓同步股價失敗」**——
       訊息把我引向完全錯誤的方向（見下一條）。
-    - **⚠ Drive 下載沒有重試，一次 503 就整天報銷（2026-11-05 發生，尚未修）**：
+    - **Drive 呼叫一律帶 `num_retries`（2026-11-08 修好；起因見下）**：
+      `update_wealth_os` 的 `DRIVE_RETRIES = 5` 套用在 `files().get`／`next_chunk`／
+      `files().update`；`drive_report_sync` 同樣加在 `create`／`update`／`permissions().create`。
+      ✅ **用 googleapiclient 內建的 `num_retries`，不要自己寫退避迴圈**——它已經處理
+      5xx、429、403-rateLimit **與連線層中斷**，並做隨機化指數退避；
+      自己寫很容易把「重試再多次也一樣」的錯誤（403 權限不足、404）也拖著空轉。
+      ⚠ **403 分兩種**：`rateLimitExceeded` 會重試、`insufficientFilePermissions` 不會
+      ——後者正是「SA 沒被分享」的典型錯誤，立刻失敗才對。
+      📌 以 `HttpMockSequence` 實測六種情形：503×2 後成功／429×1 後成功／
+      403 權限不足立刻失敗／404 立刻失敗／503 超過次數仍拋出／
+      **對照組 `num_retries=0` 一次 503 就失敗（＝修改前的行為）**。
+      ⚠ 最壞等待約 62 秒/呼叫、三處合計約 3 分鐘，job 逾時 15 分鐘仍有餘裕。
+      重試訊息由 googleapiclient 以 logging WARNING 印出，會進 workflow log。
+    - **⚠ 一次 503 就整天報銷的原始事故（2026-11-05）**：
       `update_wealth_os.download_xlsm()` 的 `dl.next_chunk()` 收到
       `HttpError 503 ... /drive/v3/files/...?alt=media` 直接拋出，**「同步股價 Wealth OS」整步失敗**，
       連帶 `國泰漲跌`／`除息日曆`／`跌幅查詢頁`／`正二分析`／`資金來源`／`國泰報酬` **6 步被連坐跳過**。
       503 是 Google 端的暫時性錯誤，重試一次多半就過——**目前完全沒有重試**。
       那天因為稍早已手動跑過一次成功的，資料沒有損失，但 runlog 的 11/05 被這次失敗覆蓋成 `failure`。
-      ⏳ **待辦：給 Drive 的下載與上傳加上指數退避重試（5xx 與 429）。**
+      ✅ **已於 2026-11-08 修好**（見上一條）。
       ⚠ **「同交易日重跑覆蓋」會讓後到的失敗蓋掉先前的成功**，所以 runlog 的某日狀態
       ＝**最後一次執行**的狀態，不是「那天有沒有成功過」。查某日是否真的沒做成，要看 run 連結。
     - **⚠ 判斷「警示是不是誤報」，一定要看 `status` 欄，不要憑時間差推論（2026-11-08 踩到）**：

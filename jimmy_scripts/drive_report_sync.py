@@ -25,6 +25,10 @@ from update_stock_price import get_sa_creds
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOKEN_FILE = os.path.join(HERE, "token.json")
 SA_EMAIL = "wealth-os-sync@stock-sheet-498817.iam.gserviceaccount.com"
+# Drive 暫時性錯誤(5xx/429/連線中斷)的重試次數,與 update_wealth_os.DRIVE_RETRIES 同義。
+# 排程每個交易日要覆蓋四份報告,一次 503 就少一份;這一步雖是 continue-on-error,
+# 但「安靜地少一份報告」比整步失敗更難發現。
+DRIVE_RETRIES = 5
 DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
 
 
@@ -74,15 +78,19 @@ def main():
             sys.exit("✗ create 需用本人帳號（SA 沒有儲存空間）；請在本機、未設定 GOOGLE_SA_JSON 時執行")
         drive = drive_service(force_oauth=True)
         f = drive.files().create(body={"name": a.name or os.path.basename(a.path), "mimeType": mime(a.path)},
-                                 media_body=media(a.path), fields="id,name,webViewLink").execute()
+                                 media_body=media(a.path), fields="id,name,webViewLink"
+                                 ).execute(num_retries=DRIVE_RETRIES)
         if not a.no_share:
             drive.permissions().create(fileId=f["id"], sendNotificationEmail=False,
-                                       body={"type": "user", "role": "writer", "emailAddress": SA_EMAIL}).execute()
+                                       body={"type": "user", "role": "writer",
+                                             "emailAddress": SA_EMAIL}
+                                       ).execute(num_retries=DRIVE_RETRIES)
         print(f"✓ 已建立「{f['name']}」{'（未分享）' if a.no_share else '並分享給 SA'}\n  檔案 ID：{f['id']}\n  {f['webViewLink']}")
     else:
         drive = drive_service()
         f = drive.files().update(fileId=a.file_id, media_body=media(a.path),
-                                 fields="name,modifiedTime").execute()
+                                 fields="name,modifiedTime"
+                                 ).execute(num_retries=DRIVE_RETRIES)
         print(f"✓ 已覆蓋雲端「{f['name']}」（{f['modifiedTime']}）")
 
 
