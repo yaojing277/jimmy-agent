@@ -610,8 +610,10 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
 > ⚠⚠ **本檔（`CLAUDE.md`）與整個 `jimmy_scripts/` 也在 Public repo `yaojing277/jimmy-agent` 裡**
 > （2026-11-08 實測未認證即可讀取）。
 > 先前清查金額時**只盤點了發佈頁，沒把寫著這條規則的檔案本身算進去**——它一度含有
-> 月薪、生活費、房貸與信貸月付、年度總損益、信貸撥款與投入金額、質押金額、淨資產與總負債。
-> **2026-11-08 已全部移除。** 以後「不寫絕對金額」一律包含本檔。
+> 個人現金流與投資組合的絕對金額。**2026-11-08 已全部移除。**
+> 以後「不寫絕對金額」一律包含本檔。
+> ⚠ **連「哪些項目外洩過」都不要逐項列舉**：那等於替讀者指路，
+> 與「不要寫出怎麼用這些數字」是同一條（初稿就這樣寫了，當天改掉）。
 > 📌 **界線＝「當下狀態」要清，「歷史 bug 的差額」可留**：
 > 像「全表合計少 1,157 元」「少算手續費 36,052」「重建差 App 2,704」這類是**特定 bug 的指紋**，
 > 用來認症狀，不揭露部位規模；而「目前相差 N」「年度配息合計 N」是當下狀態，要改成相對描述。
@@ -646,8 +648,8 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   排程的 `publish_projects.py` 只同步檔案、**不會代寫**（2026-09-02～09-26 曾因此空窗三週）。
   純使用行為（跑一次摘要、查一次股價）不算異動。細節見 memory（[[feedback-devlog-version-entry]]）。
 - **兩份 devlog（HTML，倒序，新紀錄加在最上面）**：`stock_automation_devlog.html`（股票自動化家族總表，
-  2026-04-12 起 **32 則**，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`（Wealth OS 專屬，
-  2026-07-11 起 **51 則**）。格式沿用 `~/Downloads/docs/devlog.html` 模板。
+  2026-04-12 起 **33 則**，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`（Wealth OS 專屬，
+  2026-07-11 起 **52 則**）。格式沿用 `~/Downloads/docs/devlog.html` 模板。
 - ⚠ **devlog 比版本紀錄容易落後**（曾落後四週，而版本紀錄是齊的，因為那個有順手補的習慣）。
   📌 **補舊帳可行的前提是當時留了紀錄**：2026-11-08 補完的 15 則是依 **commit 內文＋版本紀錄＋本檔**
   三份當時寫下的材料改寫的，不是憑印象。**若日後 commit 只剩一行標題，這條路就斷了。**
