@@ -2561,6 +2561,173 @@ def _build_lev2_sheetdata(data, st_title="58", st_hdr="5"):
     return LEV2_COLS + "<sheetData>" + "".join(rows) + "</sheetData>", 17 + len(d)
 
 
+# ==================== 04_ETF分析｜持股明細(列33 起) ====================
+# ⚠ 列3~14 是 Jimmy 手動維護的分類彙總,**公式一個字都不改**,明細另起一塊放在下面。
+#   列4~9 是「類別」層級(高股息ETF 一列涵蓋 0056/00878/00919/00934),
+#   股數與市價在那個層級沒有定義,所以不能在那張表的市值前面插欄——改成這張逐檔明細。
+# ⚠ 起始列:該分頁的圖表是 oneCellAnchor 釘在 F14、約佔到列30(ext cy 3.5 in),
+#   放列33 才不會被圖蓋住;oneCellAnchor 不隨列增減移動,所以往下加列是安全的。
+# ⚠ 每次 --full 先把列33 以後整塊刪掉再重建 → 冪等,且持股增減會自動跟上。
+ETF_DETAIL_START = 33
+ETF_DETAIL_ORDER = ("高股息ETF", "市值ETF", "正二ETF", "其他ETF", "個股")
+# 每次重建要清空的列範圍:start ~ start+span-1(持股變少時清掉上一輪的殘列)
+ETF_DETAIL_SPAN = 80
+# 樣式索引是 workbook 級共用的(cellXfs),沿用全檔既有的:
+#   21 表頭 / 16 一般標籤 / 5 #,##0 / 28 #,##0.00 / 19 0.00% / 24 說明
+_ED = dict(hdr="21", lbl="16", num="5", px="28", pct="19", note="24")
+
+
+def _etf_cell(ref, s, f=None, v=None, text=None):
+    """明細用的單格。字串一律走 inlineStr,不動 sharedStrings(免得索引牽動其他分頁)。"""
+    if text is not None:
+        return (f'<c r="{ref}" s="{s}" t="inlineStr"><is>'
+                f'<t xml:space="preserve">{_lev2_esc(text)}</t></is></c>')
+    if f is None and v is None:
+        return f'<c r="{ref}" s="{s}"/>'
+    body = ("<f>" + _lev2_esc(f) + "</f>" if f is not None else "")
+    body += (f"<v>{v:.12g}</v>" if v is not None else "")
+    return f'<c r="{ref}" s="{s}">{body}</c>'
+
+
+def _build_etf_detail_cells(S, F27, start=ETF_DETAIL_START):
+    """回 ({列號: <c>…}, 最後列號, 檔數)。
+
+    股數/市價/市值一律**引用 03_持股總表**(公式),所以 Excel 重算後值不會變;
+    <v> 快取一併寫入,排程跑完不開檔讀到的也是當天的值。
+    ⚠ 小計與合計列**刻意不填股數與市價**——跨代號相加沒有意義
+      (高股息那組橫跨四檔、價格 27~50 元不等,股數相加更是把不同東西加在一起)。
+    """
+    T = "\'03_持股總表\'"
+    cells, n, subs = {}, start, []
+    cells[n] = _etf_cell(f"A{n}", _ED["note"], text=(
+        "── 持股明細(引用 03_持股總表,每次「更新所有分頁」重建)──"
+        "　⚠ 小計/合計不填股數與市價:跨代號相加沒有意義"))
+    n += 1
+    cells[n] = "".join(_etf_cell(f"{c}{n}", _ED["hdr"], text=h) for c, h in
+                       zip("ABCDEF", ("代號", "類別", "股數", "市價", "市值", "占比")))
+    n += 1
+    seen = set()
+    for g in ETF_DETAIL_ORDER:
+        grp = [d for d in S if d["cat"] == g]
+        if not grp:
+            continue
+        seen.update(id(d) for d in grp)
+        first = n
+        for d in grp:
+            r = d["row"]
+            cells[n] = (
+                _etf_cell(f"A{n}", _ED["lbl"], text=d["name"])
+                + _etf_cell(f"B{n}", _ED["lbl"], text=d["cat"])
+                + _etf_cell(f"C{n}", _ED["num"], f=f"{T}!D{r}", v=d["sh"])
+                + _etf_cell(f"D{n}", _ED["px"],  f=f"{T}!L{r}", v=d["px"])
+                + _etf_cell(f"E{n}", _ED["num"], f=f"{T}!F{r}", v=d["F"])
+                + _etf_cell(f"F{n}", _ED["pct"], f=f"E{n}/{T}!$F$25",
+                            v=(d["F"] / F27 if F27 else 0)))
+            n += 1
+        last = n - 1
+        tot = sum(d["F"] for d in grp)
+        cells[n] = (
+            _etf_cell(f"A{n}", _ED["note"], text=f"小計　{g}（{len(grp)} 檔）")
+            + _etf_cell(f"B{n}", _ED["note"])
+            + _etf_cell(f"C{n}", _ED["note"]) + _etf_cell(f"D{n}", _ED["note"])
+            + _etf_cell(f"E{n}", _ED["num"], f=f"SUM(E{first}:E{last})", v=tot)
+            + _etf_cell(f"F{n}", _ED["pct"], f=f"SUM(F{first}:F{last})",
+                        v=(tot / F27 if F27 else 0)))
+        subs.append(n); n += 1
+
+    # ⚠ 類別若有漏接(03 出現 ETF_DETAIL_ORDER 以外的新類別),寧可明白列出來也不要靜靜吃掉
+    rest = [d for d in S if id(d) not in seen]
+    if rest:
+        first = n
+        for d in rest:
+            r = d["row"]
+            cells[n] = (
+                _etf_cell(f"A{n}", _ED["lbl"], text=d["name"])
+                + _etf_cell(f"B{n}", _ED["lbl"], text=d["cat"])
+                + _etf_cell(f"C{n}", _ED["num"], f=f"{T}!D{r}", v=d["sh"])
+                + _etf_cell(f"D{n}", _ED["px"],  f=f"{T}!L{r}", v=d["px"])
+                + _etf_cell(f"E{n}", _ED["num"], f=f"{T}!F{r}", v=d["F"])
+                + _etf_cell(f"F{n}", _ED["pct"], f=f"E{n}/{T}!$F$25",
+                            v=(d["F"] / F27 if F27 else 0)))
+            n += 1
+        tot = sum(d["F"] for d in rest)
+        cells[n] = (
+            _etf_cell(f"A{n}", _ED["note"], text=f"小計　未分類（{len(rest)} 檔）")
+            + _etf_cell(f"E{n}", _ED["num"], f=f"SUM(E{first}:E{n-1})", v=tot)
+            + _etf_cell(f"F{n}", _ED["pct"], f=f"SUM(F{first}:F{n-1})",
+                        v=(tot / F27 if F27 else 0)))
+        subs.append(n); n += 1
+
+    cells[n] = (
+        _etf_cell(f"A{n}", _ED["hdr"], text=f"合計（{len(S)} 檔）")
+        + _etf_cell(f"B{n}", _ED["hdr"])
+        + _etf_cell(f"C{n}", _ED["hdr"]) + _etf_cell(f"D{n}", _ED["hdr"])
+        + _etf_cell(f"E{n}", _ED["num"], f="+".join(f"E{x}" for x in subs), v=F27)
+        + _etf_cell(f"F{n}", _ED["pct"], f="+".join(f"F{x}" for x in subs), v=1.0))
+    return cells, n, len(S)
+
+
+def _write_etf_detail(xml, S, F27, start=ETF_DETAIL_START, span=ETF_DETAIL_SPAN):
+    """把持股明細寫進 04 的 sheetData。回 (xml, 最後列號, 檔數)。
+
+    ⚠ **只換儲存格內容,絕不刪列**。這張分頁在列14 之後還有 980 個自閉合空列
+      `<row r="N" ht="15.75" customHeight="1"/>`——那是列高設定。
+      第一版用「刪掉列號 >= start 的列再重建」,結果把列33~1003 的列高一起清掉,
+      sheet7.xml 從 47KB 掉到 18KB(加了 30 列檔案反而變小,就是這麼來的)。
+      現在逐列保留原本的屬性,只替換 <row> 的內容。
+    ⚠ 清理範圍是 start..start+span-1:持股變少時,上一輪多出來的列要被清空,
+      否則會留下過期的殘列。範圍外一律原樣不動。
+    """
+    m = re.search(r"<sheetData>(.*?)</sheetData>", xml, re.S)
+    if not m:
+        print("  ⚠ 04_ETF分析 找不到 sheetData,跳過持股明細")
+        return xml, 0, 0
+    cells, last, cnt = _build_etf_detail_cells(S, F27, start)
+    end = start + span - 1
+    if last > end:
+        print(f"  ⚠ 04_ETF分析 持股明細需要到列{last},超出清理範圍 {start}~{end},跳過"
+              f"(請調大 ETF_DETAIL_SPAN)")
+        return xml, 0, 0
+
+    src = m.group(1)
+    spans = []                       # (列號, 屬性字串, 起, 迄)
+    for mo in re.finditer(r'<row r="(\d+)"([^>]*?)(/>|>)', src):
+        if mo.group(3) == "/>":
+            spans.append((int(mo.group(1)), mo.group(2), mo.start(), mo.end()))
+        else:
+            e = src.index("</row>", mo.end()) + len("</row>")
+            spans.append((int(mo.group(1)), mo.group(2), mo.start(), e))
+
+    out, cur = [], 0
+    for n, attrs, s_, e_ in spans:
+        out.append(src[cur:s_])
+        if start <= n <= end:        # 本區塊負責的列:換內容、保留屬性
+            body = cells.get(n, "")
+            out.append(f'<row r="{n}"{attrs}>{body}</row>' if body
+                       else f'<row r="{n}"{attrs}/>')
+        else:
+            out.append(src[s_:e_])
+        cur = e_
+    out.append(src[cur:])
+    sd = "".join(out)
+
+    present = {int(x) for x in re.findall(r'<row r="(\d+)"', sd)}
+    for n in sorted(cells):          # 原本不存在的列才新建(維持列號遞增)
+        if n in present:
+            continue
+        nxt = next((x for x in re.finditer(r'<row r="(\d+)"', sd)
+                    if int(x.group(1)) > n), None)
+        pos = nxt.start() if nxt else len(sd)
+        sd = sd[:pos] + f'<row r="{n}">{cells[n]}</row>' + sd[pos:]
+        present.add(n)
+
+    nums = [int(x) for x in re.findall(r'<row r="(\d+)"', sd)]
+    assert nums == sorted(set(nums)), "04 持股明細:列號重複或亂序,中止"
+    refs = re.findall(r'<c r="([A-Z]+\d+)"', sd)
+    assert len(refs) == len(set(refs)), "04 持股明細:儲存格編號重複,中止"
+    return xml[:m.start(1)] + sd + xml[m.end(1):], last, cnt
+
+
 def _refresh_lev2(zin, styles=("58", "5")):
     """回 (part, xml) 供 --full 併入 repl;抓不到資料或分頁不存在時回 (None, None)。
 
@@ -3035,6 +3202,9 @@ def full_refresh(path_in, path_out, date_str):
     _ratio = lambda xs: ":".join(f"{_xlround(x * 100):.0f}" for x in xs)
     C(p, "C14", _ratio(exp_r), True); C(p, "D14", _ratio(cost_r), True)
     print(f"  ✓ 04_ETF分析 列11~14 快取:曝險 {_ratio(exp_r)}｜成本 {_ratio(cost_r)}")
+    X[p], _ed_last, _ed_n = _write_etf_detail(X[p], S, F27)
+    if _ed_n:
+        print(f"  ✓ 04_ETF分析 持股明細:{_ed_n} 檔,列{ETF_DETAIL_START}~{_ed_last}")
 
     # 04_個股分析(列4起 ↔ 02 個股與其後各列;F 欄為 shared 公式,逐列刷快取)
     p = tabs["05_個股分析"]
