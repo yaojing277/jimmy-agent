@@ -81,6 +81,27 @@ def list_channel(url):
     return name, vids
 
 
+def list_file(path):
+    """讀本機清單檔（每行「網址或 video id<TAB>標題」，標題可省略；# 開頭為註解）。
+    用於批次摘要一份自訂的影片清單（例如從 Safari 分頁整理出來的），不必是同一個頻道。"""
+    vids, seen = [], set()
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            ref, _, title = line.partition("\t")
+            try:
+                vid = ys.parse_video_id(ref.strip())
+            except ValueError:
+                print(f"   ⚠ 略過無法解析的行：{ref[:60]}")
+                continue
+            if vid not in seen:
+                seen.add(vid)
+                vids.append((vid, title.strip() or vid))
+    return os.path.basename(path), vids
+
+
 def already_done():
     if not ys.INDEX_JSON.exists():
         return set()
@@ -177,7 +198,8 @@ def run_deploy():
 
 def main():
     ap = argparse.ArgumentParser(description="整個頻道批次摘要")
-    ap.add_argument("channel", help="頻道網址，例 https://www.youtube.com/@xxx/videos")
+    ap.add_argument("channel", help="頻道網址（例 https://www.youtube.com/@xxx/videos），"
+                                    "或本機清單檔路徑（每行一個網址，見 list_file）")
     ap.add_argument("--limit", type=int, help="只處理前 N 部（試跑用）")
     ap.add_argument("--oldest-first", action="store_true", help="由舊到新處理")
     ap.add_argument("--model", default="sonnet", help="claude CLI 模型別名")
@@ -203,8 +225,12 @@ def main():
                     help="連同前次記錄為失敗的影片一起重試")
     args = ap.parse_args()
 
-    print(f"📡 取得頻道影片清單…（{args.channel}）")
-    name, vids = list_channel(args.channel)
+    if os.path.isfile(args.channel):
+        print(f"📄 讀取影片清單檔…（{args.channel}）")
+        name, vids = list_file(args.channel)
+    else:
+        print(f"📡 取得頻道影片清單…（{args.channel}）")
+        name, vids = list_channel(args.channel)
     if args.oldest_first:
         vids = list(reversed(vids))
 

@@ -57,3 +57,7 @@ jimmy_scripts/yt_downloads/
 
 # 個人文件（租賃契約等），本機保留、不進公開版控
 jimmy_scripts/房屋租賃契約.pdf
+# Safari 分頁整理匯出（含個人瀏覽紀錄，不進公開 repo）
+jimmy_scripts/safari_tabs_*.html
+# 自訂批次摘要清單（來自個人瀏覽紀錄，不進公開 repo）
+jimmy_scripts/.yt_watchlist_*.txt

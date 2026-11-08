@@ -39,6 +39,10 @@ WORKFLOW="wealth_sync.yml"
 MODE="更新股價＋同步＋全分頁"      # 必須與 workflow 的 choice 選項逐字相同(全形＋)
 PROBE_CODE="0050"                   # 用它判斷當天 TWSE 有無收盤資料
 PY=/usr/bin/python3                 # 只用標準庫,系統 python3 即可(不依賴 pip)
+# 排程執行紀錄(線上)。⚠ 取用一律加 ?t=<epoch> 打掉快取:GitHub Pages 對它送
+#   cache-control: max-age=600,剛寫完 10 分鐘內可能讀到舊版(schedule_runlog.html
+#   早就這樣做了,本腳本原本沒有——同一個檔案兩種取法遲早會對不起來)。
+RUNLOG_URL="https://yaojing277.github.io/projects/runlog.json"
 LOG_DIR="$HOME/Library/Logs"
 LOG="$LOG_DIR/wealth_sync_trigger.log"
 
@@ -114,10 +118,17 @@ fi
 #   的快照滾動假設「日期往前推進」,倒著建快照會讓分頁順序與 H~K 欄位錯亂,
 #   必須另外處理。所以這裡只負責讓漏掉的日子不會被默默忽略。
 check_recent_gaps() {
-  "$PY" - "$PROBE_CODE" <<'PY' 2>/dev/null
-import sys, json, datetime, urllib.request
-code = sys.argv[1]
+  "$PY" - "$PROBE_CODE" "$RUNLOG_URL" <<'PY' 2>/dev/null
+import sys, json, time, datetime, urllib.request
+code, runlog_url = sys.argv[1], sys.argv[2]
 UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0"}
+
+def fetch_runlog(base):
+    """讀線上排程紀錄。加 ?t= 打掉 CDN 快取,並要求不使用快取回應。"""
+    url = base + ("&" if "?" in base else "?") + "t=" + str(int(time.time()))
+    req = urllib.request.Request(url, headers={"Cache-Control": "no-cache",
+                                               "Pragma": "no-cache"})
+    return json.load(urllib.request.urlopen(req, timeout=20))
 
 def roc(s):
     s = str(s).strip().replace("年", "/").replace("月", "/").replace("日", "")
@@ -165,15 +176,22 @@ if not past:
     sys.exit(1)
 
 try:
-    log = json.load(urllib.request.urlopen(
-        "https://yaojing277.github.io/projects/runlog.json", timeout=20))
+    log = fetch_runlog(runlog_url)
 except Exception:
     print("RUNLOG_UNAVAILABLE")
     sys.exit(0)
-done = {r.get("target_date") for r in log if r.get("status") == "success"}
-missing = [d for d in past if d.strftime("%Y/%m/%d") not in done]
-if missing:
-    print(" ".join(d.strftime("%Y-%m-%d") for d in missing))
+# ⚠ 要分辨「完全沒跑」與「跑了但失敗」——兩者的處置完全不同,而且混為一談會誤導:
+#   2026-11-05 就是「排程跑了、Drive 回 503 導致同步股價失敗」,舊訊息卻說
+#   「可能是 Mac 關機」,害我 11/08 一度判成快取造成的誤報。
+by_date = {r.get("target_date"): r for r in log if r.get("target_date")}
+for d in past:
+    r = by_date.get(d.strftime("%Y/%m/%d"))
+    if r is None:
+        print("GAP", d.strftime("%Y-%m-%d"))
+    elif r.get("status") != "success":
+        bad = [x for x in (r.get("steps") or []) if "：success" not in x and "：skipped" not in x]
+        print("FAIL", d.strftime("%Y-%m-%d"),
+              (r.get("run_url") or "(無連結)"), "|", ",".join(bad) or "(步驟不明)")
 sys.exit(0)
 PY
 }
@@ -182,9 +200,16 @@ gaps=$(check_recent_gaps)
 if [ "$gaps" = "RUNLOG_UNAVAILABLE" ]; then
   log "⚠ 讀不到線上 runlog,略過漏跑偵測"
 elif [ -n "$gaps" ]; then
-  log "⚠⚠ 最近 5 個交易日中,這些日子沒有成功的執行紀錄:$gaps"
-  log "   (可能是 Mac 關機且 GitHub cron 也被丟掉。無法自動補——dispatch 只能處理今天;"
-  log "    請找 Jimmy 確認要不要人工補,或看 https://yaojing277.github.io/projects/schedule_runlog.html)"
+  log "⚠⚠ 最近 5 個交易日中,這些日子沒有成功的執行:"
+  while IFS=' ' read -r kind d url _sep steps; do
+    case "$kind" in
+      GAP)  log "   • $d 完全沒有執行紀錄(Mac 關機,且 GitHub cron 也被丟掉?)" ;;
+      FAIL) log "   • $d 有執行但失敗:${steps:-步驟不明}"
+            log "       $url" ;;
+    esac
+  done <<< "$gaps"
+  log "   無法自動補——dispatch 只能處理今天。請找 Jimmy 確認,"
+  log "   或看 https://yaojing277.github.io/projects/schedule_runlog.html"
 else
   log "✓ 最近 5 個交易日都有成功紀錄,無漏跑"
 fi
@@ -271,15 +296,22 @@ fi
 #
 # 回傳:0=今天已處理(stdout 印出判斷依據) / 1=尚未處理,應觸發
 already_ran() {
-  "$PY" - "$REPO" "$WORKFLOW" "$PAT" "$SCHED_HHMM" <<'PY' 2>/dev/null
-import sys, json, datetime, urllib.request
+  "$PY" - "$REPO" "$WORKFLOW" "$PAT" "$SCHED_HHMM" "$RUNLOG_URL" <<'PY' 2>/dev/null
+import sys, json, time, datetime, urllib.request
 repo, wf, pat, sched = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+runlog_url = sys.argv[5]
+
+def fetch_runlog(base):
+    """讀線上排程紀錄。加 ?t= 打掉 CDN 快取,並要求不使用快取回應。"""
+    url = base + ("&" if "?" in base else "?") + "t=" + str(int(time.time()))
+    req = urllib.request.Request(url, headers={"Cache-Control": "no-cache",
+                                               "Pragma": "no-cache"})
+    return json.load(urllib.request.urlopen(req, timeout=20))
 today = datetime.datetime.now().astimezone().date()
 
 # 主判斷:runlog.json 的 target_date ＝「那次執行處理了哪一天」
 try:
-    runlog = json.load(urllib.request.urlopen(
-        "https://yaojing277.github.io/projects/runlog.json", timeout=20))
+    runlog = fetch_runlog(runlog_url)
 except Exception:
     runlog = None
 
