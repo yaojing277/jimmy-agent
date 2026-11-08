@@ -11,9 +11,10 @@
 #
 # 【與 GitHub cron 的關係】
 # GitHub 的 cron 保留當備援:Mac 沒開機/離線那天仍會跑,只是晚幾小時(＝改用 launchd
-# 之前的現狀,不會更糟)。兩邊都觸發時不會打架——後到的那次在「更新股價」會因當天
-# 快照已存在而 --skip-if-exists 印 [skip],其餘步驟以相同資料重跑,結果一致;
-# runlog 同 target_date 會覆寫而非新增。唯一副作用是多推一則 LINE 通知。
+# 之前的現狀,不會更糟)。2026-11-08 起 workflow 守衛對 schedule 觸發會先查 runlog:
+# 同一交易日已有 success 就整輪跳過(不重跑、不覆寫 runlog、不多推 LINE);
+# 14:30 那次失敗或 runlog 讀不到時,備援照跑(＝自動重試一次)。
+# 反過來 cron 罕見地準時先跑完時,這支腳本的「不重複觸發」判斷同樣依 runlog 跳過。
 #
 # 【⚠ 必須自己判斷交易日】
 # workflow 的「交易日守衛」對 workflow_dispatch 一律 run=yes(manual 旗標),

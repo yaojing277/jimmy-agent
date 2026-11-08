@@ -126,6 +126,10 @@
 - **主要觸發源＝本機 launchd**（2026-10-08 起）：`jimmy_scripts/trigger_wealth_sync.sh`
   ＋`com.jimmy.wealthsync.plist`，每天 **14:30** 打 API 觸發 `workflow_dispatch`（秒級啟動）。
   **GitHub cron（14:17，`17 6 * * *`）保留當備援**——Mac 沒開機那天仍會跑，只是晚幾小時。
+  **備援會先查 runlog**（2026-11-08 起，守衛步驟內）：同一交易日已有 `success` 就整輪跳過；
+  14:30 那次失敗時照跑（＝自動重試一次）；讀不到 runlog 照跑並印 `::warning::`。
+  加這道之前每個交易日都跑兩次、推兩則 LINE（2026-10：39 則對 19 個交易日），
+  且晚到的那次會覆寫 runlog，把觸發來源蓋成「排程」。手動觸發不受影響。
 - **交易日守衛**：**純粹依 TWSE 當日是否有收盤資料判斷**，無資料（週末／國定假日／颱風假）就跳過。
 - **手動觸發**：手機瀏覽器開 `github.com/yaojing277/stock-notify/actions/workflows/wealth_sync.yml`
   → Run workflow 選模式（手機 GitHub App 無 Run 按鈕）；或 API `workflow_dispatch`。
