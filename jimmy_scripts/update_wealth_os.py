@@ -7,7 +7,7 @@
 流程:
   1. Sheets API 讀「股價試算」最新 Jimmy_YYMMDD 分頁(自動挑日期最大者)
   2. Drive API 下載 Jimmy_Wealth_OS_Master_V4.4_Google.xlsm(先留本機備份)
-  3. zip 手術式更新「02_持股總表」:只重寫該分頁 XML、sharedStrings、workbook.xml(calcPr),
+  3. zip 手術式更新「03_持股總表」:只重寫該分頁 XML、sharedStrings、workbook.xml(calcPr),
      其餘元件(drawings/巨集按鈕、VBA、metadata、圖表)位元組原封不動
        C買進價/D股數/I~K歷史價/L現價/M購入數/N購入成本/O平均股價 + 標頭日期 + A1 標題
        E/F/G/H/P/Q/R/S 為公式,不動;設 fullCalcOnLoad 讓 Excel 開檔重算
@@ -84,10 +84,10 @@ def sell_cost(mv, cat):
 HEADER_ROW = 2          # A2=股票
 DATA_START_ROW = 3
 
-# 11_設定:全檔唯一事實來源(2026-07-24 起)。房屋/房貸/信貸/現金/門檻/目標股數都以此為準,
+# 12_設定:全檔唯一事實來源(2026-07-24 起;原為 11_設定,2026-10-04 新增 11_投資日誌 後整體後移)。房屋/房貸/信貸/現金/門檻/目標股數都以此為準,
 # 各分頁公式已改為跨表引用它;本腳本亦一律讀這裡,不再從 Dashboard 讀(Dashboard 現在是引用公式)。
 SETTINGS_TAB = "12_設定"
-SETTINGS_MAP = {          # 鍵名 -> 11_設定 的列號(B 欄)
+SETTINGS_MAP = {          # 鍵名 -> 12_設定 的列號(B 欄)
     "house": 3, "mortgage": 4, "loan": 5, "cash": 6, "cash_target": 7,
     "salary": 8, "living": 9, "mortgage_pay": 10, "loan_pay": 11, "dividend": 12,
     "lev_max": 13, "hi_max": 14, "mkt_min": 15, "single_max": 16,
@@ -156,7 +156,7 @@ LOG_SAME = "(同上)"
 # 買賣紀錄 A 欄的名稱→代號補充對照(ALIAS 沒有的)
 REC_ALIAS = {"穎崴": "6515", "台積電": "2330", "統一超": "2912", "寶成": "9904", "940": "00940"}
 
-# 15_資產歷史:每次同步附加一列凍結快照(同日期重跑則覆寫該列)
+# 16_資產歷史:每次同步附加一列凍結快照(同日期重跑則覆寫該列)
 HIST_TAB = "16_資產歷史"
 HIST_HOUSE = 9_000_000               # 房屋市值(沿用原 F 欄公式常數)
 HIST_DEBT = 8_400_000 + 5_000_000    # 負債備援值;實際以 12_設定 的房貸+信貸+質押動態讀取為準
@@ -172,7 +172,7 @@ def to_code(label):
 
 
 def read_settings(wb):
-    """讀 11_設定 B3~B19,回傳參數字典。缺格或非數值即中止(版面被改過)。"""
+    """讀 12_設定 B3~B19,回傳參數字典。缺格或非數值即中止(版面被改過)。"""
     if SETTINGS_TAB not in wb.sheetnames:
         sys.exit(f"找不到分頁「{SETTINGS_TAB}」。")
     ws = wb[SETTINGS_TAB]
@@ -387,7 +387,7 @@ def _set_cell(xml, ref, val=None, string_idx=None):
 
 
 def _hist_row_xml(n, styles, date_str, m):
-    """組 15_資產歷史 一列:日期用 inlineStr(不動 sharedStrings)。"""
+    """組 16_資產歷史 一列:日期用 inlineStr(不動 sharedStrings)。"""
     def c(col, inner):
         return f'<c r="{col}{n}" s="{styles.get(col, "0")}"' + \
                (f'>{inner}</c>' if inner else '/>')
@@ -470,7 +470,7 @@ def _update_history(hxml, sis, date_str, metrics):
 
 
 def _append_trade_log(lxml, date_str, trades):
-    """在 10_投資日誌 最後一筆之後附加自動偵測的買賣紀錄。"""
+    """在 11_投資日誌 最後一筆之後附加自動偵測的買賣紀錄。"""
     import datetime as _dt
     data_rows = [int(m.group(1)) for m in
                  re.finditer(r'<row r="(\d+)"[^>]*>(?=.*?<c r="A\1"[^>]*><v>)', lxml)]
@@ -931,7 +931,7 @@ def surgical_write(orig_path, out_path, num_cells, str_cells, hist=None, trades=
         if m:
             sst = sst.replace(m.group(0), f'uniqueCount="{int(m.group(1)) + len(appended)}"')
 
-    # 15_資產歷史:凍結/覆寫/附加一列
+    # 16_資產歷史:凍結/覆寫/附加一列
     hist_part, hist_note = None, None
     if hist is not None:
         date_str, metrics = hist
@@ -3014,7 +3014,7 @@ def full_refresh(path_in, path_out, date_str):
                   + f'{_rg("B")}<>"正二ETF")'
                   + "".join(f'*({_rg("A")}<>"{n}")' for n in SINGLE_MAX_EXEMPT)
                   + f'*{_rg("S")}))')
-    # 全部參數與門檻讀 11_設定(唯一事實來源)
+    # 全部參數與門檻讀 12_設定(唯一事實來源)
     cfg = read_settings(wb)
     cash, house = cfg["cash"], cfg["house"]
     mort, loan = cfg["mortgage"], cfg["loan"]
@@ -3168,7 +3168,7 @@ def full_refresh(path_in, path_out, date_str):
     for i, t in enumerate(ai):
         setstr(p, f"B{18 + i}", t)
 
-    # 03_ETF分析
+    # 04_ETF分析
     # ⚠ 列11~14 的**公式一個字都不改**(Jimmy 手動維護);2026-11-02 起只補寫它們的快取 <v>。
     #   B11=SUM(B4:B9)-B6-B7(原型)  B12=(B6+B7)(正二,**未加倍**)  B13='12_設定'!B6(現金)
     #   B14=B11+B12*2+B13(總曝險,正二在這裡才乘 2)
@@ -3194,7 +3194,7 @@ def full_refresh(path_in, path_out, date_str):
     C(p, "F6", "偏高" if r6 > cfg["lev_max"] else
       ("可分批增加" if r6 < LEV_LOWER else "合理"), True)
     C(p, "F8", "略高" if oth > 0.05 else "合理", True)
-    # 目標欄現為引用 11_設定 的公式,快取一併刷新
+    # 目標欄現為引用 12_設定 的公式,快取一併刷新
     C(p, "E4", cfg["hi_max"]); C(p, "D5", cfg["mkt_min"]); C(p, "E6", cfg["lev_max"])
 
     # 列11~14 快取(公式不動,只重算 <v>)。每個值都照該格公式算,不自創口徑:
@@ -3220,7 +3220,7 @@ def full_refresh(path_in, path_out, date_str):
     if _ed_n:
         print(f"  ✓ 04_ETF分析 持股明細:{_ed_n} 檔,列{ETF_DETAIL_START}~{_ed_last}")
 
-    # 04_個股分析(列4起 ↔ 02 個股與其後各列;F 欄為 shared 公式,逐列刷快取)
+    # 05_個股分析(列4起 ↔ 02 個股與其後各列;F 欄為 shared 公式,逐列刷快取)
     p = tabs["05_個股分析"]
     # ⚠ 原為 d['row'] >= 14（假設 03 的個股一定排在列14 之後）。2026-10-15 新增兩檔 ETF
     #   後該假設即失效：附加在尾端會被當成個股、插在前面則會把 ETF 擠進個股區段。
@@ -3233,7 +3233,7 @@ def full_refresh(path_in, path_out, date_str):
         C(p, f"F{r}", "偏高" if d['S'] > cfg["single_max"] else
           ("留意" if d['S'] > 0.1 else "合理"), True)
 
-    # 07_投資路線圖(C 欄靜態現況股數;D 欄目標為引用 11_設定 的公式,E 欄達成率)
+    # 08_投資路線圖(C 欄靜態現況股數;D 欄目標為引用 12_設定 的公式,E 欄達成率)
     p = tabs["08_投資路線圖"]
     V(p, "C4", N['0050']['sh']); V(p, "C5", N['00662']['sh']); V(p, "C7", N['00631L']['sh'])
     C(p, "D4", cfg["t0050"]); C(p, "D5", cfg["t00662"]); C(p, "D6", cfg["ttsmc"])
@@ -3241,7 +3241,7 @@ def full_refresh(path_in, path_out, date_str):
     C(p, "E5", N['00662']['sh'] / cfg["t00662"])
     C(p, "E6", N['台積電']['sh'] / cfg["ttsmc"])
 
-    # 09_AI建議(理由文字)
+    # 10_AI建議(理由文字)
     p = tabs["10_AI建議"]
     setstr(p, "D4", f"目前 {N['0050']['sh']:,.0f} 股，距離目標尚差 {max(gap50,0):,} 股"
            if gap50 > 0 else f"已達成 {t50:,.0f} 股目標")
@@ -3270,7 +3270,7 @@ def full_refresh(path_in, path_out, date_str):
                    ("D8", "聯發科"), ("D10", "6515")):
         V(p, ref, N[n]['px'])
 
-    # 08_安全指數
+    # 15_安全指數
     p = tabs["15_安全指數"]
     setf(p, "B8", f"IF({mx_formula}>'{SETTINGS_TAB}'!B16,10,0)")
     for ref, v in (("B2", safety), ("B5", b5x), ("B6", b6x), ("B7", b7x),
@@ -3280,13 +3280,13 @@ def full_refresh(path_in, path_out, date_str):
     setstr(p, "D8", f"不含正二與豁免檔({'/'.join(SINGLE_MAX_EXEMPT)}),"
                     f"最大單一持股為 {mx_d['name']}(約 {mx:.1%})")
 
-    # 16_重複曝險
+    # 17_重複曝險
     p = tabs["17_重複曝險"]
     for i, n in enumerate(("台積電", "鴻海", "聯發科", "台達電", "6515")):
         r = 4 + i
         C(p, f"B{r}", N[n]['F']); C(p, f"D{r}", N[n]['F']); C(p, f"E{r}", N[n]['S'])
 
-    # 17_投資規則檢查
+    # 18_投資規則檢查
     p = tabs["18_投資規則檢查"]
     setf(p, "B9", mx_formula)
     for ref, v in (("B4", N['0050']['sh']), ("B5", N['00662']['sh']),
@@ -3716,8 +3716,8 @@ def sync(args):
     str_cells[f"L{HEADER_ROW}"] = f"{date_headers[3]}現價"
     str_cells["A1"] = f"03_持股總表｜最新庫存(同步自 股價試算 {sheet_name})"
 
-    # 15_資產歷史快照:市值=Σ股數×現價、成本=Σ股數×買進價(與 02 的 F27/E27 同口徑)
-    # 房屋/負債/現金一律讀 11_設定(唯一事實來源)
+    # 16_資產歷史快照:市值=Σ股數×現價、成本=Σ股數×買進價(與 02 的 F27/E27 同口徑)
+    # 房屋/負債/現金一律讀 12_設定(唯一事實來源)
     cfg = read_settings(wb)
     metrics = {
         "mv":   sum(src[c]["shares"] * src[c]["price"] for c in common
@@ -3866,7 +3866,7 @@ def _iter_sheet_names(zin):
 
 def main():
     import argparse
-    ap = argparse.ArgumentParser(description="同步股價試算最新分頁到 Wealth OS xlsm(02_持股總表)")
+    ap = argparse.ArgumentParser(description="同步股價試算最新分頁到 Wealth OS xlsm(03_持股總表)")
     sub = ap.add_subparsers(dest="cmd")
     up = sub.add_parser("update", help="預覽並更新")
     up.add_argument("--yes", action="store_true", help="不詢問直接寫入")
