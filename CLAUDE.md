@@ -74,7 +74,8 @@
 5. **靜默失效比報錯危險。**報錯會讓人去查，靜默失效讓人以為有人在看著。
    寫檢查時要問：**這道檢查失效的話，我會知道嗎？**
    （門檻格式被洗成 `General` → 70% 存成 7000%，那道檢查從此永遠亮綠燈／
-   `MAXIFS` 的 `<>` 代號條件只有在外部重算時才現形／防呆靜默跳過一整天且不留警示）
+   `MAXIFS` 的 `<>` 代號條件只有在外部重算時才現形／防呆靜默跳過一整天且不留警示／
+   YouTube 新片通知的「最近 N 小時」時間窗只涵蓋一個**固定失敗**的時段，有新片也會整部漏掉）
 
 6. **改了上游口徑，要回頭檢查每一個讀它的下游。**
    「上游修好了」不等於「下游沒有同一個病」。
@@ -229,7 +230,7 @@
 | `update_stock_price.py` | 「**更新股價**」月度快照滾動：複製最新分頁為當天新分頁後 H~K 左移、K 欄重抓收盤；`update`/`--yes`/`--dry-run`/`--in-place`/`--skip-if-exists`（當天快照已存在時 exit 0 而非中止，**排程專用**；手動執行不帶此參數仍會大聲中止） |
 | `update_wealth_os.py` | 「**同步股價**」（＝更新 Wealth OS；注意與「更新股價」不同）：把最新 `Jimmy_YYMMDD` 分頁同步到雲端 `Jimmy_Wealth_OS_Master_V4.4_Google.xlsm` 的「03_持股總表」，並自動在「16_資產歷史」附加當日凍結快照（同日重跑覆寫不重複）、**每次同步依「股價試算／股票買賣紀錄」整張重建「11_投資日誌」**（2026-10-04 起，2026/01/01 後一張委託一列、金額＝實際扣款／實收；人寫的原因依日期＋代號＋買賣對回；偵測到的股數變動在買賣紀錄找不到才補「⚠ 買賣紀錄缺」列）；加 `--full` 連同 Dashboard/03/04/13/14/安全指數/規則檢查等分頁的公式快取與模板文字一起刷新（「**更新所有分頁**」＝ `update --yes --full`）；Drive API 就地覆蓋、檔案 ID 不變；`update`/`--yes`/`--dry-run`/`--full`；另提供 `delete_stock_rows()` 供**全出清**整列刪除（自動位移全檔跨表引用，2026-10-01 抽成正式函式）；需 token 含 Drive 權限，細節見 memory |
 | `lev2_balance.py` | 阿良「正二人生資產負債表」計算引擎（純計算）：三桶（原型β1／正二β2／防守β0＝現金＋債券）、本金槓桿（只計信貸）、總曝險、生活費倍數→建議配置代號（703…073）、5 年預期報酬、00631L 跌幅加碼梯；原本 `--full` 時由 `update_wealth_os.py` 整張重建「06_阿良資產負債表」，**2026-09-16 起以 `LEV2BAL_ENABLED = False` 停用**（06 改回手動範本，D9 引用 `03_持股總表` 合計），計算引擎保留可 `--xlsm` 離線試算。參數讀 `12_設定` B22~B32＋D2:G10 對照表，缺格只警告跳過；`--xlsm <本機檔>` 可離線印報表 |
-| `stock_notify.py` / `stock_alert.py` / `stock_alert_v2.py` / `stock_notify_gmail.py` / `youtube_notify.py` | LINE/Gmail 通知類，實際跑在 `stock-notify` repo 的 GitHub Actions（見上方同步規則），金鑰走環境變數 |
+| `stock_notify.py` / `stock_alert.py` / `stock_alert_v2.py` / `stock_notify_gmail.py` / `youtube_notify.py` | LINE/Gmail 通知類，實際跑在 `stock-notify` repo 的 GitHub Actions（見上方同步規則），金鑰走環境變數。⚠ **`youtube_notify.py` [2026-11-08 起]** 抓取改為「頻道 feed ＋上傳清單」**兩個端點各重試 4 次**，全失敗才 `exit 1` 讓 workflow **亮紅燈**（舊版吞掉例外 → 兩個月有一半執行其實在抓取失敗，而 Actions 全綠）；判斷新片改用 **videoId 去重**（已推播清單由 workflow 存回 repo），**不再用「最近 N 小時」時間窗**——舊版早班固定失敗、而該頻道都在台灣清晨上片，等於**有新片也整部漏掉且不留痕跡**。推播失敗不登記、同樣亮紅燈，下一班補推 |
 | `sheets_writer.py` | 「股票買賣紀錄」分頁匯入（交割明細擷圖 → 寫入） |
 | `sheet_value_guard.py` | 改公式前後的安全網：`snapshot`/`diff` 比對計算值 |
 | `trade_entry_server.py` / `trade_entry_appscript.gs` | 買進紀錄輸入網頁（localhost:8765）與 Apps Script 後端橋接 |
@@ -652,7 +653,7 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   排程的 `publish_projects.py` 只同步檔案、**不會代寫**（2026-09-02～09-26 曾因此空窗三週）。
   純使用行為（跑一次摘要、查一次股價）不算異動。細節見 memory（[[feedback-devlog-version-entry]]）。
 - **兩份 devlog（HTML，倒序，新紀錄加在最上面）**：`stock_automation_devlog.html`（股票自動化家族總表，
-  2026-04-12 起 **33 則**，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`（Wealth OS 專屬，
+  2026-04-12 起 **34 則**，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`（Wealth OS 專屬，
   2026-07-11 起 **52 則**）。格式沿用 `~/Downloads/docs/devlog.html` 模板。
 - ⚠ **devlog 比版本紀錄容易落後**（曾落後四週，而版本紀錄是齊的，因為那個有順手補的習慣）。
   📌 **補舊帳可行的前提是當時留了紀錄**：2026-11-08 補完的 15 則是依 **commit 內文＋版本紀錄＋本檔**
