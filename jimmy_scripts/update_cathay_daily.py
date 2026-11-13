@@ -93,6 +93,14 @@ import openpyxl
 #   新增股數換算每股成交價 0050 97.50／00631L 29.53／00662 119.07／00685L 9.62,
 #   **四檔全部只落在 11/05 的區間內**(其中三檔剛好落在 11/04 區間之外)。
 CATHAY_HOLDINGS = {
+# 2026-11-13 **逐檔成本已由外部佐證確認,不再是推算值**:Jimmy 提供國泰「成交股數/淨收付」
+#   截圖(2026/11/05 現買五筆:0050 500、00631L 407+93、00662 100、00685L 1,000)。
+#   以「11/05 之前的舊成本 ＋ 截圖淨收付」對照目前值,**四檔逐元相同**:
+#     0050   36,289+48,769=85,058 ／ 00631L 408,891+14,778=423,669
+#     00662  61,174+11,914=73,088 ／ 00685L 200,402+ 9,623=210,025
+#   ⚠ 這不是循環論證:目前的逐檔值是用「App 帳戶總覽總額 791,840 按市值比例補平」得到的,
+#     與逐筆淨收付是**兩個互不相干的來源**(見下方 11-08 那段的教訓)。四檔同時逐元吻合才算數。
+#   → 原註記「逐檔金額僅供參考(各 ±10 以內)」**已失效**,現為權威值。
     "0050":   {"shares": 1000,  "cost": 85058},     # 元大台灣50（均價 85.03）
     "00631L": {"shares": 15000, "cost": 423669},    # 元大台灣50正2（均價 28.23）
     "00662":  {"shares": 600,   "cost": 73088},     # 富邦NASDAQ（均價 121.77）
@@ -134,19 +142,63 @@ DAILY_TITLE = "03_國泰漲跌｜每日總市值與損益變化"
 EXCEL_EPOCH = date(1899, 12, 30)
 
 
+def _last_close_before(code, d, months_back=4):
+    """停牌標的:往回找最近一筆收盤。回 (price, date) 或 (None, None)。"""
+    y, m = d.year, d.month
+    for _ in range(months_back):
+        closes = {k: v for k, v in dict(twse_hist.month_closes(code, y, m)).items()
+                  if k <= d}
+        if closes:
+            last = max(closes)
+            return round(closes[last], 2), last
+        y, m = twse_hist._adjacent(y, m, -1)
+    return None, None
+
+
 def fetch_today_snapshot(d):
-    """回傳 (mv, cost, pl, ret) 或 None(非交易日/尚無收盤資料)。"""
+    """回傳 (mv, cost, pl, ret, halted) 或 None(真的非交易日)。
+
+    ⚠⚠ **「一檔沒報價」不等於「非交易日」。** 舊版只要任何一檔取不到價就 return None,
+    於是 2026-11-11~13 三天整個國泰帳戶完全沒寫入——起因只是 00662 停牌(分割中)。
+    而那三天 workflow 仍回報 success、LINE 照推,**沒有任何人被提醒**(判斷鐵律 5)。
+
+    現在分兩種情況:
+      - **全部**都取不到 → 真的是非交易日/資料未產生 → return None(行為不變)
+      - **部分**取不到 → 個別停牌 → 用**停牌前最後收盤**計入市值並大聲警示,其餘照算
+    口徑與主帳戶一致(CLAUDE.md:「停牌取停牌前最後收盤」),16_資產歷史 的驗算也是這條。
+
+    ⚠ 失敗方向刻意偏「照記」(判斷鐵律 9):停牌期間的市值本來就不該變動,
+    記一筆「含停牌前價格」的資料,好過整個帳戶靜默停更。偏哪邊寫在 halted 裡,
+    由呼叫端寫進當日備註,不會變成看不出來的數字。
+    """
     mv = 0.0
+    missing, halted = [], []
     for code, h in CATHAY_HOLDINGS.items():
         px, note = twse_hist.close_on(code, d, gap=0)
         if px is None:
-            print(f"  ⚠ {code} 查無 {d} 收盤價({note}),視為非交易日,跳過。")
+            missing.append((code, h, note))
+            continue
+        mv += h["shares"] * px
+
+    if len(missing) == len(CATHAY_HOLDINGS):
+        for code, _h, note in missing:
+            print(f"  ⚠ {code} 查無 {d} 收盤價({note})")
+        return None
+
+    for code, h, note in missing:
+        px, pd = _last_close_before(code, d)
+        if px is None:
+            print(f"  ✗ {code} 停牌且查不到任何歷史收盤({note}),無法計算市值,中止不寫。")
             return None
         mv += h["shares"] * px
+        halted.append((code, px, pd))
+        print(f"  ⚠⚠ {code} 無 {d} 報價,判定**個別停牌**,沿用停牌前收盤 "
+              f"{px}({pd}) 計入市值;其餘標的照常計算。")
+
     cost = CATHAY_COST_TOTAL
     pl = mv - cost
     ret = pl / cost if cost else 0
-    return mv, cost, pl, ret
+    return mv, cost, pl, ret, halted
 
 
 def _today_dividend(d):
@@ -577,8 +629,11 @@ def sync(args):
     if snap is None:
         print(f"今日({today})無 TWSE 收盤資料,跳過(非交易日或資料尚未產生)。")
         return
-    mv, cost, pl, ret = snap
+    mv, cost, pl, ret, halted = snap
     print(f"[{today}] 市值={mv:,.0f} 成本={cost:,.0f} 損益={pl:,.0f} 報酬率={ret:.2%}")
+    if halted:
+        print("  ⚠ 本日市值含停牌標的的停牌前價格:"
+              + "、".join(f"{c}@{p}({pd})" for c, p, pd in halted))
 
     creds = uwo.get_creds()
     workdir = tempfile.mkdtemp(prefix="cathay_daily_")
