@@ -507,12 +507,21 @@ def main():
     ap.add_argument("--sheet", action="store_true", help="寫入「股價試算」分頁 國泰報酬_MMDD（含每日走勢）")
     ap.add_argument("--line-file", help="輸出一行 LINE 摘要到此檔")
     ap.add_argument("--expect-date", help="結算日必須等於此日（YYYY/MM/DD）；國泰漲跌那步沒更新到今天就中止，不寫舊資料")
+    ap.add_argument("--date", help="結算日（YYYY/MM/DD）；預設取 03_國泰漲跌 的最新日。\n"
+                    "**回溯補登 M:P 走勢用**：該區存的是歷史快照、不會跟著重算，\n"
+                    "漏掉某幾天時後一筆的『較前一筆』會變成跨好幾天的合計。\n"
+                    "⚠ write_sheet 會整張重寫,所以補登要**由舊到新依序跑**,最後一次跑真正的最新日。")
     a = ap.parse_args()
     since = dt.date.fromisoformat(a.since)
     path, src = (a.xlsm, "本機檔") if a.xlsm else fetch_xlsm()
     rows, diff, nh = load_rows(path)
     if diff:
         print(f"⚠ {SHEET} 與 {HIST_SHEET} 不一致：{', '.join(map(str, diff))}", file=sys.stderr)
+    if a.date:
+        asof = dt.date.fromisoformat(a.date.replace("/", "-"))
+        rows = [x for x in rows if x["d"] <= asof]
+        if not rows or rows[-1]["d"] != asof:
+            sys.exit(f"✗ {SHEET} 沒有 {asof} 這一天的資料；未寫入")
     R = compute(rows, since)
     if a.expect_date:
         want = dt.date.fromisoformat(a.expect_date.replace("/", "-"))

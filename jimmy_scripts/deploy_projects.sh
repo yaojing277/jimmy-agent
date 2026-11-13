@@ -53,7 +53,12 @@ else
 fi
 
 # 2. 首次執行：clone
-if [ ! -d "$DEPLOY_DIR/.git" ]; then
+# ⚠ 不可只用 `[ -d .git ]` 判斷:macOS 會定期依檔案時間清 /tmp,
+#   把 .git/HEAD 與 .git/config 刪掉卻留下 objects/refs(它們上次部署有被寫到),
+#   於是「目錄還在、但已經不是 repo」——走進 else 分支後 pull/push 全部 fatal。
+#   (2026-11-13 實際踩到。與當天另一個 bug 同一個型態:用「東西在不在」代替「它還能不能用」。)
+#   改用 git 自己判斷,壞掉就重新 clone。
+if ! git -C "$DEPLOY_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "② 首次部署，clone repo..."
   rm -rf "$DEPLOY_DIR"
   git clone "$REMOTE" "$DEPLOY_DIR" 2>&1 | grep -v "token" || true
