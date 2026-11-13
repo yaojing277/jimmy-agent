@@ -658,7 +658,7 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   排程的 `publish_projects.py` 只同步檔案、**不會代寫**（2026-09-02～09-26 曾因此空窗三週）。
   純使用行為（跑一次摘要、查一次股價）不算異動。細節見 memory（[[feedback-devlog-version-entry]]）。
 - **兩份 devlog（HTML，倒序，新紀錄加在最上面）**：`stock_automation_devlog.html`（股票自動化家族總表，
-  2026-04-12 起 **36 則**，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`（Wealth OS 專屬，
+  2026-04-12 起 **37 則**，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`（Wealth OS 專屬，
   2026-07-11 起 **52 則**）。格式沿用 `~/Downloads/docs/devlog.html` 模板。
 - ⚠ **devlog 比版本紀錄容易落後**（曾落後四週，而版本紀錄是齊的，因為那個有順手補的習慣）。
   📌 **補舊帳可行的前提是當時留了紀錄**：2026-11-08 補完的 15 則是依 **commit 內文＋版本紀錄＋本檔**
