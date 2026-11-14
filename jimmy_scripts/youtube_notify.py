@@ -14,7 +14,11 @@
   是「那段時間整段壞」，重試救不回來。加第三來源＝頻道影片頁（/videos 的 ytInitialData，
   不同後端），只有它也失敗才 exit 1。
   ⚠ RSS 不含會員專屬影片（2026-11 起該頻道新片多為會員專屬【洞八洞洞】系列），
-  影片頁有，以 INCLUDE_MEMBERS_ONLY 統一口徑（預設 False，與 RSS 相同）。
+  影片頁有，以 INCLUDE_MEMBERS_ONLY 統一口徑。
+
+2026-11-14 第三輪：Jimmy 指示會員片也推 → INCLUDE_MEMBERS_ONLY = True，
+  影片頁從「RSS 失敗時的備援」升格為「每班必抓」，與 RSS 以 videoId 合併（同一部以 RSS 精確時間為準）。
+  影片頁失敗＝這班看不到會員片 → 能推的照推，最後 exit 1（下一班成功會補推 7 天內的）。
 """
 import json
 import os
@@ -43,8 +47,9 @@ RETRY_WAITS = [20]
 RETRY_STATUS = {404, 429, 500, 502, 503, 504}
 VIDEOS_URL = f"https://www.youtube.com/channel/{CHANNEL_ID}/videos?hl=en&gl=US"
 HTML_RETRY_WAITS = [30]
-# RSS 本來就不含會員專屬影片；影片頁有，預設也濾掉，兩個來源口徑一致
-INCLUDE_MEMBERS_ONLY = False
+# RSS 本來就不含會員專屬影片，只有影片頁看得到。
+# 2026-11-14 Jimmy 指示「會員片也推」→ True：影片頁從備援升格為每班必抓，與 RSS 合併
+INCLUDE_MEMBERS_ONLY = True
 UA = {"User-Agent": "Mozilla/5.0", "Accept-Language": "en-US,en;q=0.9"}
 
 STATE_FILE   = Path(__file__).with_name("youtube_notify_state.json")
@@ -142,18 +147,21 @@ def parse_videos_page(html, now):
         title = md.get("title", {}).get("content")
         if not vid or not title:
             continue
-        if "BADGE_MEMBERS_ONLY" in json.dumps(lv) and not INCLUDE_MEMBERS_ONLY:
+        is_members = "BADGE_MEMBERS_ONLY" in json.dumps(lv)
+        if is_members:
             members += 1
-            continue
+            if not INCLUDE_MEMBERS_ONLY:
+                continue
         parts = [p["text"]["content"]
                  for r in md.get("metadata", {}).get("contentMetadataViewModel", {}).get("metadataRows", [])
                  for p in r.get("metadataParts", []) if "text" in p]
         rel = next((t for t in parts if "ago" in t), None)
         videos.append({"id": vid, "title": title,
                        "link": f"https://www.youtube.com/watch?v={vid}",
-                       "published": parse_relative(rel, now), "approx": True, "rel": rel})
+                       "published": parse_relative(rel, now), "approx": True, "rel": rel,
+                       "members": is_members})
     if not videos:
-        raise FeedError(f"影片頁解析後 0 筆公開影片（會員專屬 {members} 筆）")
+        raise FeedError(f"影片頁解析後 0 筆影片（會員專屬 {members} 筆）")
     return videos
 
 
@@ -173,7 +181,8 @@ def fetch_videos_page(errors):
             res = requests.get(VIDEOS_URL, headers=UA, timeout=20)
             if res.status_code == 200:
                 videos = parse_videos_page(res.text, datetime.now(timezone.utc))
-                print(f"影片頁抓取成功（第 {attempt + 1} 次，{len(videos)} 筆公開影片）")
+                nm = sum(1 for v in videos if v.get("members"))
+                print(f"影片頁抓取成功（第 {attempt + 1} 次，{len(videos)} 筆，其中會員專屬 {nm} 筆）")
                 return videos
             msg = f"HTTP {res.status_code}"
         except (requests.RequestException, ValueError, FeedError) as e:
@@ -186,23 +195,38 @@ def fetch_videos_page(errors):
 
 
 def fetch_feed():
-    """RSS 兩端點 → 頻道影片頁；全部失敗才拋 FeedError。"""
-    if os.environ.get("YT_FORCE_HTML") == "true":   # 手動觸發的診斷選項：只驗證備援那條路
+    """回傳 (videos, coverage_errors)。
+
+    RSS（精確時間、只有公開片）＋頻道影片頁（含會員片、相對時間），以 videoId 合併，
+    同一部以 RSS 為準。兩邊都失敗才拋 FeedError。
+    coverage_errors 非空＝這班有一部分影片看不到（例如影片頁失敗→會員片看不到），
+    main 會在處理完能處理的之後 exit 1——不讓「少看一半」安靜地變成綠燈。
+    """
+    force_html = os.environ.get("YT_FORCE_HTML") == "true"   # 手動觸發的診斷選項
+    rss, rss_err = None, None
+    if force_html:
         print("::notice::force_html：跳過 RSS，只抓頻道影片頁")
-        errors = []
-        videos = fetch_videos_page(errors)
-        if videos is None:
-            raise FeedError("；".join(errors))
-        return videos
-    try:
-        return fetch_rss()
-    except FeedError as e:
-        errors = [str(e)]
-    print("::warning::RSS 全部失敗，改抓頻道影片頁")
-    videos = fetch_videos_page(errors)
-    if videos is None:
-        raise FeedError("；".join(errors))
-    return videos
+    else:
+        try:
+            rss = fetch_rss()
+        except FeedError as e:
+            rss_err = str(e)
+            print("::warning::RSS 全部失敗，改由頻道影片頁補上")
+
+    html, html_errors = None, []
+    if INCLUDE_MEMBERS_ONLY or rss is None:
+        html = fetch_videos_page(html_errors)
+
+    if rss is None and html is None:
+        raise FeedError("；".join(filter(None, [rss_err] + html_errors)))
+
+    merged = {v["id"]: v for v in (html or [])}
+    merged.update({v["id"]: v for v in (rss or [])})     # RSS 有精確時間，優先
+    coverage = []
+    if html is None and INCLUDE_MEMBERS_ONLY:
+        coverage.append("頻道影片頁失敗，這班看不到會員專屬影片（下一班成功會補推 7 天內的）："
+                        + "；".join(html_errors))
+    return list(merged.values()), coverage
 
 
 def fetch_rss():
@@ -245,7 +269,7 @@ def main():
     print(f"[{datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC] 開始檢查 {CHANNEL_NAME} 頻道新影片...")
 
     try:
-        videos = fetch_feed()
+        videos, coverage = fetch_feed()
     except FeedError as e:
         print(f"::error::抓取失敗（RSS 兩端點與頻道影片頁皆失敗）：{e}")
         sys.exit(1)
@@ -282,8 +306,9 @@ def main():
                 v["published"], v["approx"] = exact, False
         pub_tw = (f"約 {v['rel']}" if v.get("approx")
                   else v["published"].astimezone(tw_tz).strftime("%Y/%m/%d %H:%M"))
+        tag = "🔒 會員專屬\n" if v.get("members") else ""
         message = (
-            f"🎬 {CHANNEL_NAME} 有新影片！\n\n"
+            f"🎬 {CHANNEL_NAME} 有新影片！\n{tag}\n"
             f"《{v['title']}》\n\n"
             f"上傳時間：{pub_tw}\n"
             f"▶ {v['link']}"
@@ -301,7 +326,9 @@ def main():
         save_state([v["id"] for v in newly] + notified)
         print(f"state 更新：新增 {len(newly)} 筆")
 
-    if failed:
+    for c in coverage:
+        print(f"::error::{c}")
+    if failed or coverage:
         sys.exit(1)
 
 
