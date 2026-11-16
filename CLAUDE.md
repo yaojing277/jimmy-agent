@@ -224,7 +224,7 @@
 
 | 模組/腳本 | 角色 |
 |---|---|
-| `twse_hist.py` | 共用歷史股價＋除權息模組（TWSE 為主、TPEx 補，無 Yahoo），供多支腳本 import |
+| `twse_hist.py` | 共用歷史股價＋除權息模組（TWSE 為主、TPEx 補，無 Yahoo），供多支腳本 import。⚠ **`close_on` 的 `gap=4` 是給非交易日用的，不是停牌處理**——停牌時它會靜默回停牌前的價格、超過 4 個日曆天才突然回 None（2026-11-16 三支排程腳本因此同時崩）。排程讀者一律帶 `allow_halted=True`：大盤有交易、只有該檔沒報價 → 沿用停牌前收盤並印 ⚠⚠。**預設 False 刻意不改**（查成交價的呼叫端不該拿舊價；國泰自己判斷「全部沒價＝非交易日」需要看到 None） |
 | `price_source.py` | 共用即時報價模組（TWSE 官方為主、yfinance 備援） |
 | `update_close_price.py` | 「Jimmy_YYMMDD」持股月結分頁維護：`inspect`/`fill`/`fill-row`/`audit`；「更新 K欄」觸發語見 memory |
 | `update_stock_price.py` | 「**更新股價**」月度快照滾動：複製最新分頁為當天新分頁後 H~K 左移、K 欄重抓收盤；`update`/`--yes`/`--dry-run`/`--in-place`/`--skip-if-exists`（當天快照已存在時 exit 0 而非中止，**排程專用**；手動執行不帶此參數仍會大聲中止） |
@@ -658,7 +658,7 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   排程的 `publish_projects.py` 只同步檔案、**不會代寫**（2026-09-02～09-26 曾因此空窗三週）。
   純使用行為（跑一次摘要、查一次股價）不算異動。細節見 memory（[[feedback-devlog-version-entry]]）。
 - **兩份 devlog（HTML，倒序，新紀錄加在最上面）**：`stock_automation_devlog.html`（股票自動化家族總表，
-  2026-04-12 起 **37 則**，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`（Wealth OS 專屬，
+  2026-04-12 起 **38 則**，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`（Wealth OS 專屬，
   2026-07-11 起 **52 則**）。格式沿用 `~/Downloads/docs/devlog.html` 模板。
 - ⚠ **devlog 比版本紀錄容易落後**（曾落後四週，而版本紀錄是齊的，因為那個有順手補的習慣）。
   📌 **補舊帳可行的前提是當時留了紀錄**：2026-11-08 補完的 15 則是依 **commit 內文＋版本紀錄＋本檔**
