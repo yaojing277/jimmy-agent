@@ -6,7 +6,11 @@
   norm_code(a)              A欄值/代號 -> 純台股代號;非台股(美股等)回 None
   month_closes(code, y, m)  某月每日收盤 {date: close}(上市優先,失敗試上櫃)
   daily_closes(code, s, e)  [s, e] 期間每日收盤 {date: close}
-  close_on(a, date, gap=4)  指定日收盤;當日無交易則取 ±gap 最近交易日 -> (price, note)
+  close_on(a, date, gap=4, allow_halted=False)
+                            指定日收盤;當日無交易則取 ±gap 最近交易日 -> (price, note);
+                            allow_halted=True 時,大盤有交易而該檔無報價 → 視為個別停牌,沿用停牌前收盤
+  market_traded(date)       TWSE 該日是否有交易(以權值標的是否有收盤判斷)
+  last_close_before(c, d)   d(含)以前最近一筆收盤 -> (price, date)
   dividends(code, s, e)     期間現金股利 [(date, amount)] 升冪(除權息結果表「息」)
 
 資料來源(皆官方、免金鑰):
@@ -171,9 +175,42 @@ def _adjacent(y, m, delta):
     return y, m
 
 
-def close_on(a, date, gap=4):
+# 判斷「大盤當天有沒有交易」用的權值標的:兩檔同時停牌的機率可忽略。
+_MARKET_PROBES = ("0050", "2330")
+
+
+def market_traded(date):
+    """TWSE 該日是否有交易:任一權值標的當天有收盤即算。
+    ⚠ 當天收盤資料尚未產生(盤中/剛收盤)時回 False——那種情況本來就不該當成停牌。"""
+    return any(date in month_closes(c, date.year, date.month) for c in _MARKET_PROBES)
+
+
+def last_close_before(code, d, months_back=4):
+    """d(含)以前最近一筆收盤,最多往回找 months_back 個月。回 (price, date) 或 (None, None)。
+    個別停牌時用:停牌期間市值本來就不該變動,沿用停牌前最後收盤(與 16_資產歷史 驗算口徑相同)。"""
+    y, m = d.year, d.month
+    for _ in range(months_back):
+        closes = {k: v for k, v in month_closes(code, y, m).items() if k <= d}
+        if closes:
+            last = max(closes)
+            return round(closes[last], 2), last
+        y, m = _adjacent(y, m, -1)
+    return None, None
+
+
+def close_on(a, date, gap=4, allow_halted=False):
     """指定日收盤;當日非交易日則取 ±gap 內最近交易日。回 (price, note)。
-    price 為 None 時 note 帶失敗原因;成功時 note 為 'TWD'。"""
+    price 為 None 時 note 帶失敗原因;成功時 note 為 'TWD'。
+
+    ⚠⚠ 「±gap 最近交易日」是為**非交易日**設計的,不是停牌處理。它在個別停牌時會
+      **不聲不響**回傳停牌前的價格,直到停牌超過 gap 天才突然回 None——
+      2026-11-11~13 主帳戶三天都靜默拿了 00662 的 11/10 收盤,隔一個週末的 11/16
+      距離變成 6 天,三支排程腳本同時崩掉(判斷鐵律 5:靜默失效比報錯危險)。
+    allow_halted=True:**大盤當天有交易、只有這檔沒報價** → 判定個別停牌,
+      沿用停牌前最後收盤並印 ⚠⚠(不受 gap 限制;也不會誤拿到停牌之後的價格)。
+      失敗方向刻意偏「照記」(判斷鐵律 9):記一筆含停牌前價格、且有警示的資料,
+      好過整個帳戶當天整天沒資料。
+    預設 False:行為與舊版完全相同(查成交價等不該沿用舊價的呼叫端維持原樣)。"""
     code = norm_code(a)
     if not code:
         return None, "非台股(TWSE/TPEx 無資料)"
@@ -183,6 +220,12 @@ def close_on(a, date, gap=4):
     closes = dict(month_closes(code, date.year, date.month))
     if date in closes:
         return round(closes[date], 2), "TWD"
+    if allow_halted and market_traded(date):
+        px, pd = last_close_before(code, date)
+        if px is None:
+            return None, f"{date} 大盤有交易但 {code} 無報價(停牌?),且往回 4 個月查不到任何收盤"
+        print(f"  ⚠⚠ {code} 無 {date} 報價,判定**個別停牌**,沿用停牌前收盤 {px}({pd})")
+        return px, "TWD"
     # 當日缺值/非交易日 -> 補鄰月後找 ±gap 最近交易日
     for delta in (-1, 1):
         ay, am = _adjacent(date.year, date.month, delta)

@@ -180,7 +180,7 @@ def resolve_symbol(a_value):
 
 def fetch_close(symbol, target_date):
     """回傳 (收盤價, 'TWD') 或 (None, 訊息)。資料來源 TWSE/TPEx 官方。"""
-    return twse_hist.close_on(symbol, target_date)
+    return twse_hist.close_on(symbol, target_date, allow_halted=True)   # 與 update_stock_price 同口徑
 
 def col_header_date(service, col):
     rng = f"{SHEET_NAME}!{col}{HEADER_ROW}"

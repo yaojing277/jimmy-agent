@@ -329,7 +329,8 @@ def compute(tracked, asof):
         p["close"] = None
         p["mv"] = p["fee"] = p["tax"] = 0
         if p["hold_q"] > 1e-9:
-            px, note = th.close_on(p["code"], asof)
+            # allow_halted:個別停牌沿用停牌前收盤(與主帳戶、國泰同口徑),不再讓整步 exit。
+            px, note = th.close_on(p["code"], asof, allow_halted=True)
             if px is None:
                 sys.exit(f"✗ 取不到 {p['name']}（{p['code']}）{asof} 收盤：{note}")
             p["close"] = px

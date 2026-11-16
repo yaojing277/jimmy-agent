@@ -143,16 +143,9 @@ EXCEL_EPOCH = date(1899, 12, 30)
 
 
 def _last_close_before(code, d, months_back=4):
-    """停牌標的:往回找最近一筆收盤。回 (price, date) 或 (None, None)。"""
-    y, m = d.year, d.month
-    for _ in range(months_back):
-        closes = {k: v for k, v in dict(twse_hist.month_closes(code, y, m)).items()
-                  if k <= d}
-        if closes:
-            last = max(closes)
-            return round(closes[last], 2), last
-        y, m = twse_hist._adjacent(y, m, -1)
-    return None, None
+    """停牌標的:往回找最近一筆收盤。回 (price, date) 或 (None, None)。
+    實作抽到 twse_hist.last_close_before(主帳戶三支腳本共用),同一個判斷不寫兩份。"""
+    return twse_hist.last_close_before(code, d, months_back)
 
 
 def fetch_today_snapshot(d):

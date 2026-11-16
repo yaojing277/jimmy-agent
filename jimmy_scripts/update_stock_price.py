@@ -277,8 +277,10 @@ def resolve_symbol(a_value):
     return [code] if code else []
 
 def fetch_close(symbol, target_date):
-    """回傳 (收盤價, 'TWD') 或 (None, 訊息)。資料來源 TWSE/TPEx 官方。"""
-    return twse_hist.close_on(symbol, target_date)
+    """回傳 (收盤價, 'TWD') 或 (None, 訊息)。資料來源 TWSE/TPEx 官方。
+    allow_halted:個別停牌沿用停牌前收盤並印 ⚠⚠(見 twse_hist.close_on)。
+    舊版在停牌超過 4 天時 K 欄留白,下游「同步股價」的 full_refresh 因 float(None) 崩掉(2026-11-16)。"""
+    return twse_hist.close_on(symbol, target_date, allow_halted=True)
 
 def col_header_date(service, col):
     rng = f"{SHEET_NAME}!{col}{HEADER_ROW}"
