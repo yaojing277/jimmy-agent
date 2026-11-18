@@ -153,6 +153,12 @@ TRADE_LOG_SINCE = "2026/01/01"          # 日誌收錄起點(更早的紀錄格�
 LOG_MISSING_TAG = "⚠ 買賣紀錄缺"
 LOG_ORPHAN_TAG = "⚠ 買賣紀錄無此筆"
 LOG_SAME = "(同上)"
+# 股票分割辨識(2026-11-19,00662 1拆5 時發現):分割讓股數變 N 倍、成本不變,
+# 同步的「股數變動偵測」把它當成一筆買進、價格 0.0,補一列「⚠ 買賣紀錄缺」——
+# 而分割不是交易,買賣紀錄**永遠補不上**,那列只會因 covered() 的 ±14 天窗口剛好
+# 有同代號買進才被碰巧移除。辨識條件見 _is_split_change()。
+SPLIT_TAB = "股票分割"
+SPLIT_DETECT_DAYS = 30                  # 分割恢復交易日落在同步日往前幾天內才採計
 # 買賣紀錄 A 欄的名稱→代號補充對照(ALIAS 沒有的)
 REC_ALIAS = {"穎崴": "6515", "台積電": "2330", "統一超": "2912", "寶成": "9904", "940": "00940"}
 
@@ -529,6 +535,46 @@ def _rec_code(name):
     return REC_ALIAS.get(name) or ALIAS_XLSM.get(name, name)
 
 
+def read_splits(creds):
+    """讀「股價試算/股票分割」→ {代號: [(恢復交易日 date, 倍數), ...]};只認『1拆N』。
+    與 since_date_pnl / rebuild_cost_basis 讀同一張分頁(同一組事實)。"""
+    import datetime as _dt
+    svc = build("sheets", "v4", credentials=creds)
+    rows = svc.spreadsheets().values().get(
+        spreadsheetId=SPREADSHEET_ID, range=f"{SPLIT_TAB}!A2:C50",
+        valueRenderOption="UNFORMATTED_VALUE").execute().get("values", [])
+    out = {}
+    for r in rows:
+        if len(r) < 3 or not str(r[0]).strip():
+            continue
+        m = re.search(r"1拆(\d+)", str(r[2]))
+        if not m:
+            continue
+        v = r[1]
+        d = (_dt.date(1899, 12, 30) + _dt.timedelta(days=int(v))) if isinstance(v, (int, float)) \
+            else _parse_rec_date(str(v))
+        if d:
+            out.setdefault(to_code(str(r[0]).strip()), []).append((d, int(m.group(1))))
+    return out
+
+
+def _is_split_change(splits, code, d_now, old_sh, new_sh, dcost):
+    """股數變動是否**完全**由分割解釋:回傳 (恢復交易日, 倍數) 或 None。
+    三個條件缺一不可——
+      ① 該代號在「股票分割」有一列,恢復交易日落在 [d_now−SPLIT_DETECT_DAYS, d_now]
+      ② 新股數 ＝ 舊股數 × 倍數(整數相等)
+      ③ 成本幾乎不變(|Δ成本| < 5 元;真實買賣一定會讓成本變動)
+    ⚠ 同一個同步區間內「分割＋買賣」都發生時三條不會同時成立 → 照舊走「⚠ 買賣紀錄缺」
+      大聲補登,讓人去看(寧可多一列警示,不要把真交易默默吞掉)。"""
+    import datetime as _dt
+    for sd, ratio in splits.get(code, []):
+        if not (d_now - _dt.timedelta(days=SPLIT_DETECT_DAYS) <= sd <= d_now):
+            continue
+        if old_sh and round(old_sh * ratio) == round(new_sh) and abs(dcost) < 5:
+            return sd, ratio
+    return None
+
+
 def read_trade_records(creds, since=TRADE_LOG_SINCE):
     """讀「股價試算/股票買賣紀錄」,回傳 since 之後的逐筆成交(依日期、列號由舊到新)。
     欄位:A股票 F買進日 G價 H股數 I手續費 J買進成本 | K賣出日 L價 M股數 N價金 O手續費 P交易稅 Q應收付 | Z備註。
@@ -771,7 +817,8 @@ def read_trade_log(wb):
     return out
 
 
-def build_trade_log(records, existing, held_labels, detected=None, prev_date=None, date_str=None):
+def build_trade_log(records, existing, held_labels, detected=None, prev_date=None, date_str=None,
+                    splits=None):
     """以買賣紀錄重建日誌列。
     records: read_trade_records();existing: read_trade_log();held_labels: {代號: 03 的顯示名稱}。
     detected: 本次同步偵測到的股數變動 [{"code","label","act","qty","px","amt"}](px 為含費均價)。
@@ -829,6 +876,17 @@ def build_trade_log(records, existing, held_labels, detected=None, prev_date=Non
                    d - _dt.timedelta(days=14) <= t["date"] <= d + _dt.timedelta(days=3)
                    for t in records)
 
+    # 舊的「買賣紀錄缺」列裡,分割被誤記成的買進:價格 0(成本不變的指紋)＋該代號在列日期往前
+    # SPLIT_DETECT_DAYS 天內有分割 → 移除。不交給 covered():那是看附近有沒有同代號買進,
+    # 分割永遠不會有對應紀錄,能不能被移除全看運氣。
+    def split_artifact(e):
+        if e["act"] != "買進" or (e.get("px") or 0) != 0:
+            return False
+        return any(e["date"] - _dt.timedelta(days=SPLIT_DETECT_DAYS) <= sd <= e["date"]
+                   for sd, _ in (splits or {}).get(e["code"], []))
+    split_dropped = [e for e in missing_old if split_artifact(e)]
+    missing_old = [e for e in missing_old if not split_artifact(e)]
+
     # 舊的「買賣紀錄缺」列:買賣紀錄補上了就移除,否則保留
     kept_missing = [e for e in missing_old if not covered(e["code"], e["act"], e["date"])]
     for e in kept_missing:
@@ -859,7 +917,8 @@ def build_trade_log(records, existing, held_labels, detected=None, prev_date=Non
 
     rows.sort(key=lambda x: (x["date"], x["_k"]))
     stats = {"records": len(records), "orphans": orphans, "missing_kept": len(kept_missing),
-             "missing_new": new_missing, "missing_dropped": len(missing_old) - len(kept_missing)}
+             "missing_new": new_missing, "missing_dropped": len(missing_old) - len(kept_missing),
+             "split_dropped": len(split_dropped)}
     return rows, stats
 
 
@@ -3649,6 +3708,12 @@ def sync(args):
     date_str = getattr(args, "date", None) or f"{datetime.now():%Y/%m/%d}"
 
     # 偵測持股變動 → 自動補登投資日誌(均價=成本差/股數差,即含手續費均價)
+    try:
+        splits = read_splits(creds)
+    except Exception as e:                  # 讀不到分割表 → 分割會照舊被當成「⚠ 買賣紀錄缺」(大聲,不靜默)
+        print(f"⚠ 讀取「{SPLIT_TAB}」失敗({e}),本次不辨識分割")
+        splits = {}
+    d_sync = _parse_rec_date(date_str)
     trades = []
     for code in common:
         s, r = src[code], xl_rows[code]
@@ -3658,6 +3723,11 @@ def sync(args):
         if abs(dq) < 1:
             continue
         dcost = (s["buy"] or 0) * (s["shares"] or 0) - old_buy * old_sh
+        sp = _is_split_change(splits, code, d_sync, old_sh, s["shares"] or 0, dcost) if d_sync else None
+        if sp:
+            print(f"[日誌] {s['label']} 股數 {old_sh:,.0f}→{s['shares']:,.0f} 為 {sp[0]:%Y/%m/%d} 1拆{sp[1]} 分割"
+                  f"(成本不變),不是交易,不列入日誌")
+            continue
         px = round(abs(dcost / dq), 2) if dq else 0
         trades.append({"label": s["label"], "code": code, "act": "買進" if dq > 0 else "賣出",
                        "qty": abs(dq), "px": px, "amt": round(abs(dcost))})
@@ -3677,11 +3747,14 @@ def sync(args):
         d_now = _parse_rec_date(date_str)
         prev_date = max((d for d in hdates if d and d < d_now), default=None)
         existing = read_trade_log(wb)
-        log_rows, lst = build_trade_log(records, existing, held, trades, prev_date, date_str)
+        log_rows, lst = build_trade_log(records, existing, held, trades, prev_date, date_str,
+                                        splits=splits)
         print(f"[日誌] 依{TRADE_REC_TAB}重建 {LOG_TAB}:{len(existing)} → {len(log_rows)} 列"
               f"(買賣紀錄 {lst['records']} 筆,自 {TRADE_LOG_SINCE})")
         for m in lst["missing_new"]:
             print(f"  ⚠ {m['label']} {m['act']} {m['qty']:,.0f} 股 買賣紀錄找不到,先以含費均價 {m['px']} 補登")
+        if lst.get("split_dropped"):
+            print(f"  已移除 {lst['split_dropped']} 列被誤記成買進的分割(價格 0、分割恢復日 {SPLIT_DETECT_DAYS} 天內)")
         if lst["missing_kept"] or lst["missing_dropped"]:
             print(f"  舊的「買賣紀錄缺」列:保留 {lst['missing_kept']}、已補上而移除 {lst['missing_dropped']}")
         if lst["orphans"]:

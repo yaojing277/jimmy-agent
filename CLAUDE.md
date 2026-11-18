@@ -339,7 +339,13 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   `if t["d"] < sd: q *= ratio`——**只看「交易日 < 分割日」，不看分割發生了沒**。
   提前把未來的恢復日寫進去，該代號既有買進會**立刻被乘上比例**，而價格還是分割前的，
   於是冒出一個假的 N 倍部位。`rebuild_cost_basis` 與 C~E 的 `MAXIFS` 同一前提。
-  📌 正確時機＝**恢復交易當天、對過 TWSE 參考價之後**（來源欄寫實測值，比照既有三列）。
+  📌 正確時機＝**恢復交易當天、對過 TWSE 參考價之後**（來源欄寫實測值，比照既有各列）。
+  📌 **恢復日的排程多半早於登記**（14:30 跑完才看得到參考價），那幾天會是「舊股數 × 拆後價」的假崩跌。
+  登記後依序補：快照 B/C（成本不變）→ `patch_asset_history.py` 補正中間日 → `update_wealth_os.py update --date <最新日> --yes --full`
+  → 國泰有持股則改 `CATHAY_HOLDINGS` 並逐日 `update_cathay_daily.py update --date` → `since_date_pnl.py --date` 逐日
+  → `cathay_since_pnl.py --sheet --date` 逐日 → `loan_funding.py`。（2026-11-19 00662 1拆5 照這個順序做過）
+  ✅ `11_投資日誌` 會自己認出分割（2026-11-19 起）：**新股數＝舊股數×比例且成本不變**才算，不會補「⚠ 買賣紀錄缺」。
+  分割與買賣落在同一同步區間時條件不成立 → 照舊大聲補登，要人工看。
   **D／E 欄＝以「該筆交易日」往前推 180／365 天的平均買進價**（原本以 `TODAY()` 推算會讓舊列隨時間變 `#N/A`）。
   賣出列只有 B（`=TODAY()-K`），C~E 留空；少數舊列 Q 為特例公式（如上銀 `=(N-20)`），
   批次改公式時**勿一律套** `=(N-O-P)`。
@@ -605,8 +611,8 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   ⚠ **改股數後要補跑「被影響到的每一天」**：買進日當天那列也是用舊股數算的，
   `update_cathay_daily.py update --date` 要對每一天各跑一次。
   ⚠ **`國泰報酬_0608` 的 M:P 走勢區存的是歷史快照、不會跟著重算**：「較前一交易日」是拿分頁裡
-  前一天的**舊值**相減（`write_sheet` 讀 `M2:O400`），改了成本基礎之後那一筆會錯。`cathay_since_pnl.py` **沒有 `--date`，
-  只能算最新日**，這種回溯更正要手動補。驗證標準＝「該日的較前一筆 ＝ `03_國泰漲跌` 月曆的當日單日損益」。
+  前一天的**舊值**相減（`write_sheet` 讀 `M2:O400`），改了成本基礎之後那一筆會錯。回溯更正用
+  `cathay_since_pnl.py --sheet --date YYYY/MM/DD`，**由舊到新逐日跑、最後一次跑真正的最新日**（`write_sheet` 整張重寫）。驗證標準＝「該日的較前一筆 ＝ `03_國泰漲跌` 月曆的當日單日損益」。
   ⚠ 國泰基準期間與主帳戶不同（國泰自 2026/02 起、主帳戶自 2026/01 起），合計基準不同值。
   ⚠ **`03_國泰漲跌` 單日損益含配息後，`cathay_since_pnl.compute()` 的雙向驗算要同步改口徑**：
   `load_rows` 從 `21_國泰資產歷史` **F 欄**讀配息塞進 rows，`pnl` 算式為 **`end − base − cf + div`**。
@@ -659,7 +665,7 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   純使用行為（跑一次摘要、查一次股價）不算異動。細節見 memory（[[feedback-devlog-version-entry]]）。
 - **兩份 devlog（HTML，倒序，新紀錄加在最上面）**：`stock_automation_devlog.html`（股票自動化家族總表，
   2026-04-12 起 **38 則**，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`（Wealth OS 專屬，
-  2026-07-11 起 **52 則**）。格式沿用 `~/Downloads/docs/devlog.html` 模板。
+  2026-07-11 起 **53 則**）。格式沿用 `~/Downloads/docs/devlog.html` 模板。
 - ⚠ **devlog 比版本紀錄容易落後**（曾落後四週，而版本紀錄是齊的，因為那個有順手補的習慣）。
   📌 **補舊帳可行的前提是當時留了紀錄**：2026-11-08 補完的 15 則是依 **commit 內文＋版本紀錄＋本檔**
   三份當時寫下的材料改寫的，不是憑印象。**若日後 commit 只剩一行標題，這條路就斷了。**
