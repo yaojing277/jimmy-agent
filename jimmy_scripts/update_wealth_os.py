@@ -159,6 +159,9 @@ LOG_SAME = "(同上)"
 # 有同代號買進才被碰巧移除。辨識條件見 _is_split_change()。
 SPLIT_TAB = "股票分割"
 SPLIT_DETECT_DAYS = 30                  # 分割恢復交易日落在同步日往前幾天內才採計
+# 配股辨識(2026-11-19,台新新光金 07/21 權息配 20 股、系統漏記):見 _is_stock_dividend_change()
+STOCKDIV_DETECT_DAYS = 400              # 除權日落在同步日往前幾天內才採計(配股常是事後對帳才補)
+STOCKDIV_MAX_RATIO = 0.5                # 股數增幅上限;超過就不是配股
 # 買賣紀錄 A 欄的名稱→代號補充對照(ALIAS 沒有的)
 REC_ALIAS = {"穎崴": "6515", "台積電": "2330", "統一超": "2912", "寶成": "9904", "940": "00940"}
 
@@ -573,6 +576,39 @@ def _is_split_change(splits, code, d_now, old_sh, new_sh, dcost):
         if old_sh and round(old_sh * ratio) == round(new_sh) and abs(dcost) < 5:
             return sd, ratio
     return None
+
+
+def _is_stock_dividend_change(code, d_now, old_sh, new_sh, dcost):
+    """股數增加是否為**配股**(股票股利):回傳 (除權日 date, 種類) 或 None。
+    (2026-11-19 對元大 App 庫存時發現:台新新光金 2026/07/21 權息配了 20 股,系統一直記 2,000 股)
+    條件缺一不可——
+      ① 股數增加,且增幅 ≤ STOCKDIV_MAX_RATIO(配股不會讓股數翻倍;翻倍是分割的事)
+      ② 成本幾乎不變(|Δ成本| < 5 元;配股不花錢,真實買進一定讓成本變動)
+      ③ TWSE TWT49U 在 [d_now−STOCKDIV_DETECT_DAYS, d_now] 有該代號的「權」或「權息」
+    ⚠ 失敗方向偏大聲:查詢失敗或查無除權 → None → 照舊補「⚠ 買賣紀錄缺」讓人去看。
+      (`_fetch_exright` 失敗時回空 list,與「真的沒除權」分不出來——兩者都走大聲那條,所以安全。)
+    ⚠ 窗口刻意放寬到約一年:配股多半是對帳時才發現,距除權日往往已經幾個月。
+      ①② 已經是很強的指紋(白拿股數、成本不動),只有分割(另有辨識)會長得一樣。"""
+    import datetime as _dt
+    if not (old_sh and new_sh > old_sh and abs(dcost) < 5):
+        return None
+    if (new_sh - old_sh) / old_sh > STOCKDIV_MAX_RATIO:
+        return None
+    if not re.fullmatch(r"\d{4}", str(code)):      # TWT49U 只收上市個股的四位數代號
+        return None
+    try:
+        import twse_hist as _th
+        start = d_now - _dt.timedelta(days=STOCKDIV_DETECT_DAYS)
+        hits, seg = [], start
+        while seg <= d_now:                        # TWT49U 依年分段查,與基準配息同作法
+            seg_end = min(_dt.date(seg.year, 12, 31), d_now)
+            hits += [(dt, kind) for dt, c, kind, _v in _th._fetch_exright(seg, seg_end)
+                     if c == str(code) and "權" in str(kind)]
+            seg = _dt.date(seg.year + 1, 1, 1)
+    except Exception as e:
+        print(f"⚠ 查 TWSE 除權失敗({e}),{code} 的股數增加照舊當成「買賣紀錄缺」")
+        return None
+    return max(hits) if hits else None
 
 
 def read_trade_records(creds, since=TRADE_LOG_SINCE):
@@ -3727,6 +3763,11 @@ def sync(args):
         if sp:
             print(f"[日誌] {s['label']} 股數 {old_sh:,.0f}→{s['shares']:,.0f} 為 {sp[0]:%Y/%m/%d} 1拆{sp[1]} 分割"
                   f"(成本不變),不是交易,不列入日誌")
+            continue
+        sd = _is_stock_dividend_change(code, d_sync, old_sh, s["shares"] or 0, dcost) if d_sync else None
+        if sd:
+            print(f"[日誌] {s['label']} 股數 {old_sh:,.0f}→{s['shares']:,.0f} 為 {sd[0]:%Y/%m/%d} {sd[1]}配股"
+                  f"(成本不變、TWSE 有除權),不是交易,不列入日誌")
             continue
         px = round(abs(dcost / dq), 2) if dq else 0
         trades.append({"label": s["label"], "code": code, "act": "買進" if dq > 0 else "賣出",
