@@ -245,7 +245,7 @@
 | `check_reminders.py` | 日期到期提醒（讀 `reminders.json`，需環境變數 `LINE_TOKEN`/`LINE_USER_ID`） |
 | `notes_audio_digest.py` | 「**備忘錄錄音整理**」把「備忘錄」(Notes.app) 裡**內文只有錄音**的備忘錄補上 AI 標題／摘要／逐字稿並集中搬到同一資料夾：七階段可中斷續跑（`scan`／`export`／`transcribe`／`summarize`／`preview`／`apply --yes`／`move --yes`，另有 `status`），狀態與產出落在 `.notes_audio_cache/`（**私人錄音與逐字稿，不進版控**）。標題格式**日期在前**（`2026-10-07 16:10 主題`，資料夾按標題排序仍是時間順序）；**沒偵測到語音的直接刪除**（Jimmy 2026-10-13 指示，進「最近刪除」）。轉錄預設 `mlx-whisper`＋`large-v3-turbo`（GPU、**全本機**，約 9.5 倍速；沒裝則退回 faster-whisper CPU），摘要送 claude CLI（雲端）。⚠ **只有錄音的備忘錄 body 不含附件**，用 AppleScript `set body` 寫回會把錄音洗掉（2026-10-13 實測）——`apply` 改用 `notes_ax_insert.swift`（輔助使用 API）只把文字插到錄音前面，寫完驗證附件數與標題；執行期間備忘錄視窗會逐則切換，**勿操作備忘錄**，且**螢幕鎖定時無法寫入**。⚠ **AppleScript `save attachment`／介面「儲存附件」拿到的常只是片段**（實測 1:06:54 的錄音只拿到 56 秒，93 則中 15 則中招）——`export` 改為直接讀備忘錄資料庫的子附件取完整檔，需「**完全取用磁碟**」權限，且要加在**實際執行的程式**上（由 Claude 執行時是 `~/Library/Application Support/Claude/claude-code/<版本>/<雜湊>/claude.app`，不是 `/Applications/Claude.app`；路徑含版本號，更新後失效）。⚠ 寫入時偶發多出「音訊・0 秒」空卡片（成因未明，87 則中 1 則），腳本會在標題最前面加「⚠有空卡片」註記、不中斷。⚠ `scan` 會覆寫 `manifest.json`，批次進行中勿重跑 |
 | `price_audit.py` | 「**驗價格**」以 TWSE／TPEx 官方當日**最高／最低價**檢驗「股票買賣紀錄」每一筆成交價是否可能成交：`--code`／`--since`／`--tol`（預設 0.3%，用來吸收盤中零股與整股的區間差）。**記帳流程的第 0 步**（寫完買賣紀錄、還沒併入快照之前）。⚠ 成交價打錯是**其他檢查全部抓不到**的一類錯誤——手續費公式會自洽、合法跳動價位也過、股數護欄更抓不到，但一筆就可能差上千元。首次執行即抓到 00878 列315（21.19→22.19）與 00919 列360（23.25 落在同日 00878 的區間）|
-| `rebuild_cost_basis.py` | 「**重算成本**」依「股票買賣紀錄」重建加權平均成本，校正 `Jimmy_YYMMDD` 快照的 B 欄買進價：`check`（只比對）／`apply --yes`（寫回）。**記帳流程的第三步**：寫買賣紀錄 → 併入快照股數 → 跑這支 → 「更新所有分頁」。口徑＝Σ 買進應收付(含手續費)，賣出以**加權平均**扣除，分割前股數依「股票分割」換算。⚠ 三道護欄缺一不可：**股數對不上就跳過**（買賣紀錄只涵蓋 2025-06 後，硬套會把成本改到大錯）、**`_刪` 字尾的作廢列排除**、**差異超過 5% 就跳過**（擋下員工認股這種成本口徑不同的標的）|
+| `rebuild_cost_basis.py` | 「**重算成本**」依「股票買賣紀錄」重建持有成本，校正 `Jimmy_YYMMDD` 快照的 B 欄買進價：`check`（只比對）／`apply --yes`（寫回）。**記帳流程的第三步**：寫買賣紀錄 → 併入快照股數 → 跑這支 → 「更新所有分頁」。口徑＝Σ 買進應收付(含手續費)，賣出以**先進先出**扣除（`COST_METHOD="fifo"`，**2026-11-20 起**，與元大 App 持有成本同口徑；取代 2026-09-29 的加權平均決定，鴻海部分賣出後重建值與 App 逐元相同），分割前股數依「股票分割」換算。⚠ 口徑切換造成的大差異會被 5% 護欄擋下（那是對的），**不可放寬**——改依 App 持有成本人工寫入。無法重建的標的（凱基金等）部分賣出後一律取 App 持有成本。⚠ 三道護欄缺一不可：**股數對不上就跳過**（買賣紀錄只涵蓋 2025-06 後，硬套會把成本改到大錯）、**`_刪` 字尾的作廢列排除**、**差異超過 5% 就跳過**（擋下員工認股這種成本口徑不同的標的）|
 | `backup_private.sh` | 「**備份私密設定**」把不進版控、又無法重新產生的檔案同步到 `yaojing277/dotfiles`（Private）的 `jimmy_scripts_private/`：`cathay_report_notes.json`（人工註記，**救不回**）、`loan_config.json`、`line_secrets.json`。預覽／`--push`，冪等（內容沒變不產生空提交）。⚠ **憑證刻意不備份**（`gh_pat`／`credentials.json`／`token.json` 都能重新產生，不該進 git） |
 | `auth_sheets.py` / `reauth_sheets.py` | Google Sheets OAuth 授權／重授權（token 約 7 天過期）；`reauth_sheets.py --drive` 可加授 Google Drive 權限。**2026-11-05 起本機主要走 Service Account、OAuth 只是備援**，一般記帳不會再撞到過期（見重要慣例） |
 
@@ -390,7 +390,7 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   **新列** J 是**已含手續費**的常數、Q 空白。
   `buy_amount()` 的優先序＝**Q（外部佐證）> J 含費 > 依公式推算**。只讀 J 會少算手續費（曾全表少 36,052）。
   ⚠ **Q 只在負數時當買進扣款**——正數是賣出的應收付，不可混用。
-  ⚠ 賣出只用股數扣加權平均，金額不參與計算，所以賣出列缺金額不影響成本（缺**日期**才會錯序）。
+  ⚠ 賣出只用股數扣成本（先進先出），金額不參與計算，所以賣出列缺金額不影響成本（缺**日期**才會錯序）。
 - **`_刪` 字尾是作廢重複列**，計入會多算。`rebuild_cost_basis.py`／`since_date_pnl.py`／
   `update_wealth_os.py` **都認得 `_刪`**；`loan_funding.py` 不認（但它只看撥款後的日期，碰不到舊列）。
 - **期初整併列的權威金額要寫進 Q 欄，不能只放 J**：`buy_amount()` 判斷「J 是否含手續費」是看它
@@ -671,7 +671,7 @@ pip3 install --upgrade google-api-python-client google-auth-httplib2 google-auth
   純使用行為（跑一次摘要、查一次股價）不算異動。細節見 memory（[[feedback-devlog-version-entry]]）。
 - **兩份 devlog（HTML，倒序，新紀錄加在最上面）**：`stock_automation_devlog.html`（股票自動化家族總表，
   2026-04-12 起 **38 則**，含架構總覽表與三條踩坑鐵律）、`wealth_os_devlog.html`（Wealth OS 專屬，
-  2026-07-11 起 **54 則**）。格式沿用 `~/Downloads/docs/devlog.html` 模板。
+  2026-07-11 起 **55 則**）。格式沿用 `~/Downloads/docs/devlog.html` 模板。
 - ⚠ **devlog 比版本紀錄容易落後**（曾落後四週，而版本紀錄是齊的，因為那個有順手補的習慣）。
   📌 **補舊帳可行的前提是當時留了紀錄**：2026-11-08 補完的 15 則是依 **commit 內文＋版本紀錄＋本檔**
   三份當時寫下的材料改寫的，不是憑印象。**若日後 commit 只剩一行標題，這條路就斷了。**

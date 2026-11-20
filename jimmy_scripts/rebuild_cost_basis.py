@@ -11,8 +11,8 @@
   (賣出時以加權平均扣成本的進位差)。
 
 口徑:
-  * 成本 = Σ 買進應收付(J 欄,含手續費);賣出時以**加權平均**扣除
-    (與 Jimmy 2026-09 的決定一致,非 FIFO)。
+  * 成本 = Σ 買進應收付(J 欄,含手續費);賣出時以**先進先出**扣除(COST_METHOD,2026-11-20 起)
+    (2026-11-20 起改 FIFO,與元大 App 持有成本同口徑;舊的加權平均保留為 method="avg")。
   * 分割前的股數依「股票分割」分頁換算成分割後(成本不變)。
 
 ⚠ 安全護欄:**只校正「重建股數 == 快照股數」的標的**。
@@ -44,6 +44,9 @@ _A = {**ALIAS, **EXTRA_ALIAS}
 # ⚠ 「_刪」字尾是人工標記的**作廢重複列**,不可計入
 # (實測:00878 排除後剛好等於快照的 100,000 股,計入就多 2,000 股)。
 VOID_SUFFIX = "_刪"
+# 部分賣出後的剩餘成本口徑。2026-11-20 Jimmy 指示改為先進先出,與元大 App 的持有成本一致
+# (取代 2026-09-29 禾伸堂那次的「加權平均」決定)。兩種口徑總損益相同,只差已實現／剩餘成本的切法。
+COST_METHOD = "fifo"
 
 
 def canon(name):
@@ -166,19 +169,38 @@ def _f(v):
         return 0.0
 
 
-def rebuild(events, split):
-    """時序走一遍,回 (股數, 成本)。分割前股數換算成分割後;賣出以加權平均扣成本。"""
+def rebuild(events, split, method=None):
+    """時序走一遍,回 (股數, 成本)。分割前股數換算成分割後。
+    method="fifo"(預設,2026-11-20 起):賣出從**最早的買進批**開始扣,部分扣到的那批按股數比例分攤成本
+      ——與元大 App 的「持有成本」同口徑。
+    method="avg":舊口徑,賣出以加權平均扣成本(只留作對照)。
+    ⚠ 同一天有買有賣時先處理買進(先進先出下不影響結果,只是避免賣出時批次不足)。"""
+    method = method or COST_METHOD
     sd, sr = split if split else (None, 1)
+    lots = []                                   # [[股數, 成本], ...] 由舊到新
     sh = cost = 0.0
-    for d, kind, qty, amt in sorted(events, key=lambda e: e[0]):
+    for d, kind, qty, amt in sorted(events, key=lambda e: (e[0], 0 if e[1] == "B" else 1)):
         q = qty * sr if (sd and d < sd) else qty
         if kind == "B":
             sh += q
             cost += amt
-        else:
+            lots.append([q, amt])
+        elif method == "avg":
             avg = cost / sh if sh else 0.0
             cost -= avg * q
             sh -= q
+        else:
+            left = q
+            while left > 1e-9 and lots:
+                lq, lc = lots[0]
+                take = min(lq, left)
+                part = lc * take / lq
+                lots[0] = [lq - take, lc - part]
+                cost -= part
+                left -= take
+                if lots[0][0] <= 1e-9:
+                    lots.pop(0)
+            sh -= q                             # 批次不足(紀錄不完整)時股數照扣,讓股數護欄擋下
     return sh, cost
 
 
